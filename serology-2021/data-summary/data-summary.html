@@ -683,7 +683,7 @@
       line40.setAttributeNS(null, "stroke", thresholdLineCol)
       line40.setAttributeNS(null, "stroke-dasharray", "5,5")
       plotSvg.appendChild(line40)
-      opacities.line40.elements.push(line40)
+      opacities.line40.titrePlotElements.push(line40)
 
       // NOTE(sen) The rest of the plot
       for (let [labIndex, virusNames] of labViruses.entries()) {
@@ -777,7 +777,7 @@
                   col + opacities.points.value.toString(16)
                 )
                 plotSvg.appendChild(point)
-                opacities.points.elements.push(point)
+                opacities.points.titrePlotElements.push(point)
                 coords = { x: xCoord, y: yCoord }
               }
 
@@ -806,7 +806,7 @@
                 thisPreVaxCol + opacities.lines.value.toString(16)
               )
               plotSvg.appendChild(line)
-              opacities.lines.elements.push(line)
+              opacities.lines.titrePlotElements.push(line)
             }
           }
 
@@ -840,7 +840,7 @@
             count.setAttributeNS(null, "text-anchor", "middle")
             count.setAttributeNS(null, "dominant-baseline", "hanging")
             plotSvg.appendChild(count)
-            opacities.counts.elements.push(count)
+            opacities.counts.titrePlotElements.push(count)
 
             // NOTE(sen) Boxplots
             titres = titres
@@ -861,7 +861,7 @@
             )
 
             plotSvg.appendChild(boxplot)
-            opacities.boxplots.elements.push(boxplot)
+            opacities.boxplots.titrePlotElements.push(boxplot)
           } // NOTE(sen) for (timepoint)
         } // NOTE(sen) for (virus)
       } // NOTE(sen) for (lab)
@@ -1067,7 +1067,7 @@
       line40.setAttributeNS(null, "stroke", thresholdLineCol)
       line40.setAttributeNS(null, "stroke-dasharray", "5,5")
       plotSvg.appendChild(line40)
-      opacities.line40.elements.push(line40)
+      opacities.line40.titreCladeAveragePlotElements.push(line40)
 
       // NOTE(sen) The rest of the plot
       for (let [labIndex, cladeNames] of labClades.entries()) {
@@ -1161,7 +1161,7 @@
                   col + opacities.points.value.toString(16)
                 )
                 plotSvg.appendChild(point)
-                opacities.points.elements.push(point)
+                opacities.points.titreCladeAveragePlotElements.push(point)
                 coords = { x: xCoord, y: yCoord }
               }
 
@@ -1190,7 +1190,7 @@
                 thisPreVaxCol + opacities.lines.value.toString(16)
               )
               plotSvg.appendChild(line)
-              opacities.lines.elements.push(line)
+              opacities.lines.titreCladeAveragePlotElements.push(line)
             }
           } // NOTE(sen) for serum id
 
@@ -1223,7 +1223,7 @@
             count.setAttributeNS(null, "text-anchor", "middle")
             count.setAttributeNS(null, "dominant-baseline", "hanging")
             plotSvg.appendChild(count)
-            opacities.counts.elements.push(count)
+            opacities.counts.titreCladeAveragePlotElements.push(count)
 
             // NOTE(sen) Boxplots
             titres = titres
@@ -1244,11 +1244,22 @@
             )
 
             plotSvg.appendChild(boxplot)
-            opacities.boxplots.elements.push(boxplot)
+            opacities.boxplots.titreCladeAveragePlotElements.push(boxplot)
           } // NOTE(sen) for timepoint
         } // NOTE(sen) for clade
       } // NOTE(sen) for lab
     } // NOTE(sen) if data
+
+    return plotSvg
+  }
+
+  const createTitreCirculatingAveragePlotSvg = (data, opacities) => {
+    let plotSvg = document.createElementNS(XMLNS, "svg")
+
+    plotSvg.style.flexShrink = "0"
+
+    if (data !== null && data !== undefined && data.length > 0) {
+    }
 
     return plotSvg
   }
@@ -1265,11 +1276,41 @@
       cohort: { elements: [], options: [], selected: null },
     },
     opacities: {
-      points: { elements: [], value: 255, default: 255 },
-      lines: { elements: [], value: 127, default: 127 },
-      boxplots: { elements: [], value: 255, default: 255 },
-      counts: { elements: [], value: 255, default: 255 },
-      line40: { elements: [], value: 255, default: 255 },
+      points: {
+        titrePlotElements: [],
+        titreCladeAveragePlotElements: [],
+        titreCirculatingAveragePlotElements: [],
+        value: 255,
+        default: 255,
+      },
+      lines: {
+        titrePlotElements: [],
+        titreCladeAveragePlotElements: [],
+        titreCirculatingAveragePlotElements: [],
+        value: 127,
+        default: 127,
+      },
+      boxplots: {
+        titrePlotElements: [],
+        titreCladeAveragePlotElements: [],
+        titreCirculatingAveragePlotElements: [],
+        value: 255,
+        default: 255,
+      },
+      counts: {
+        titrePlotElements: [],
+        titreCladeAveragePlotElements: [],
+        titreCirculatingAveragePlotElements: [],
+        value: 255,
+        default: 255,
+      },
+      line40: {
+        titrePlotElements: [],
+        titreCladeAveragePlotElements: [],
+        titreCirculatingAveragePlotElements: [],
+        value: 255,
+        default: 255,
+      },
     },
     colors: {
       theme: "dark",
@@ -1280,6 +1321,9 @@
     main: document.getElementById("main"),
     inputContainer: null,
     plotContainer: null,
+    titrePlotContainer: null,
+    titreCladeAveragePlotContainer: null,
+    titreCirculatingAveragePlotContainer: null,
     slidersContainer: null,
     subtypeSlidersContainers: {},
     cladeFreqElements: {},
@@ -1289,7 +1333,7 @@
     scrollbarStyle: null,
   }
 
-  function updatePlot() {
+  const areAllFiltersSet = () => {
     let allFiltersSet = true
     for (let varName of Object.keys(state.filters)) {
       if (state.filters[varName].selected === null) {
@@ -1297,9 +1341,23 @@
         break
       }
     }
+    return allFiltersSet
+  }
 
-    // NOTE(sen) Figure out filter set that has data associated with it
-    if (!allFiltersSet) {
+  const updateSliderSubtype = () => {
+    for (let [subtype, slidersContainer] of Object.entries(
+      state.subtypeSlidersContainers
+    )) {
+      if (subtype === state.filters.subtype.selected) {
+        slidersContainer.style.display = "block"
+      } else {
+        slidersContainer.style.display = "none"
+      }
+    }
+  }
+
+  const findNonEmptyFilterSubset = () => {
+    if (!areAllFiltersSet()) {
       let currentSettings = []
       for (let [filterIndex, varName] of Object.keys(state.filters).entries()) {
         currentSettings.push({
@@ -1365,53 +1423,46 @@
           currentSettings[currentlyIncrementing].currentIndex += 1
         }
       }
-    }
 
-    // NOTE(sen) Make sure the correct sliders are highlighted
-    for (let [subtype, slidersContainer] of Object.entries(
-      state.subtypeSlidersContainers
-    )) {
-      if (subtype === state.filters.subtype.selected) {
-        slidersContainer.style.background = "var(--color-selected)"
-      } else {
-        slidersContainer.style.background = "var(--color-background)"
-      }
-    }
+      updateSliderSubtype()
 
-    // NOTE(sen) Update filter colors and draw the plot
-    for (let varName of Object.keys(state.filters)) {
-      let otherVarNames = Object.keys(state.filters).filter(
-        (key) => key !== varName
-      )
+      // NOTE(sen) Update filter colors
+      for (let varName of Object.keys(state.filters)) {
+        let otherVarNames = Object.keys(state.filters).filter(
+          (key) => key !== varName
+        )
 
-      for (let [optionIndex, option] of state.filters[
-        varName
-      ].options.entries()) {
-        let testRows = state.data.filter((row) => {
-          let result = row[varName] === option
-          if (result) {
-            for (let otherVarName of otherVarNames) {
-              result =
-                row[otherVarName] === state.filters[otherVarName].selected
-              if (!result) {
-                break
+        for (let [optionIndex, option] of state.filters[
+          varName
+        ].options.entries()) {
+          let testRows = state.data.filter((row) => {
+            let result = row[varName] === option
+            if (result) {
+              for (let otherVarName of otherVarNames) {
+                result =
+                  row[otherVarName] === state.filters[otherVarName].selected
+                if (!result) {
+                  break
+                }
               }
             }
+            return result
+          })
+
+          let element = state.filters[varName].elements[optionIndex]
+
+          if (testRows.length === 0) {
+            element.style.color = "var(--color-error)"
+          } else {
+            element.style.color = "inherit"
           }
-          return result
-        })
-
-        let element = state.filters[varName].elements[optionIndex]
-
-        if (testRows.length === 0) {
-          element.style.color = "var(--color-error)"
-        } else {
-          element.style.color = "inherit"
         }
       }
     }
+  }
 
-    const subsetFilter = (row) => {
+  const createSubsetFilter = () => {
+    return (row) => {
       let result = true
       for (let varName of Object.keys(state.filters)) {
         result = row[varName] === state.filters[varName].selected
@@ -1421,54 +1472,92 @@
       }
       return result
     }
+  }
 
-    let dataSubset = state.data.filter(subsetFilter)
+  const updateTitrePlot = () => {
+    if (areAllFiltersSet()) {
+      const subsetFilter = createSubsetFilter()
 
-    let dataSubsetCladeAverages =
-      state.dataCladeAverageTitres.filter(subsetFilter)
+      let dataSubset = state.data.filter(subsetFilter)
 
-    while (state.plotContainer.lastChild) {
-      state.plotContainer.removeChild(state.plotContainer.lastChild)
+      while (state.titrePlotContainer.lastChild) {
+        state.titrePlotContainer.removeChild(state.titrePlotContainer.lastChild)
+      }
+
+      for (let varName of Object.keys(state.opacities)) {
+        state.opacities[varName].titrePlotElements = []
+      }
+
+      let plotSvg = createTitrePlotSvg(
+        dataSubset,
+        [
+          "A/Guangdong-Maonan/SWL1536/2019e",
+          "A/Hong Kong/2671/2019e",
+          "B/Washington/02/2019e",
+        ],
+        state.opacities
+      )
+
+      state.titrePlotContainer.appendChild(plotSvg)
     }
+  }
 
-    for (let varName of Object.keys(state.opacities)) {
-      state.opacities[varName].elements = []
+  const updateTitreCladeAveragePlot = () => {
+    if (areAllFiltersSet()) {
+      const subsetFilter = createSubsetFilter()
+
+      let dataSubsetCladeAverages =
+        state.dataCladeAverageTitres.filter(subsetFilter)
+
+      while (state.titreCladeAveragePlotContainer.lastChild) {
+        state.titreCladeAveragePlotContainer.removeChild(
+          state.titreCladeAveragePlotContainer.lastChild
+        )
+      }
+
+      for (let varName of Object.keys(state.opacities)) {
+        state.opacities[varName].titreCladeAveragePlotElements = []
+      }
+
+      let plotCladeAverageTitresSvg = createTitreCladeAveragePlotSvg(
+        dataSubsetCladeAverages,
+        ["A5a.1", "A1b/137F", "V1A.3"],
+        state.opacities
+      )
+
+      state.titreCladeAveragePlotContainer.appendChild(
+        plotCladeAverageTitresSvg
+      )
     }
+  }
 
-    let plotSvg = createTitrePlotSvg(
-      dataSubset,
-      [
-        "A/Guangdong-Maonan/SWL1536/2019e",
-        "A/Hong Kong/2671/2019e",
-        "B/Washington/02/2019e",
-      ],
-      state.opacities
-    )
+  const updateTitreCirculatingAveragePlot = () => {
+    if (areAllFiltersSet()) {
+      const subsetFilter = createSubsetFilter()
 
-    let plotCladeAverageTitresSvg = createTitreCladeAveragePlotSvg(
-      dataSubsetCladeAverages,
-      ["A5a.1", "A1b/137F", "V1A.3"],
-      state.opacities
-    )
+      let dataSubsetCirculatingAverages =
+        state.dataCirculatingAverageTitres.filter(subsetFilter)
 
-    let plotSvgContainer = document.createElement("div")
-    let plotCladeAverageTitresSvgContainer = document.createElement("div")
+      while (state.titreCirculatingAveragePlotContainer.lastChild) {
+        state.titreCirculatingAveragePlotContainer.removeChild(
+          state.titreCirculatingAveragePlotContainer.lastChild
+        )
+      }
 
-    plotSvgContainer.style.flexShrink = "0"
-    plotSvgContainer.style.overflowX = "scroll"
-    plotSvgContainer.style.overflowY = "hidden"
-    plotSvgContainer.appendChild(plotSvg)
+      for (let varName of Object.keys(state.opacities)) {
+        state.opacities[varName].titreCirculatingAveragePlotElements = []
+      }
 
-    plotCladeAverageTitresSvgContainer.style.flexShrink =
-      plotSvgContainer.style.flexShrink
-    plotCladeAverageTitresSvgContainer.style.overflowX =
-      plotSvgContainer.style.overflowX
-    plotCladeAverageTitresSvgContainer.style.overflowY =
-      plotSvgContainer.style.overflowY
-    plotCladeAverageTitresSvgContainer.appendChild(plotCladeAverageTitresSvg)
+      let plotCirculatingAverageTitresSvg =
+        createTitreCirculatingAveragePlotSvg(
+          dataSubsetCirculatingAverages,
+          state.opacities
+        )
 
-    state.plotContainer.appendChild(plotCladeAverageTitresSvgContainer)
-    state.plotContainer.appendChild(plotSvgContainer)
+      state.titreCirculatingAveragePlotContainer.appendChild(
+        plotCirculatingAverageTitresSvg
+      )
+    }
   }
 
   const updateCirculatingAverageData = () => {
@@ -1483,14 +1572,37 @@
         groupedData,
         groupVars,
         (data) => {
-          return { titreCirculatingAverage: 5 }
+          let sumLogTitres = 0
+          let sumWeights = 0
+          for (let row of data) {
+            let weight = state.cladeFreqs[row.clade]
+            let titre = row.titreCladeAverage
+            if (
+              !isNaN(weight) &&
+              weight !== null &&
+              weight !== undefined &&
+              titre !== null &&
+              titre !== undefined &&
+              !isNaN(titre)
+            ) {
+              sumLogTitres += weight * Math.log(row.titreCladeAverage)
+              sumWeights += weight
+            }
+          }
+          let weightedMean = null
+          if (sumWeights !== 0) {
+            weightedMean = Math.exp(sumLogTitres / sumWeights)
+          }
+          return { titreCirculatingAverage: weightedMean }
         }
       )
+      updateTitreCirculatingAveragePlot()
     }
   }
 
   const updateData = (contentsString) => {
     if (contentsString.length > 0) {
+      // NOTE(sen) Main data
       state.data = parseData(contentsString)
 
       // NOTE(sen) Clade frequencies
@@ -1544,6 +1656,7 @@
             for (let el of state.cladeFreqElements[clade]) {
               el.innerHTML = clade + " (" + event.target.value + "%)"
             }
+            updateCirculatingAverageData()
           })
 
           slider.appendChild(name)
@@ -1581,9 +1694,6 @@
           }
         )
       }
-
-      // NOTE(sen) Work out circulating averages
-      updateCirculatingAverageData()
 
       // NOTE(sen) Populate filters
       for (let varName of Object.keys(state.filters)) {
@@ -1647,7 +1757,12 @@
               otherOption.style.background = "inherit"
             }
             optionEl.style.background = "var(--color-selected)"
-            updatePlot()
+            updateTitrePlot()
+            updateTitreCladeAveragePlot()
+            updateTitreCirculatingAveragePlot()
+            if (varName === "subtype") {
+              updateSliderSubtype()
+            }
           })
 
           optionEl.style.padding = "5px"
@@ -1666,7 +1781,12 @@
         state.filtersContainer.appendChild(filterEl)
       }
 
-      updatePlot()
+      findNonEmptyFilterSubset()
+
+      updateCirculatingAverageData()
+
+      updateTitrePlot()
+      updateTitreCladeAveragePlot()
     }
   }
 
@@ -1715,6 +1835,37 @@
     container.style.height = "calc(100vh - 0px)"
     container.style.overflowY = "scroll"
     container.style.overflowX = "hidden"
+
+    let titrePlotContainer = document.createElement("div")
+    let titreCladeAveragePlotContainer = document.createElement("div")
+    let titreCirculatingAveragePlotContainer = document.createElement("div")
+
+    titrePlotContainer.style.flexShrink = "0"
+    titrePlotContainer.style.overflowX = "scroll"
+    titrePlotContainer.style.overflowY = "hidden"
+
+    titreCladeAveragePlotContainer.style.flexShrink =
+      titrePlotContainer.style.flexShrink
+    titreCladeAveragePlotContainer.style.overflowX =
+      titrePlotContainer.style.overflowX
+    titreCladeAveragePlotContainer.style.overflowY =
+      titrePlotContainer.style.overflowY
+
+    titreCirculatingAveragePlotContainer.style.flexShrink =
+      titrePlotContainer.style.flexShrink
+    titreCirculatingAveragePlotContainer.style.overflowX =
+      titrePlotContainer.style.overflowX
+    titreCirculatingAveragePlotContainer.style.overflowY =
+      titrePlotContainer.style.overflowY
+
+    container.appendChild(titreCirculatingAveragePlotContainer)
+    container.appendChild(titreCladeAveragePlotContainer)
+    container.appendChild(titrePlotContainer)
+
+    state.titrePlotContainer = titrePlotContainer
+    state.titreCladeAveragePlotContainer = titreCladeAveragePlotContainer
+    state.titreCirculatingAveragePlotContainer =
+      titreCirculatingAveragePlotContainer
 
     state.plotContainer = container
     state.main.appendChild(container)
@@ -1837,7 +1988,14 @@
         if (varName === "counts" || varName === "points") {
           attrName = "fill"
         }
-        for (let element of state.opacities[varName].elements) {
+        for (let element of state.opacities[varName].titrePlotElements) {
+          let currentColFull = element.getAttribute(attrName)
+          let currentColNoAlpha = currentColFull.slice(0, 7)
+          let newCol = currentColNoAlpha + alpha
+          element.setAttributeNS(null, attrName, newCol)
+        }
+        for (let element of state.opacities[varName]
+          .titreCladeAveragePlotElements) {
           let currentColFull = element.getAttribute(attrName)
           let currentColNoAlpha = currentColFull.slice(0, 7)
           let newCol = currentColNoAlpha + alpha
@@ -1864,14 +2022,6 @@
     state.opacitiesContainer = opacitiesEl
   }
 
-  // NOTE(sen) Init sliders
-  {
-    let sliders = document.createElement("div")
-    sliders.style.marginBottom = "5px"
-    state.slidersContainer = sliders
-    state.inputContainer.appendChild(sliders)
-  }
-
   // NOTE(sen) Init filters container
   {
     let filtersContainer = document.createElement("div")
@@ -1882,6 +2032,14 @@
 
     state.filtersContainer = filtersContainer
     state.inputContainer.appendChild(filtersContainer)
+  }
+
+  // NOTE(sen) Init sliders
+  {
+    let sliders = document.createElement("div")
+    sliders.style.marginBottom = "5px"
+    state.slidersContainer = sliders
+    state.inputContainer.appendChild(sliders)
   }
 
   // TODO(sen) Dev only for testing
