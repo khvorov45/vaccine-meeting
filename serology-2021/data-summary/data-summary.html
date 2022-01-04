@@ -249,12 +249,20 @@
     }
   }
 
-  function scale(value, valueMin, valueMax, scaleMin, scaleMax) {
-    value0 = value - valueMin
-    valueNorm = value0 / (valueMax - valueMin)
-    valueScale0 = valueNorm * (scaleMax - scaleMin)
-    valueScale = valueScale0 + scaleMin
-    return valueScale
+  const scale = (value, valueMin, valueMax, scaleMin, scaleMax) => {
+    let result = scaleMin
+    let scaleRange = scaleMax - scaleMin
+    if (scaleRange !== 0) {
+      result = scaleRange / 2 + scaleMin
+      let valueRange = valueMax - valueMin
+      if (valueRange !== 0) {
+        let value0 = value - valueMin
+        let valueNorm = value0 / valueRange
+        let valueScale0 = valueNorm * scaleRange
+        result = valueScale0 + scaleMin
+      }
+    }
+    return result
   }
 
   function parseData(input) {
@@ -290,7 +298,8 @@
     axisPadLeft,
     axisPadTop,
     tickLength,
-    scaleTitre
+    scaleTitre,
+    title
   ) => {
     let titreAxis = document.createElementNS(XMLNS, "g")
 
@@ -306,7 +315,7 @@
     )
     yTitle.setAttributeNS(null, "dominant-baseline", "hanging")
     yTitle.setAttributeNS(null, "text-anchor", "middle")
-    yTitle.innerHTML = "Titre"
+    yTitle.innerHTML = title
     titreAxis.appendChild(yTitle)
 
     // NOTE(sen) Line
@@ -370,11 +379,20 @@
     stats.min = arrSortedAscMin(arrSortedAsc)
     stats.iqr = stats.q75 - stats.q25
     stats.iqr15 = 1.5 * stats.iqr
+    let epsilon = 0.00001
     stats.top = arrSortedAscMax(
-      arrSortedAsc.filter((val) => val <= stats.q75 + stats.iqr15)
+      arrSortedAsc.filter(
+        (val) =>
+          val <= stats.q75 + stats.iqr15 + epsilon &&
+          val <= stats.q75 + stats.iqr15 - epsilon
+      )
     )
     stats.bottom = arrSortedAscMin(
-      arrSortedAsc.filter((val) => val >= stats.q25 - stats.iqr15)
+      arrSortedAsc.filter(
+        (val) =>
+          val >= stats.q25 - stats.iqr15 + epsilon &&
+          val >= stats.q25 - stats.iqr15 - epsilon
+      )
     )
 
     return stats
@@ -393,14 +411,18 @@
     let boxplot = document.createElementNS(XMLNS, "g")
     boxplot.setAttributeNS(null, "stroke", col)
 
+    const isGood = (n) => n !== null && n !== undefined && !isNaN(n)
+
     const drawBoxplotHline = (yCoord, thickness) => {
       let line = document.createElementNS(XMLNS, "line")
 
-      line.setAttributeNS(null, "x1", xCoord - boxWidth / 2)
-      line.setAttributeNS(null, "x2", xCoord + boxWidth / 2)
-      line.setAttributeNS(null, "y1", yCoord)
-      line.setAttributeNS(null, "y2", yCoord)
-      line.setAttributeNS(null, "stroke-width", thickness)
+      if (isGood(xCoord) && isGood(yCoord) && isGood(boxWidth)) {
+        line.setAttributeNS(null, "x1", xCoord - boxWidth / 2)
+        line.setAttributeNS(null, "x2", xCoord + boxWidth / 2)
+        line.setAttributeNS(null, "y1", yCoord)
+        line.setAttributeNS(null, "y2", yCoord)
+        line.setAttributeNS(null, "stroke-width", thickness)
+      }
 
       boxplot.appendChild(line)
     }
@@ -411,10 +433,12 @@
 
     const drawBoxplotVline = (xCoord) => {
       let line = document.createElementNS(XMLNS, "line")
-      line.setAttributeNS(null, "x1", xCoord)
-      line.setAttributeNS(null, "x2", xCoord)
-      line.setAttributeNS(null, "y1", boxUp)
-      line.setAttributeNS(null, "y2", boxDown)
+      if (isGood(xCoord) && isGood(boxUp) && isGood(boxDown)) {
+        line.setAttributeNS(null, "x1", xCoord)
+        line.setAttributeNS(null, "x2", xCoord)
+        line.setAttributeNS(null, "y1", boxUp)
+        line.setAttributeNS(null, "y2", boxDown)
+      }
       boxplot.appendChild(line)
     }
 
@@ -423,10 +447,12 @@
 
     const drawBoxplotWhisker = (start, end) => {
       let line = document.createElementNS(XMLNS, "line")
-      line.setAttributeNS(null, "x1", xCoord)
-      line.setAttributeNS(null, "x2", xCoord)
-      line.setAttributeNS(null, "y1", start)
-      line.setAttributeNS(null, "y2", end)
+      if (isGood(xCoord) && isGood(start) && isGood(end)) {
+        line.setAttributeNS(null, "x1", xCoord)
+        line.setAttributeNS(null, "x2", xCoord)
+        line.setAttributeNS(null, "y1", start)
+        line.setAttributeNS(null, "y2", end)
+      }
       boxplot.appendChild(line)
     }
 
@@ -587,7 +613,8 @@
         axisPadLeft,
         axisPadTop,
         tickLength,
-        scaleTitre
+        scaleTitre,
+        "Titre"
       )
       plotSvg.appendChild(yAxis)
 
@@ -918,15 +945,7 @@
       // NOTE(sen) X-Axis
 
       let labs = Array.from(new Set(data.map((row) => row.testing_lab))).sort(
-        (a, b) => {
-          result = 0
-          if (a > b) {
-            result = 1
-          } else if (a < b) {
-            result - 1
-          }
-          return result
-        }
+        stringSort
       )
 
       let labClades = []
@@ -988,7 +1007,8 @@
         axisPadLeft,
         axisPadTop,
         tickLength,
-        scaleTitre
+        scaleTitre,
+        "Clade average titre"
       )
       plotSvg.appendChild(yAxis)
 
@@ -1133,9 +1153,7 @@
 
               if (titre) {
                 let point = document.createElementNS(XMLNS, "circle")
-                let yCoord = scaleLogtitre(
-                  Math.log(titre) + Math.random() * 0.1
-                )
+                let yCoord = scaleLogtitre(Math.log(titre))
                 let xCoord =
                   scaleLabIndexCladeIndex(
                     labIndex,
@@ -1259,6 +1277,292 @@
     plotSvg.style.flexShrink = "0"
 
     if (data !== null && data !== undefined && data.length > 0) {
+      //
+      // SECTION Sizes and colors
+      //
+
+      let plotHeight = 400
+      let widthPerLab = 100
+      let axisPadLeft = 80
+      let axisPadBottom = 80
+      let axisPadTop = 20
+      let dataPadX = 50
+      let dataPadY = 10
+      let tickLength = 5
+      let prePostDistance = 40
+      let boxPlotWidth = 15
+
+      let preVaxCol = "#308A36"
+      let postVaxCol = "#7FA438"
+      let textCol = "var(--color-text)"
+      let axisCol = "#aaaaaa"
+      let thresholdLineCol = axisCol + opacities.line40.value.toString(16)
+      let gridCol = "#99999944"
+
+      //
+      // SECTION Scales
+      //
+
+      // NOTE(sen) Y-Axis
+      let scaleLogtitre = (val) =>
+        scale(
+          val,
+          Math.log(5),
+          Math.log(10240),
+          plotHeight - dataPadY - axisPadBottom,
+          dataPadY + axisPadTop
+        )
+      let scaleTitre = (val) => scaleLogtitre(Math.log(val))
+
+      // NOTE(sen) X-Axis
+      let labs = Array.from(new Set(data.map((row) => row.testing_lab))).sort(
+        stringSort
+      )
+
+      let plotWidth = widthPerLab * labs.length + axisPadLeft
+
+      const scaleLabIndex = (labIndex) =>
+        scale(
+          labIndex,
+          0,
+          labs.length - 1,
+          axisPadLeft + dataPadX,
+          plotWidth - dataPadX
+        )
+
+      //
+      // SECTION Plot
+      //
+
+      plotSvg.setAttributeNS(
+        null,
+        "viewBox",
+        "0 0 " + plotWidth + " " + plotHeight
+      )
+      plotSvg.setAttributeNS(null, "width", plotWidth)
+      plotSvg.setAttributeNS(null, "height", plotHeight)
+      plotSvg.style.display = "block"
+
+      //
+      // SECTION Y-Axis
+      //
+
+      let yAxis = createTitreAxisElement(
+        textCol,
+        axisCol,
+        gridCol,
+        plotWidth,
+        plotHeight,
+        axisPadBottom,
+        axisPadLeft,
+        axisPadTop,
+        tickLength,
+        scaleTitre,
+        "Circulating average titre"
+      )
+      plotSvg.appendChild(yAxis)
+
+      //
+      // SECTION X-axis
+      //
+
+      // NOTE(sen) Line
+      let xLine = document.createElementNS(XMLNS, "line")
+      xLine.setAttributeNS(null, "x1", axisPadLeft)
+      xLine.setAttributeNS(null, "x2", plotWidth)
+      xLine.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
+      xLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
+      xLine.setAttributeNS(null, "stroke", axisCol)
+      plotSvg.appendChild(xLine)
+      let xLine2 = document.createElementNS(XMLNS, "line")
+      xLine2.setAttributeNS(null, "x1", axisPadLeft)
+      xLine2.setAttributeNS(null, "x2", plotWidth)
+      xLine2.setAttributeNS(null, "y1", axisPadTop)
+      xLine2.setAttributeNS(null, "y2", axisPadTop)
+      xLine2.setAttributeNS(null, "stroke", axisCol)
+      plotSvg.appendChild(xLine2)
+
+      // NOTE(sen) Ticks and labels
+      for (let [labIndex, labName] of labs.entries()) {
+        let xCoord = scaleLabIndex(labIndex)
+
+        let tick = document.createElementNS(XMLNS, "line")
+        tick.setAttributeNS(null, "x1", xCoord)
+        tick.setAttributeNS(null, "x2", xCoord)
+        tick.setAttributeNS(null, "y1", plotHeight - axisPadBottom + 1)
+        tick.setAttributeNS(
+          null,
+          "y2",
+          plotHeight - axisPadBottom + 1 + tickLength
+        )
+        tick.setAttributeNS(null, "stroke", axisCol)
+        plotSvg.appendChild(tick)
+
+        let yCoord = plotHeight - axisPadBottom + tickLength * 2
+
+        let label = document.createElementNS(XMLNS, "text")
+        label.setAttributeNS(null, "x", 0)
+        label.setAttributeNS(null, "y", 0)
+        label.setAttributeNS(null, "fill", textCol)
+        label.setAttributeNS(null, "dominant-baseline", "hanging")
+        label.setAttributeNS(null, "text-anchor", "middle")
+        label.setAttributeNS(null, "text-wrap", "wrap")
+        label.setAttributeNS(
+          null,
+          "transform",
+          `translate(${xCoord}, ${yCoord}) rotate(0)`
+        )
+        label.innerHTML = labName
+
+        plotSvg.appendChild(label)
+      }
+
+      //
+      // SECTION Main plot
+      //
+
+      // NOTE(sen) Line at 40
+      let line40 = document.createElementNS(XMLNS, "line")
+      line40.setAttributeNS(null, "x1", axisPadLeft)
+      line40.setAttributeNS(null, "x2", plotWidth)
+      line40.setAttributeNS(null, "y1", scaleTitre(40))
+      line40.setAttributeNS(null, "y2", scaleTitre(40))
+      line40.setAttributeNS(null, "stroke", thresholdLineCol)
+      line40.setAttributeNS(null, "stroke-dasharray", "5,5")
+      plotSvg.appendChild(line40)
+      opacities.line40.titreCirculatingAveragePlotElements.push(line40)
+
+      // NOTE(sen) The rest of the plot
+      for (let [labIndex, labName] of labs.entries()) {
+        let labData = data.filter((row) => row.testing_lab == labName)
+        let serumIds = Array.from(new Set(labData.map((row) => row.serum_id)))
+
+        let labDataPrevax = labData.filter((row) => row.timepoint === "Pre-vax")
+        let labDataPostvax = labData.filter(
+          (row) => row.timepoint === "Post-vax"
+        )
+
+        let preVaxPoints = 0
+        let postVaxPoints = 0
+
+        for (let serumId of serumIds) {
+          let preVaxData = labDataPrevax.filter(
+            (row) => row.serum_id == serumId
+          )
+          let postVaxData = labDataPostvax.filter(
+            (row) => row.serum_id == serumId
+          )
+
+          const drawPoint = (titre, timepoint) => {
+            let coords = null
+
+            if (titre) {
+              let point = document.createElementNS(XMLNS, "circle")
+              let yCoord = scaleLogtitre(Math.log(titre))
+              let xCoord = scaleLabIndex(labIndex) - prePostDistance / 2
+
+              let col = preVaxCol
+              if (timepoint === "Post-vax") {
+                xCoord += prePostDistance
+                col = postVaxCol
+                postVaxPoints += 1
+              } else {
+                preVaxPoints += 1
+              }
+
+              point.setAttributeNS(null, "cx", xCoord)
+              point.setAttributeNS(null, "cy", yCoord)
+              point.setAttributeNS(null, "r", "2")
+              point.setAttributeNS(
+                null,
+                "fill",
+                col + opacities.points.value.toString(16)
+              )
+              plotSvg.appendChild(point)
+              opacities.points.titreCirculatingAveragePlotElements.push(point)
+              coords = { x: xCoord, y: yCoord }
+            }
+
+            return coords
+          }
+
+          let p1 = null
+          if (preVaxData.length == 1) {
+            p1 = drawPoint(preVaxData[0].titreCirculatingAverage, "Pre-vax")
+          }
+          let p2 = null
+          if (postVaxData.length == 1) {
+            p2 = drawPoint(postVaxData[0].titreCirculatingAverage, "Post-vax")
+          }
+
+          // NOTE(sen) Line
+          if (p1 != null && p2 != null) {
+            let line = document.createElementNS(XMLNS, "line")
+            line.setAttributeNS(null, "x1", p1.x)
+            line.setAttributeNS(null, "x2", p2.x)
+            line.setAttributeNS(null, "y1", p1.y)
+            line.setAttributeNS(null, "y2", p2.y)
+            line.setAttributeNS(
+              null,
+              "stroke",
+              preVaxCol + opacities.lines.value.toString(16)
+            )
+            plotSvg.appendChild(line)
+            opacities.lines.titreCirculatingAveragePlotElements.push(line)
+          }
+        } // NOTE(sen) for serum id
+
+        // NOTE(sen) Point counts and boxplots
+        for (let timepoint of ["Pre-vax", "Post-vax"]) {
+          // NOTE(sen) Counts
+          let count = document.createElementNS(XMLNS, "text")
+
+          let col = preVaxCol
+          let xCoord = scaleLabIndex(labIndex) - prePostDistance / 2
+          count.innerHTML = preVaxPoints
+          let titres = labDataPrevax
+          if (timepoint == "Post-vax") {
+            xCoord += prePostDistance
+            col = postVaxCol
+            count.innerHTML = postVaxPoints
+            titres = labDataPostvax
+          }
+
+          let yCoord = scaleTitre(10240)
+          count.setAttributeNS(null, "x", xCoord)
+          count.setAttributeNS(null, "y", yCoord)
+          count.setAttributeNS(
+            null,
+            "fill",
+            col + opacities.counts.value.toString(16)
+          )
+          count.setAttributeNS(null, "text-anchor", "middle")
+          count.setAttributeNS(null, "dominant-baseline", "hanging")
+          plotSvg.appendChild(count)
+          opacities.counts.titreCirculatingAveragePlotElements.push(count)
+
+          // NOTE(sen) Boxplots
+          titres = titres
+            .filter((row) => !isNaN(row.titreCirculatingAverage))
+            .map((row) => Math.log(row.titreCirculatingAverage))
+
+          let boxplotStats = calcBoxplotStats(titres)
+
+          let boxplot = createBoxplotElement(
+            scaleLogtitre(boxplotStats.bottom),
+            scaleLogtitre(boxplotStats.q25),
+            scaleLogtitre(boxplotStats.median),
+            scaleLogtitre(boxplotStats.q75),
+            scaleLogtitre(boxplotStats.top),
+            boxPlotWidth,
+            xCoord,
+            col + opacities.boxplots.value.toString(16)
+          )
+
+          plotSvg.appendChild(boxplot)
+          opacities.boxplots.titreCirculatingAveragePlotElements.push(boxplot)
+        }
+      }
     }
 
     return plotSvg
@@ -1676,7 +1980,10 @@
         let groupVars = Object.keys(state.data[0]).filter(
           (key) => key !== "titre" && key !== "virus" && key !== "egg_cell"
         )
-        let groupedData = groupByMultiple(state.data, groupVars)
+        let groupedData = groupByMultiple(
+          state.data.filter((row) => row.clade !== "unassigned"),
+          groupVars
+        )
 
         state.dataCladeAverageTitres = summariseGrouped(
           groupedData,
