@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="utf-8" />
+</head>
+
+<body>
+  <div id="main"></div>
+</body>
+
+<style>
+  :root {
+    --color-fileSelectBorder: #aaaaaa;
+    --color-border: #555555;
+    --color-background: #000000;
+    --color-selected: #670033;
+    --color-text: #dddddd;
+    --color-error: #ff0000;
+  }
+
+  [theme="light"] {
+    --color-fileSelectBorder: #000000;
+    --color-border: #999999;
+    --color-background: #ffffff;
+    --color-selected: #ff69b4;
+    --color-text: #000000;
+    --color-error: #a30000;
+  }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar {
+    width: 7px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: var(--color-background);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-selected);
+  }
+
+  html,
+  html * {
+    scrollbar-color: var(--color-border) var(--color-background);
+    scrollbar-width: thin;
+  }
+
+  /* Range input */
+  input[type="range"] {
+    color: inherit;
+    background-color: inherit;
+    height: 20px;
+    -webkit-appearance: none;
+    width: 100%;
+  }
+  input[type="range"]:focus {
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 16px;
+    cursor: pointer;
+    background: var(--color-border);
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    height: 20px;
+    width: 20px;
+    background: var(--color-border);
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin-top: -2px;
+    border: 1px solid var(--color-text);
+  }
+  input[type="range"]::-moz-range-track {
+    width: 100%;
+    height: 16px;
+    cursor: pointer;
+    background: var(--color-border);
+  }
+  input[type="range"]::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    background: var(--color-border);
+    cursor: pointer;
+    border: 1px solid var(--color-text);
+  }
+  input[type="range"]::-ms-track {
+    width: 100%;
+    height: 16px;
+    cursor: pointer;
+    background: transparent;
+    border-color: transparent;
+    color: transparent;
+  }
+  input[type="range"]::-ms-fill-lower {
+    background: var(--color-border);
+    border-radius: 50px;
+    box-shadow: 0px 0px 0px #000000;
+  }
+  input[type="range"]::-ms-fill-upper {
+    background: var(--color-border);
+    border-radius: 50px;
+    box-shadow: 0px 0px 0px #000000;
+  }
+  input[type="range"]::-ms-thumb {
+    margin-top: 1px;
+    border: 1px solid var(--color-text);
+    height: 20px;
+    width: 20px;
+    background: var(--color-border);
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  let XMLNS = "http://www.w3.org/2000/svg"
+
+  function arrAsc(arr) {
+    return arr.sort((a, b) => a - b)
+  }
+
+  function arrSum(arr) {
+    return arr.reduce((a, b) => a + b, 0)
+  }
+
+  function arrCumSum(arr) {
+    let result = []
+    let current = 0
+    for (val of arr) {
+      current += val
+      result.push(current)
+    }
+    return result
+  }
+
+  function arrMean(arr) {
+    return arrSum(arr) / arr.length
+  }
+
+  function arrSd(arr) {
+    const mu = arrMean(arr)
+    const diffArr = arr.map((a) => (a - mu) ** 2)
+    return Math.sqrt(arrSum(diffArr) / (arr.length - 1))
+  }
+
+  function arrSortedAscQuantile(sorted, q) {
+    const pos = (sorted.length - 1) * q
+    const base = Math.floor(pos)
+    const rest = pos - base
+    let result = sorted[base]
+    if (sorted[base + 1] !== undefined) {
+      result += rest * (sorted[base + 1] - sorted[base])
+    }
+    return result
+  }
+
+  function arrQuantile(arr, q) {
+    return arrSortedAscQuantile(arrAsc(arr), q)
+  }
+
+  function arrSortedAscMin(sorted) {
+    return sorted[0]
+  }
+
+  function arrSortedAscMax(sorted) {
+    return sorted[sorted.length - 1]
+  }
+
+  const groupByOne = (rows, key) => {
+    let result = {}
+    for (let row of rows) {
+      if (result[row[key]] === undefined) {
+        result[row[key]] = []
+      }
+      result[row[key]].push(row)
+    }
+    return result
+  }
+
+  const groupByMultiple = (rows, keys) => {
+    let result = {}
+    for (let row of rows) {
+      let current = result
+      for (let [keyIndex, key] of keys.entries()) {
+        if (current[row[key]] === undefined) {
+          if (keyIndex === keys.length - 1) {
+            current[row[key]] = []
+          } else {
+            current[row[key]] = {}
+          }
+        }
+        if (keyIndex === keys.length - 1) {
+          current[row[key]].push(row)
+        }
+        current = current[row[key]]
+      }
+    }
+    return result
+  }
+
+  const stringSort = (s1, s2) => (s1 > s2 ? 1 : s1 < s2 ? -1 : 0)
+
+  const desiredOrderSort = (ord) => {
+    return (a, b) => {
+      result = 0
+      let ai = ord.indexOf(a)
+      let bi = ord.indexOf(b)
+      if (ai !== -1 || bi !== -1) {
+        if (ai === -1) {
+          result = 1
+        } else if (bi === -1) {
+          result = -1
+        } else if (ai > bi) {
+          result = 1
+        } else if (ai < bi) {
+          result = -1
+        }
+      }
+      return result
+    }
+  }
+
+  function scale(value, valueMin, valueMax, scaleMin, scaleMax) {
+    value0 = value - valueMin
+    valueNorm = value0 / (valueMax - valueMin)
+    valueScale0 = valueNorm * (scaleMax - scaleMin)
+    valueScale = valueScale0 + scaleMin
+    return valueScale
+  }
+
+  function parseData(input) {
+    let result = []
+    if (input.length > 0) {
+      let lines = input.split(/\r?\n/).filter((line) => line !== "")
+      let linesSplit = lines.map((line) => line.split(","))
+      let names = linesSplit[0]
+      if (linesSplit.length > 1) {
+        for (let values of linesSplit.slice(1)) {
+          let row = {}
+          for (let [index, name] of names.entries()) {
+            let value = values[index]
+            if (name === "titre" || name === "clade_freq") {
+              value = parseFloat(value)
+            }
+            row[name] = value
+          }
+          result.push(row)
+        }
+      }
+    }
+    return result
+  }
+
+  const createTitreAxisElement = (
+    textCol,
+    axisCol,
+    gridCol,
+    plotWidth,
+    plotHeight,
+    axisPadBottom,
+    axisPadLeft,
+    axisPadTop,
+    tickLength,
+    scaleTitre
+  ) => {
+    let titreAxis = document.createElementNS(XMLNS, "g")
+
+    // NOTE(sen) Title
+    let yTitle = document.createElementNS(XMLNS, "text")
+    yTitle.setAttributeNS(null, "x", 0)
+    yTitle.setAttributeNS(null, "y", 0)
+    yTitle.setAttributeNS(null, "fill", textCol)
+    yTitle.setAttributeNS(
+      null,
+      "transform",
+      `translate(${0}, ${(plotHeight - axisPadBottom) / 2}) rotate(-90)`
+    )
+    yTitle.setAttributeNS(null, "dominant-baseline", "hanging")
+    yTitle.setAttributeNS(null, "text-anchor", "middle")
+    yTitle.innerHTML = "Titre"
+    titreAxis.appendChild(yTitle)
+
+    // NOTE(sen) Line
+    let yLine = document.createElementNS(XMLNS, "line")
+    yLine.setAttributeNS(null, "x1", axisPadLeft)
+    yLine.setAttributeNS(null, "x2", axisPadLeft)
+    yLine.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
+    yLine.setAttributeNS(null, "y2", axisPadTop)
+    yLine.setAttributeNS(null, "stroke", axisCol)
+    titreAxis.appendChild(yLine)
+    let yLine2 = document.createElementNS(XMLNS, "line")
+    yLine2.setAttributeNS(null, "x1", plotWidth)
+    yLine2.setAttributeNS(null, "x2", plotWidth)
+    yLine2.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
+    yLine2.setAttributeNS(null, "y2", axisPadTop)
+    yLine2.setAttributeNS(null, "stroke", axisCol)
+    titreAxis.appendChild(yLine2)
+
+    // NOTE(sen) Ticks and numbers
+    let yTicks = [5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120, 10240]
+    for (let yTick of yTicks) {
+      let yCoord = scaleTitre(yTick)
+
+      let tick = document.createElementNS(XMLNS, "line")
+      tick.setAttributeNS(null, "x1", axisPadLeft - tickLength - 1)
+      tick.setAttributeNS(null, "x2", axisPadLeft - 1)
+      tick.setAttributeNS(null, "y1", yCoord)
+      tick.setAttributeNS(null, "y2", yCoord)
+      tick.setAttributeNS(null, "stroke", axisCol)
+      titreAxis.appendChild(tick)
+
+      let gridline = document.createElementNS(XMLNS, "line")
+      gridline.setAttributeNS(null, "x1", axisPadLeft + 1)
+      gridline.setAttributeNS(null, "x2", plotWidth)
+      gridline.setAttributeNS(null, "y1", yCoord)
+      gridline.setAttributeNS(null, "y2", yCoord)
+      gridline.setAttributeNS(null, "stroke", gridCol)
+      titreAxis.appendChild(gridline)
+
+      let number = document.createElementNS(XMLNS, "text")
+      number.setAttributeNS(null, "x", axisPadLeft - tickLength * 1.5)
+      number.setAttributeNS(null, "y", yCoord)
+      number.setAttributeNS(null, "fill", textCol)
+      number.setAttributeNS(null, "dominant-baseline", "middle")
+      number.setAttributeNS(null, "text-anchor", "end")
+      number.innerHTML = yTick.toFixed()
+      titreAxis.appendChild(number)
+    }
+
+    return titreAxis
+  }
+
+  const calcBoxplotStats = (arr) => {
+    let arrSortedAsc = arrAsc(arr)
+    let stats = {}
+
+    stats.median = arrSortedAscQuantile(arrSortedAsc, 0.5)
+    stats.q25 = arrSortedAscQuantile(arrSortedAsc, 0.25)
+    stats.q75 = arrSortedAscQuantile(arrSortedAsc, 0.75)
+    stats.max = arrSortedAscMax(arrSortedAsc)
+    stats.min = arrSortedAscMin(arrSortedAsc)
+    stats.iqr = stats.q75 - stats.q25
+    stats.iqr15 = 1.5 * stats.iqr
+    stats.top = arrSortedAscMax(
+      arrSortedAsc.filter((val) => val <= stats.q75 + stats.iqr15)
+    )
+    stats.bottom = arrSortedAscMin(
+      arrSortedAsc.filter((val) => val >= stats.q25 - stats.iqr15)
+    )
+
+    return stats
+  }
+
+  const createBoxplotElement = (
+    whiskerDown,
+    boxDown,
+    boxMid,
+    boxUp,
+    whiskerUp,
+    boxWidth,
+    xCoord,
+    col
+  ) => {
+    let boxplot = document.createElementNS(XMLNS, "g")
+    boxplot.setAttributeNS(null, "stroke", col)
+
+    const drawBoxplotHline = (yCoord, thickness) => {
+      let line = document.createElementNS(XMLNS, "line")
+
+      line.setAttributeNS(null, "x1", xCoord - boxWidth / 2)
+      line.setAttributeNS(null, "x2", xCoord + boxWidth / 2)
+      line.setAttributeNS(null, "y1", yCoord)
+      line.setAttributeNS(null, "y2", yCoord)
+      line.setAttributeNS(null, "stroke-width", thickness)
+
+      boxplot.appendChild(line)
+    }
+
+    drawBoxplotHline(boxMid, 4)
+    drawBoxplotHline(boxUp, 1)
+    drawBoxplotHline(boxDown, 1)
+
+    const drawBoxplotVline = (xCoord) => {
+      let line = document.createElementNS(XMLNS, "line")
+      line.setAttributeNS(null, "x1", xCoord)
+      line.setAttributeNS(null, "x2", xCoord)
+      line.setAttributeNS(null, "y1", boxUp)
+      line.setAttributeNS(null, "y2", boxDown)
+      boxplot.appendChild(line)
+    }
+
+    drawBoxplotVline(xCoord - boxWidth / 2)
+    drawBoxplotVline(xCoord + boxWidth / 2)
+
+    const drawBoxplotWhisker = (start, end) => {
+      let line = document.createElementNS(XMLNS, "line")
+      line.setAttributeNS(null, "x1", xCoord)
+      line.setAttributeNS(null, "x2", xCoord)
+      line.setAttributeNS(null, "y1", start)
+      line.setAttributeNS(null, "y2", end)
+      boxplot.appendChild(line)
+    }
+
+    drawBoxplotWhisker(boxUp, whiskerUp)
+    drawBoxplotWhisker(boxDown, whiskerDown)
+
+    return boxplot
+  }
+
+  const createTitrePlotSvg = (data, vaccineStrains, opacities) => {
+    let plotSvg = document.createElementNS(XMLNS, "svg")
+
+    plotSvg.style.flexShrink = "0"
+
+    if (data !== null && data !== undefined && data.length > 0) {
+      //
+      // SECTION Sizes and colors
+      //
+
+      let plotHeight = 600
+      let widthPerVirus = 100
+      let axisPadLeft = 80
+      let axisPadBottom = 250
+      let axisPadTop = 20
+      let dataPadX = 50
+      let dataPadY = 10
+      let tickLength = 5
+      let prePostDistance = 40
+      let boxPlotWidth = 15
+      let svgTextLineHeightGuess = 20
+
+      let preVaxCol = "#308A36"
+      let postVaxCol = "#7FA438"
+      let vaccinePreVaxCol = "#8E3164"
+      let vaccinePostVaxCol = "#B0403D"
+      let textCol = "var(--color-text)"
+      let axisCol = "#aaaaaa"
+      let thresholdLineCol = axisCol + opacities.line40.value.toString(16)
+      let gridCol = "#99999944"
+
+      //
+      // SECTION Scales
+      //
+
+      // NOTE(sen) Y-Axis
+      let scaleLogtitre = (val) =>
+        scale(
+          val,
+          Math.log(5),
+          Math.log(10240),
+          plotHeight - dataPadY - axisPadBottom,
+          dataPadY + axisPadTop
+        )
+      let scaleTitre = (val) => scaleLogtitre(Math.log(val))
+
+      // NOTE(sen) X-Axis
+      let virusClades = {}
+      for (row of data) {
+        if (virusClades[row.virus] === undefined) {
+          virusClades[row.virus] = row.clade
+        }
+      }
+
+      let labs = Array.from(new Set(data.map((row) => row.testing_lab))).sort(
+        (a, b) => {
+          result = 0
+          if (a > b) {
+            result = 1
+          } else if (a < b) {
+            result - 1
+          }
+          return result
+        }
+      )
+      let labViruses = []
+      let labVirusCounts = []
+      for (let lab of labs) {
+        let labData = data.filter((row) => row.testing_lab == lab)
+        let viruses = Array.from(new Set(labData.map((row) => row.virus))).sort(
+          (v1, v2) => {
+            let result = 0
+            let yearPat = /(\d{4})e?$/
+            let year1 = yearPat.exec(v1)[1]
+            let year2 = yearPat.exec(v2)[1]
+            if (year1 !== undefined && year2 !== undefined) {
+              result = year1 - year2
+            }
+
+            if (result === 0) {
+              let clade1 = virusClades[v1]
+              let clade2 = virusClades[v2]
+              if (clade1 > clade2) {
+                result = 1
+              } else {
+                result = -1
+              }
+            }
+
+            if (result === 0) {
+              if (v1 > v2) {
+                result = 1
+              } else {
+                result = -1
+              }
+            }
+            return result
+          }
+        )
+        labViruses.push(viruses)
+        labVirusCounts.push(viruses.length)
+      }
+      let labVirusCumCounts = arrCumSum(labVirusCounts)
+
+      let plotWidth =
+        dataPadX +
+        axisPadLeft +
+        widthPerVirus * labVirusCumCounts[labVirusCumCounts.length - 1]
+
+      const scaleLabIndexVirusIndex = (labIndex, virusIndex) => {
+        let virusCount = labVirusCounts[labIndex]
+        let virusCumCount = labVirusCumCounts[labIndex]
+        let virusCountOffset = virusCumCount - virusCount
+        let realIndex = virusIndex + virusCountOffset
+        let result = scale(
+          realIndex,
+          0,
+          labVirusCumCounts[labVirusCumCounts.length - 1] - 1,
+          axisPadLeft + dataPadX,
+          plotWidth - dataPadX
+        )
+        return result
+      }
+
+      //
+      // SECTION Plot
+      //
+
+      plotSvg.setAttributeNS(
+        null,
+        "viewBox",
+        "0 0 " + plotWidth + " " + plotHeight
+      )
+      plotSvg.setAttributeNS(null, "width", plotWidth)
+      plotSvg.setAttributeNS(null, "height", plotHeight)
+      plotSvg.style.display = "block"
+
+      //
+      // SECTION Y-Axis
+      //
+
+      let yAxis = createTitreAxisElement(
+        textCol,
+        axisCol,
+        gridCol,
+        plotWidth,
+        plotHeight,
+        axisPadBottom,
+        axisPadLeft,
+        axisPadTop,
+        tickLength,
+        scaleTitre
+      )
+      plotSvg.appendChild(yAxis)
+
+      //
+      // SECTION X-axis
+      //
+
+      // NOTE(sen) Line
+      let xLine = document.createElementNS(XMLNS, "line")
+      xLine.setAttributeNS(null, "x1", axisPadLeft)
+      xLine.setAttributeNS(null, "x2", plotWidth)
+      xLine.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
+      xLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
+      xLine.setAttributeNS(null, "stroke", axisCol)
+      plotSvg.appendChild(xLine)
+      let xLine2 = document.createElementNS(XMLNS, "line")
+      xLine2.setAttributeNS(null, "x1", axisPadLeft)
+      xLine2.setAttributeNS(null, "x2", plotWidth)
+      xLine2.setAttributeNS(null, "y1", axisPadTop)
+      xLine2.setAttributeNS(null, "y2", axisPadTop)
+      xLine2.setAttributeNS(null, "stroke", axisCol)
+      plotSvg.appendChild(xLine2)
+
+      // NOTE(sen) Ticks and labels
+      for (let [labIndex, virusNames] of labViruses.entries()) {
+        for (let [virusIndex, virusName] of virusNames.entries()) {
+          let xCoord = scaleLabIndexVirusIndex(labIndex, virusIndex)
+
+          let tick = document.createElementNS(XMLNS, "line")
+          tick.setAttributeNS(null, "x1", xCoord)
+          tick.setAttributeNS(null, "x2", xCoord)
+          tick.setAttributeNS(null, "y1", plotHeight - axisPadBottom + 1)
+          tick.setAttributeNS(
+            null,
+            "y2",
+            plotHeight - axisPadBottom + 1 + tickLength
+          )
+          tick.setAttributeNS(null, "stroke", axisCol)
+          plotSvg.appendChild(tick)
+
+          let yCoord = plotHeight - axisPadBottom + tickLength
+
+          let label = document.createElementNS(XMLNS, "text")
+          label.setAttributeNS(null, "x", 0)
+          label.setAttributeNS(null, "y", 0)
+          label.setAttributeNS(null, "fill", textCol)
+          label.setAttributeNS(null, "dominant-baseline", "hanging")
+          label.setAttributeNS(null, "text-anchor", "end")
+          label.setAttributeNS(null, "text-wrap", "wrap")
+          label.setAttributeNS(
+            null,
+            "transform",
+            `translate(${xCoord}, ${yCoord}) rotate(-45)`
+          )
+          label.innerHTML = virusName
+          plotSvg.appendChild(label)
+
+          let cladeLabel = document.createElementNS(XMLNS, "text")
+          cladeLabel.setAttributeNS(null, "x", 0)
+          cladeLabel.setAttributeNS(null, "y", 0)
+          cladeLabel.setAttributeNS(null, "fill", textCol)
+          cladeLabel.setAttributeNS(null, "dominant-baseline", "hanging")
+          cladeLabel.setAttributeNS(null, "text-anchor", "end")
+          cladeLabel.setAttributeNS(null, "text-wrap", "wrap")
+          cladeLabel.setAttributeNS(
+            null,
+            "transform",
+            `translate(${
+              xCoord + svgTextLineHeightGuess
+            }, ${yCoord}) rotate(-45)`
+          )
+          let cladeName = virusClades[virusName]
+          cladeLabel.innerHTML =
+            cladeName +
+            " (" +
+            Math.round(state.cladeFreqs[cladeName] * 100) +
+            "%)"
+          plotSvg.appendChild(cladeLabel)
+          state.cladeFreqElements[cladeName].push(cladeLabel)
+        }
+      }
+
+      //
+      // SECTION Main plot
+      //
+
+      // NOTE(sen) Line at 40
+      let line40 = document.createElementNS(XMLNS, "line")
+      line40.setAttributeNS(null, "x1", axisPadLeft)
+      line40.setAttributeNS(null, "x2", plotWidth)
+      line40.setAttributeNS(null, "y1", scaleTitre(40))
+      line40.setAttributeNS(null, "y2", scaleTitre(40))
+      line40.setAttributeNS(null, "stroke", thresholdLineCol)
+      line40.setAttributeNS(null, "stroke-dasharray", "5,5")
+      plotSvg.appendChild(line40)
+      opacities.line40.elements.push(line40)
+
+      // NOTE(sen) The rest of the plot
+      for (let [labIndex, virusNames] of labViruses.entries()) {
+        let labData = data.filter((row) => row.testing_lab == labs[labIndex])
+        let serumIds = Array.from(new Set(labData.map((row) => row.serum_id)))
+
+        // NOTE(sen) Lab marker line
+        let labFirstX = scaleLabIndexVirusIndex(labIndex, 0)
+        let labLastX = scaleLabIndexVirusIndex(
+          labIndex,
+          labVirusCounts[labIndex] - 1
+        )
+        if (labIndex < labViruses.length - 1) {
+          let markerLine = document.createElementNS(XMLNS, "line")
+          let markerLineX = labLastX + widthPerVirus / 2
+          markerLine.setAttributeNS(null, "x1", markerLineX)
+          markerLine.setAttributeNS(null, "x2", markerLineX)
+          markerLine.setAttributeNS(null, "y1", axisPadTop)
+          markerLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
+          markerLine.setAttributeNS(null, "stroke", axisCol)
+          plotSvg.appendChild(markerLine)
+        }
+
+        // NOTE(sen) Lab marker text
+        let markerText = document.createElementNS(XMLNS, "text")
+        let markerTextX = (labLastX + labFirstX) / 2
+        markerText.setAttributeNS(null, "x", markerTextX)
+        markerText.setAttributeNS(null, "y", axisPadTop - tickLength)
+        markerText.setAttributeNS(null, "fill", textCol)
+        markerText.setAttributeNS(null, "text-anchor", "middle")
+        markerText.innerHTML = labs[labIndex]
+        plotSvg.appendChild(markerText)
+
+        for (let [virusIndex, virusName] of virusNames.entries()) {
+          let virusData = labData.filter((row) => row.virus == virusName)
+          let virusDataPrevax = virusData.filter(
+            (row) => row.timepoint === "Pre-vax"
+          )
+          let virusDataPostvax = virusData.filter(
+            (row) => row.timepoint === "Post-vax"
+          )
+
+          let preVaxPoints = 0
+          let postVaxPoints = 0
+
+          let thisPreVaxCol = preVaxCol
+          let thisPostVaxCol = postVaxCol
+          if (vaccineStrains.includes(virusName)) {
+            thisPreVaxCol = vaccinePreVaxCol
+            thisPostVaxCol = vaccinePostVaxCol
+          }
+
+          for (let serumId of serumIds) {
+            let preVaxData = virusDataPrevax.filter(
+              (row) => row.serum_id == serumId
+            )
+            let postVaxData = virusDataPostvax.filter(
+              (row) => row.serum_id == serumId
+            )
+
+            function drawPoint(titre, timepoint) {
+              let coords = null
+
+              if (titre) {
+                let point = document.createElementNS(XMLNS, "circle")
+                let yCoord = scaleLogtitre(
+                  Math.log(titre) + Math.random() * 0.1
+                )
+                let xCoord =
+                  scaleLabIndexVirusIndex(
+                    labIndex,
+                    virusIndex + (Math.random() - 0.5) * 0.05
+                  ) -
+                  prePostDistance / 2
+
+                let col = thisPreVaxCol
+                if (timepoint === "Post-vax") {
+                  xCoord += prePostDistance
+                  col = thisPostVaxCol
+                  postVaxPoints += 1
+                } else {
+                  preVaxPoints += 1
+                }
+
+                point.setAttributeNS(null, "cx", xCoord)
+                point.setAttributeNS(null, "cy", yCoord)
+                point.setAttributeNS(null, "r", "2")
+                point.setAttributeNS(
+                  null,
+                  "fill",
+                  col + opacities.points.value.toString(16)
+                )
+                plotSvg.appendChild(point)
+                opacities.points.elements.push(point)
+                coords = { x: xCoord, y: yCoord }
+              }
+
+              return coords
+            }
+
+            let p1 = null
+            if (preVaxData.length == 1) {
+              p1 = drawPoint(preVaxData[0].titre, "Pre-vax")
+            }
+            let p2 = null
+            if (postVaxData.length == 1) {
+              p2 = drawPoint(postVaxData[0].titre, "Post-vax")
+            }
+
+            // NOTE(sen) Line
+            if (p1 != null && p2 != null) {
+              let line = document.createElementNS(XMLNS, "line")
+              line.setAttributeNS(null, "x1", p1.x)
+              line.setAttributeNS(null, "x2", p2.x)
+              line.setAttributeNS(null, "y1", p1.y)
+              line.setAttributeNS(null, "y2", p2.y)
+              line.setAttributeNS(
+                null,
+                "stroke",
+                thisPreVaxCol + opacities.lines.value.toString(16)
+              )
+              plotSvg.appendChild(line)
+              opacities.lines.elements.push(line)
+            }
+          }
+
+          // NOTE(sen) Point counts and boxplots
+          for (let timepoint of ["Pre-vax", "Post-vax"]) {
+            // NOTE(sen) Counts
+            let count = document.createElementNS(XMLNS, "text")
+
+            let col = thisPreVaxCol
+            let xCoord =
+              scaleLabIndexVirusIndex(labIndex, virusIndex) -
+              prePostDistance / 2
+            count.innerHTML = preVaxPoints
+            let titres = virusDataPrevax
+            if (timepoint == "Post-vax") {
+              xCoord += prePostDistance
+              col = thisPostVaxCol
+              count.innerHTML = postVaxPoints
+              titres = virusDataPostvax
+            }
+
+            let yCoord = scaleTitre(10240)
+
+            count.setAttributeNS(null, "x", xCoord)
+            count.setAttributeNS(null, "y", yCoord)
+            count.setAttributeNS(
+              null,
+              "fill",
+              col + opacities.counts.value.toString(16)
+            )
+            count.setAttributeNS(null, "text-anchor", "middle")
+            count.setAttributeNS(null, "dominant-baseline", "hanging")
+            plotSvg.appendChild(count)
+            opacities.counts.elements.push(count)
+
+            // NOTE(sen) Boxplots
+            titres = titres
+              .filter((row) => !isNaN(row.titre))
+              .map((row) => Math.log(row.titre))
+
+            let boxplotStats = calcBoxplotStats(titres)
+
+            let boxplot = createBoxplotElement(
+              scaleLogtitre(boxplotStats.bottom),
+              scaleLogtitre(boxplotStats.q25),
+              scaleLogtitre(boxplotStats.median),
+              scaleLogtitre(boxplotStats.q75),
+              scaleLogtitre(boxplotStats.top),
+              boxPlotWidth,
+              xCoord,
+              col + opacities.boxplots.value.toString(16)
+            )
+
+            plotSvg.appendChild(boxplot)
+            opacities.boxplots.elements.push(boxplot)
+          } // NOTE(sen) for (timepoint)
+        } // NOTE(sen) for (virus)
+      } // NOTE(sen) for (lab)
+    }
+
+    return plotSvg
+  }
+
+  const createTitreCladeAveragePlotSvg = (data, vaccineClades, opacities) => {
+    let plotSvg = document.createElementNS(XMLNS, "svg")
+
+    plotSvg.style.flexShrink = "0"
+
+    if (data !== null && data !== undefined && data.length > 0) {
+      //
+      // SECTION Sizes and colors
+      //
+
+      let plotHeight = 400
+      let widthPerVirus = 100
+      let axisPadLeft = 80
+      let axisPadBottom = 80
+      let axisPadTop = 20
+      let dataPadX = 50
+      let dataPadY = 10
+      let tickLength = 5
+      let prePostDistance = 40
+      let boxPlotWidth = 15
+
+      let preVaxCol = "#308A36"
+      let postVaxCol = "#7FA438"
+      let vaccinePreVaxCol = "#8E3164"
+      let vaccinePostVaxCol = "#B0403D"
+      let textCol = "var(--color-text)"
+      let axisCol = "#aaaaaa"
+      let thresholdLineCol = axisCol + opacities.line40.value.toString(16)
+      let gridCol = "#99999944"
+
+      //
+      // SECTION Scales
+      //
+
+      // NOTE(sen) Y-Axis
+      let scaleLogtitre = (val) =>
+        scale(
+          val,
+          Math.log(5),
+          Math.log(10240),
+          plotHeight - dataPadY - axisPadBottom,
+          dataPadY + axisPadTop
+        )
+      let scaleTitre = (val) => scaleLogtitre(Math.log(val))
+
+      // NOTE(sen) X-Axis
+
+      let labs = Array.from(new Set(data.map((row) => row.testing_lab))).sort(
+        (a, b) => {
+          result = 0
+          if (a > b) {
+            result = 1
+          } else if (a < b) {
+            result - 1
+          }
+          return result
+        }
+      )
+
+      let labClades = []
+      let labCladeCounts = []
+      for (let lab of labs) {
+        let labData = data.filter((row) => row.testing_lab == lab)
+        let clades = Array.from(new Set(labData.map((row) => row.clade))).sort(
+          stringSort
+        )
+        labClades.push(clades)
+        labCladeCounts.push(clades.length)
+      }
+      let labCladeCumCounts = arrCumSum(labCladeCounts)
+
+      let plotWidth =
+        dataPadX +
+        axisPadLeft +
+        widthPerVirus * labCladeCumCounts[labCladeCumCounts.length - 1]
+
+      const scaleLabIndexCladeIndex = (labIndex, cladeIndex) => {
+        let cladeCount = labCladeCounts[labIndex]
+        let cladeCumCount = labCladeCumCounts[labIndex]
+        let cladeCountOffset = cladeCumCount - cladeCount
+        let realIndex = cladeIndex + cladeCountOffset
+        let result = scale(
+          realIndex,
+          0,
+          labCladeCumCounts[labCladeCumCounts.length - 1] - 1,
+          axisPadLeft + dataPadX,
+          plotWidth - dataPadX
+        )
+        return result
+      }
+
+      //
+      // SECTION Plot
+      //
+
+      plotSvg.setAttributeNS(
+        null,
+        "viewBox",
+        "0 0 " + plotWidth + " " + plotHeight
+      )
+      plotSvg.setAttributeNS(null, "width", plotWidth)
+      plotSvg.setAttributeNS(null, "height", plotHeight)
+      plotSvg.style.display = "block"
+
+      //
+      // SECTION Y-Axis
+      //
+
+      let yAxis = createTitreAxisElement(
+        textCol,
+        axisCol,
+        gridCol,
+        plotWidth,
+        plotHeight,
+        axisPadBottom,
+        axisPadLeft,
+        axisPadTop,
+        tickLength,
+        scaleTitre
+      )
+      plotSvg.appendChild(yAxis)
+
+      //
+      // SECTION X-axis
+      //
+
+      // NOTE(sen) Line
+      let xLine = document.createElementNS(XMLNS, "line")
+      xLine.setAttributeNS(null, "x1", axisPadLeft)
+      xLine.setAttributeNS(null, "x2", plotWidth)
+      xLine.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
+      xLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
+      xLine.setAttributeNS(null, "stroke", axisCol)
+      plotSvg.appendChild(xLine)
+      let xLine2 = document.createElementNS(XMLNS, "line")
+      xLine2.setAttributeNS(null, "x1", axisPadLeft)
+      xLine2.setAttributeNS(null, "x2", plotWidth)
+      xLine2.setAttributeNS(null, "y1", axisPadTop)
+      xLine2.setAttributeNS(null, "y2", axisPadTop)
+      xLine2.setAttributeNS(null, "stroke", axisCol)
+      plotSvg.appendChild(xLine2)
+
+      // NOTE(sen) Ticks and labels
+      for (let [labIndex, cladeNames] of labClades.entries()) {
+        for (let [cladeIndex, cladeName] of cladeNames.entries()) {
+          let xCoord = scaleLabIndexCladeIndex(labIndex, cladeIndex)
+
+          let tick = document.createElementNS(XMLNS, "line")
+          tick.setAttributeNS(null, "x1", xCoord)
+          tick.setAttributeNS(null, "x2", xCoord)
+          tick.setAttributeNS(null, "y1", plotHeight - axisPadBottom + 1)
+          tick.setAttributeNS(
+            null,
+            "y2",
+            plotHeight - axisPadBottom + 1 + tickLength
+          )
+          tick.setAttributeNS(null, "stroke", axisCol)
+          plotSvg.appendChild(tick)
+
+          let yCoord = plotHeight - axisPadBottom + tickLength * 2
+
+          let label = document.createElementNS(XMLNS, "text")
+          label.setAttributeNS(null, "x", 0)
+          label.setAttributeNS(null, "y", 0)
+          label.setAttributeNS(null, "fill", textCol)
+          label.setAttributeNS(null, "dominant-baseline", "hanging")
+          label.setAttributeNS(null, "text-anchor", "end")
+          label.setAttributeNS(null, "text-wrap", "wrap")
+          label.setAttributeNS(
+            null,
+            "transform",
+            `translate(${xCoord}, ${yCoord}) rotate(-30)`
+          )
+          label.innerHTML =
+            cladeName +
+            " (" +
+            Math.round(state.cladeFreqs[cladeName] * 100) +
+            "%)"
+
+          plotSvg.appendChild(label)
+          state.cladeFreqElements[cladeName].push(label)
+        }
+      }
+
+      //
+      // SECTION Main plot
+      //
+
+      // NOTE(sen) Line at 40
+      let line40 = document.createElementNS(XMLNS, "line")
+      line40.setAttributeNS(null, "x1", axisPadLeft)
+      line40.setAttributeNS(null, "x2", plotWidth)
+      line40.setAttributeNS(null, "y1", scaleTitre(40))
+      line40.setAttributeNS(null, "y2", scaleTitre(40))
+      line40.setAttributeNS(null, "stroke", thresholdLineCol)
+      line40.setAttributeNS(null, "stroke-dasharray", "5,5")
+      plotSvg.appendChild(line40)
+      opacities.line40.elements.push(line40)
+
+      // NOTE(sen) The rest of the plot
+      for (let [labIndex, cladeNames] of labClades.entries()) {
+        let labData = data.filter((row) => row.testing_lab == labs[labIndex])
+        let serumIds = Array.from(new Set(labData.map((row) => row.serum_id)))
+
+        // NOTE(sen) Lab marker line
+        let labFirstX = scaleLabIndexCladeIndex(labIndex, 0)
+        let labLastX = scaleLabIndexCladeIndex(
+          labIndex,
+          labCladeCounts[labIndex] - 1
+        )
+        if (labIndex < labClades.length - 1) {
+          let markerLine = document.createElementNS(XMLNS, "line")
+          let markerLineX = labLastX + widthPerVirus / 2
+          markerLine.setAttributeNS(null, "x1", markerLineX)
+          markerLine.setAttributeNS(null, "x2", markerLineX)
+          markerLine.setAttributeNS(null, "y1", axisPadTop)
+          markerLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
+          markerLine.setAttributeNS(null, "stroke", axisCol)
+          plotSvg.appendChild(markerLine)
+        }
+
+        // NOTE(sen) Lab marker text
+        let markerText = document.createElementNS(XMLNS, "text")
+        let markerTextX = (labLastX + labFirstX) / 2
+        markerText.setAttributeNS(null, "x", markerTextX)
+        markerText.setAttributeNS(null, "y", axisPadTop - tickLength)
+        markerText.setAttributeNS(null, "fill", textCol)
+        markerText.setAttributeNS(null, "text-anchor", "middle")
+        markerText.innerHTML = labs[labIndex]
+        plotSvg.appendChild(markerText)
+
+        for (let [cladeIndex, cladeName] of cladeNames.entries()) {
+          let cladeData = labData.filter((row) => row.clade == cladeName)
+          let cladeDataPrevax = cladeData.filter(
+            (row) => row.timepoint === "Pre-vax"
+          )
+          let cladeDataPostvax = cladeData.filter(
+            (row) => row.timepoint === "Post-vax"
+          )
+
+          let preVaxPoints = 0
+          let postVaxPoints = 0
+
+          let thisPreVaxCol = preVaxCol
+          let thisPostVaxCol = postVaxCol
+          if (vaccineClades.includes(cladeName)) {
+            thisPreVaxCol = vaccinePreVaxCol
+            thisPostVaxCol = vaccinePostVaxCol
+          }
+
+          for (let serumId of serumIds) {
+            let preVaxData = cladeDataPrevax.filter(
+              (row) => row.serum_id == serumId
+            )
+            let postVaxData = cladeDataPostvax.filter(
+              (row) => row.serum_id == serumId
+            )
+
+            function drawPoint(titre, timepoint) {
+              let coords = null
+
+              if (titre) {
+                let point = document.createElementNS(XMLNS, "circle")
+                let yCoord = scaleLogtitre(
+                  Math.log(titre) + Math.random() * 0.1
+                )
+                let xCoord =
+                  scaleLabIndexCladeIndex(
+                    labIndex,
+                    cladeIndex + (Math.random() - 0.5) * 0.05
+                  ) -
+                  prePostDistance / 2
+
+                let col = thisPreVaxCol
+                if (timepoint === "Post-vax") {
+                  xCoord += prePostDistance
+                  col = thisPostVaxCol
+                  postVaxPoints += 1
+                } else {
+                  preVaxPoints += 1
+                }
+
+                point.setAttributeNS(null, "cx", xCoord)
+                point.setAttributeNS(null, "cy", yCoord)
+                point.setAttributeNS(null, "r", "2")
+                point.setAttributeNS(
+                  null,
+                  "fill",
+                  col + opacities.points.value.toString(16)
+                )
+                plotSvg.appendChild(point)
+                opacities.points.elements.push(point)
+                coords = { x: xCoord, y: yCoord }
+              }
+
+              return coords
+            }
+
+            let p1 = null
+            if (preVaxData.length == 1) {
+              p1 = drawPoint(preVaxData[0].titreCladeAverage, "Pre-vax")
+            }
+            let p2 = null
+            if (postVaxData.length == 1) {
+              p2 = drawPoint(postVaxData[0].titreCladeAverage, "Post-vax")
+            }
+
+            // NOTE(sen) Line
+            if (p1 != null && p2 != null) {
+              let line = document.createElementNS(XMLNS, "line")
+              line.setAttributeNS(null, "x1", p1.x)
+              line.setAttributeNS(null, "x2", p2.x)
+              line.setAttributeNS(null, "y1", p1.y)
+              line.setAttributeNS(null, "y2", p2.y)
+              line.setAttributeNS(
+                null,
+                "stroke",
+                thisPreVaxCol + opacities.lines.value.toString(16)
+              )
+              plotSvg.appendChild(line)
+              opacities.lines.elements.push(line)
+            }
+          } // NOTE(sen) for serum id
+
+          // NOTE(sen) Point counts and boxplots
+          for (let timepoint of ["Pre-vax", "Post-vax"]) {
+            // NOTE(sen) Counts
+            let count = document.createElementNS(XMLNS, "text")
+
+            let col = thisPreVaxCol
+            let xCoord =
+              scaleLabIndexCladeIndex(labIndex, cladeIndex) -
+              prePostDistance / 2
+            count.innerHTML = preVaxPoints
+            let titres = cladeDataPrevax
+            if (timepoint == "Post-vax") {
+              xCoord += prePostDistance
+              col = thisPostVaxCol
+              count.innerHTML = postVaxPoints
+              titres = cladeDataPostvax
+            }
+
+            let yCoord = scaleTitre(10240)
+            count.setAttributeNS(null, "x", xCoord)
+            count.setAttributeNS(null, "y", yCoord)
+            count.setAttributeNS(
+              null,
+              "fill",
+              col + opacities.counts.value.toString(16)
+            )
+            count.setAttributeNS(null, "text-anchor", "middle")
+            count.setAttributeNS(null, "dominant-baseline", "hanging")
+            plotSvg.appendChild(count)
+            opacities.counts.elements.push(count)
+
+            // NOTE(sen) Boxplots
+            titres = titres
+              .filter((row) => !isNaN(row.titreCladeAverage))
+              .map((row) => Math.log(row.titreCladeAverage))
+
+            let boxplotStats = calcBoxplotStats(titres)
+
+            let boxplot = createBoxplotElement(
+              scaleLogtitre(boxplotStats.bottom),
+              scaleLogtitre(boxplotStats.q25),
+              scaleLogtitre(boxplotStats.median),
+              scaleLogtitre(boxplotStats.q75),
+              scaleLogtitre(boxplotStats.top),
+              boxPlotWidth,
+              xCoord,
+              col + opacities.boxplots.value.toString(16)
+            )
+
+            plotSvg.appendChild(boxplot)
+            opacities.boxplots.elements.push(boxplot)
+          } // NOTE(sen) for timepoint
+        } // NOTE(sen) for clade
+      } // NOTE(sen) for lab
+    } // NOTE(sen) if data
+
+    return plotSvg
+  }
+
+  let state = {
+    data: [],
+    dataCladeAverageTitres: [],
+    cladeFreqs: {},
+    subtypeClades: {},
+    filters: {
+      subtype: { elements: [], options: [], selected: null },
+      serum_source: { elements: [], options: [], selected: null },
+      cohort: { elements: [], options: [], selected: null },
+    },
+    opacities: {
+      points: { elements: [], value: 255, default: 255 },
+      lines: { elements: [], value: 127, default: 127 },
+      boxplots: { elements: [], value: 255, default: 255 },
+      counts: { elements: [], value: 255, default: 255 },
+      line40: { elements: [], value: 255, default: 255 },
+    },
+    colors: {
+      theme: "dark",
+    },
+    sizes: {
+      inputBar: "200px",
+    },
+    main: document.getElementById("main"),
+    inputContainer: null,
+    plotContainer: null,
+    slidersContainer: null,
+    subtypeSlidersContainers: {},
+    cladeFreqElements: {},
+    filtersContainer: null,
+    opacitiesContainer: null,
+    fileSelectTextElement: null,
+    scrollbarStyle: null,
+  }
+
+  function updatePlot() {
+    let allFiltersSet = true
+    for (let varName of Object.keys(state.filters)) {
+      if (state.filters[varName].selected === null) {
+        allFiltersSet = false
+        break
+      }
+    }
+
+    // NOTE(sen) Figure out filter set that has data associated with it
+    if (!allFiltersSet) {
+      let currentSettings = []
+      for (let [filterIndex, varName] of Object.keys(state.filters).entries()) {
+        currentSettings.push({
+          name: varName,
+          lastIndex: state.filters[varName].options.length - 1,
+          currentIndex: 0,
+        })
+      }
+
+      let currentFilteredDataRows = 0
+      let currentlyIncrementing = currentSettings.length - 1
+
+      while (currentFilteredDataRows === 0) {
+        for (let [filterIndex, varName] of Object.keys(
+          state.filters
+        ).entries()) {
+          state.filters[varName].selected =
+            state.filters[varName].options[
+              currentSettings[filterIndex].currentIndex
+            ]
+          for (let [optionIndex, optionEl] of state.filters[
+            varName
+          ].elements.entries()) {
+            if (optionIndex === currentSettings[filterIndex].currentIndex) {
+              optionEl.style.background = "var(--color-selected)"
+            } else {
+              optionEl.style.background = "inherit"
+            }
+          }
+        }
+
+        let testRows = state.data.filter((row) => {
+          let result = true
+          for (let varName of Object.keys(state.filters)) {
+            result = row[varName] === state.filters[varName].selected
+            if (!result) {
+              break
+            }
+          }
+          return result
+        })
+
+        currentFilteredDataRows = testRows.length
+
+        if (
+          currentSettings[currentlyIncrementing].currentIndex ===
+          currentSettings[currentlyIncrementing].lastIndex
+        ) {
+          currentSettings[currentlyIncrementing].currentIndex = 0
+
+          currentlyIncrementing -= 1
+          if (currentlyIncrementing === -1) {
+            currentlyIncrementing = currentSettings.length - 1
+          }
+        }
+
+        if (
+          currentSettings[currentlyIncrementing].currentIndex ===
+          currentSettings[currentlyIncrementing].lastIndex
+        ) {
+          break
+        } else {
+          currentSettings[currentlyIncrementing].currentIndex += 1
+        }
+      }
+    }
+
+    // NOTE(sen) Make sure the correct sliders are highlighted
+    for (let [subtype, slidersContainer] of Object.entries(
+      state.subtypeSlidersContainers
+    )) {
+      if (subtype === state.filters.subtype.selected) {
+        slidersContainer.style.background = "var(--color-selected)"
+      } else {
+        slidersContainer.style.background = "var(--color-background)"
+      }
+    }
+
+    // NOTE(sen) Update filter colors and draw the plot
+    for (let varName of Object.keys(state.filters)) {
+      let otherVarNames = Object.keys(state.filters).filter(
+        (key) => key !== varName
+      )
+
+      for (let [optionIndex, option] of state.filters[
+        varName
+      ].options.entries()) {
+        let testRows = state.data.filter((row) => {
+          let result = row[varName] === option
+          if (result) {
+            for (let otherVarName of otherVarNames) {
+              result =
+                row[otherVarName] === state.filters[otherVarName].selected
+              if (!result) {
+                break
+              }
+            }
+          }
+          return result
+        })
+
+        let element = state.filters[varName].elements[optionIndex]
+
+        if (testRows.length === 0) {
+          element.style.color = "var(--color-error)"
+        } else {
+          element.style.color = "inherit"
+        }
+      }
+    }
+
+    const subsetFilter = (row) => {
+      let result = true
+      for (let varName of Object.keys(state.filters)) {
+        result = row[varName] === state.filters[varName].selected
+        if (!result) {
+          break
+        }
+      }
+      return result
+    }
+
+    let dataSubset = state.data.filter(subsetFilter)
+
+    let dataSubsetCladeAverages =
+      state.dataCladeAverageTitres.filter(subsetFilter)
+
+    while (state.plotContainer.lastChild) {
+      state.plotContainer.removeChild(state.plotContainer.lastChild)
+    }
+
+    for (let varName of Object.keys(state.opacities)) {
+      state.opacities[varName].elements = []
+    }
+
+    let plotSvg = createTitrePlotSvg(
+      dataSubset,
+      [
+        "A/Guangdong-Maonan/SWL1536/2019e",
+        "A/Hong Kong/2671/2019e",
+        "B/Washington/02/2019e",
+      ],
+      state.opacities
+    )
+
+    let plotCladeAverageTitresSvg = createTitreCladeAveragePlotSvg(
+      dataSubsetCladeAverages,
+      ["A5a.1", "A1b/137F", "V1A.3"],
+      state.opacities
+    )
+
+    let plotSvgContainer = document.createElement("div")
+    let plotCladeAverageTitresSvgContainer = document.createElement("div")
+
+    plotSvgContainer.style.flexShrink = "0"
+    plotSvgContainer.style.overflowX = "scroll"
+    plotSvgContainer.style.overflowY = "hidden"
+    plotSvgContainer.appendChild(plotSvg)
+
+    plotCladeAverageTitresSvgContainer.style.flexShrink =
+      plotSvgContainer.style.flexShrink
+    plotCladeAverageTitresSvgContainer.style.overflowX =
+      plotSvgContainer.style.overflowX
+    plotCladeAverageTitresSvgContainer.style.overflowY =
+      plotSvgContainer.style.overflowY
+    plotCladeAverageTitresSvgContainer.appendChild(plotCladeAverageTitresSvg)
+
+    state.plotContainer.appendChild(plotCladeAverageTitresSvgContainer)
+    state.plotContainer.appendChild(plotSvgContainer)
+  }
+
+  const updateData = (contentsString) => {
+    if (contentsString.length > 0) {
+      state.data = parseData(contentsString)
+
+      // NOTE(sen) Clade frequencies
+      for (row of state.data) {
+        if (state.cladeFreqs[row.clade] === undefined) {
+          state.cladeFreqs[row.clade] = row.clade_freq
+        }
+      }
+
+      // NOTE(sen) Subtype clades
+      if (state.data.length > 0) {
+        let subtypes = Array.from(
+          new Set(state.data.map((row) => row.subtype))
+        ).sort(desiredOrderSort(["H1", "H3", "BVic"]))
+        for (let subtype of subtypes) {
+          let clades = Array.from(
+            new Set(
+              state.data
+                .filter((row) => row.subtype === subtype)
+                .map((row) => row.clade)
+            )
+          )
+          state.subtypeClades[subtype] = clades.sort(stringSort)
+        }
+      }
+
+      // NOTE(sen) Populate clade frequency sliders
+      state.slidersContainer.innerHTML = ""
+      state.subtypeSlidersContainers = {}
+      state.cladeFreqElements = {}
+      for (let [subtype, clades] of Object.entries(state.subtypeClades)) {
+        let subtypeContainer = document.createElement("div")
+        subtypeContainer.style.marginBottom = "5px"
+
+        for (let clade of clades) {
+          let slider = document.createElement("div")
+
+          let name = document.createElement("div")
+          name.innerHTML =
+            clade + " (" + Math.round(state.cladeFreqs[clade] * 100) + "%)"
+          name.style.textAlign = "center"
+
+          let input = document.createElement("input")
+          input.setAttribute("type", "range")
+          input.setAttribute("min", "0")
+          input.setAttribute("max", "100")
+          input.setAttribute("value", state.cladeFreqs[clade] * 100)
+          input.addEventListener("input", (event) => {
+            state.cladeFreqs[clade] = event.target.value / 100
+            name.innerHTML = clade + " (" + event.target.value + "%)"
+            for (let el of state.cladeFreqElements[clade]) {
+              el.innerHTML = clade + " (" + event.target.value + "%)"
+            }
+          })
+
+          slider.appendChild(name)
+          slider.appendChild(input)
+
+          subtypeContainer.appendChild(slider)
+
+          state.cladeFreqElements[clade] = []
+        }
+
+        state.slidersContainer.appendChild(subtypeContainer)
+        state.subtypeSlidersContainers[subtype] = subtypeContainer
+      }
+
+      // NOTE(sen) Work out clade-average titres
+      if (state.data.length > 0) {
+        let groupVars = Object.keys(state.data[0]).filter(
+          (key) => key !== "titre" && key !== "virus" && key !== "egg_cell"
+        )
+        let groupedData = groupByMultiple(state.data, groupVars)
+
+        const calcRow = (data, currentRow) => {
+          let result = []
+          if (Array.isArray(data)) {
+            if (data.length > 0) {
+              let dataSubsetNoEggs = data
+              if (dataSubsetNoEggs.length > 1) {
+                dataSubsetNoEggs = dataSubsetNoEggs.filter(
+                  (row) => row.egg_cell === "Cell"
+                )
+              }
+              let logtitres = dataSubsetNoEggs.map((row) => Math.log(row.titre))
+              let logmean = arrMean(logtitres)
+              result = [{ ...currentRow, titreCladeAverage: Math.exp(logmean) }]
+            }
+          } else {
+            let currentVarname = groupVars[Object.keys(currentRow).length]
+            for (let key of Object.keys(data)) {
+              currentRow[currentVarname] = key
+              let row = calcRow(data[key], { ...currentRow })
+              if (row.length > 0) {
+                result = result.concat(row)
+              }
+            }
+          }
+          return result
+        }
+
+        state.dataCladeAverageTitres = calcRow(groupedData, {})
+      }
+
+      // NOTE(sen) Work out circulating averages
+      if (state.data.length > 0) {
+        // TODO(sen)
+      }
+
+      // NOTE(sen) Populate filters
+      for (let varName of Object.keys(state.filters)) {
+        state.filters[varName].options = Array.from(
+          new Set(state.data.map((row) => row[varName]))
+        )
+
+        switch (varName) {
+          case "cohort": {
+            state.filters[varName].options = state.filters[
+              varName
+            ].options.sort(
+              desiredOrderSort([
+                "Ped (<3 yr)",
+                "Ped (3-8 yr)",
+                "Ped (9-17 yr)",
+                "Ped (<18 yr)",
+                "Adult (18-49 yr)",
+                "Adult (50-64 yr)",
+                "Adult (18-64 yr)",
+                "Elderly (>=65yr)",
+              ])
+            )
+            break
+          }
+          case "subtype": {
+            state.filters[varName].options = state.filters[
+              varName
+            ].options.sort(desiredOrderSort(["H1", "H3", "BVic"]))
+            break
+          }
+          case "serum_source": {
+            state.filters[varName].options = state.filters[
+              varName
+            ].options.sort((a, b) => (a > b ? 1 : a < b ? -1 : 0))
+            break
+          }
+        }
+      }
+
+      // NOTE(sen) Draw the newly populated filters
+      state.filtersContainer.innerHTML = ""
+
+      for (let varName of Object.keys(state.filters)) {
+        let filterEl = document.createElement("div")
+
+        filterEl.style.display = "flex"
+        filterEl.style.flexDirection = "column"
+        filterEl.style.marginBottom = "10px"
+        filterEl.style.flexGrow = "1"
+
+        state.filters[varName].elements = []
+
+        for (let option of state.filters[varName].options) {
+          let optionEl = document.createElement("div")
+          optionEl.innerHTML = option
+
+          optionEl.addEventListener("click", (event) => {
+            state.filters[varName].selected = option
+            for (let otherOption of state.filters[varName].elements) {
+              otherOption.style.background = "inherit"
+            }
+            optionEl.style.background = "var(--color-selected)"
+            updatePlot()
+          })
+
+          optionEl.style.padding = "5px"
+          optionEl.style.border = "1px solid var(--color-border)"
+          optionEl.style.cursor = "pointer"
+          optionEl.style.textAlign = "center"
+
+          if (option === state.filters[varName].selected) {
+            optionEl.style.background = "var(--color-selected)"
+          }
+
+          filterEl.appendChild(optionEl)
+          state.filters[varName].elements.push(optionEl)
+        }
+
+        state.filtersContainer.appendChild(filterEl)
+      }
+
+      updatePlot()
+    }
+  }
+
+  // NOTE(sen) Init body
+  {
+    let body = document.getElementsByTagName("body")[0]
+
+    body.style.background = "var(--color-background)"
+    body.style.color = "var(--color-text)"
+    body.style.margin = "0"
+    body.style.fontFamily =
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",sans-serif'
+  }
+
+  // NOTE(sen) Init whole page container
+  {
+    let container = state.main
+    container.style.display = "flex"
+    container.style.flexDirection = "row"
+  }
+
+  // NOTE(sen) Init input container
+  {
+    let container = document.createElement("div")
+
+    container.style.display = "flex"
+    container.style.flexDirection = "column"
+    container.style.alignItems = "left"
+    container.style.width = state.sizes.inputBar
+    container.style.marginRight = "10px"
+    container.style.height = "100vh"
+    container.style.overflowY = "scroll"
+    container.style.flexShrink = "0"
+
+    state.inputContainer = container
+    state.main.appendChild(container)
+  }
+
+  // NOTE(sen) Init plot container
+  {
+    let container = document.createElement("div")
+
+    container.style.display = "flex"
+    container.style.flexDirection = "column"
+    container.style.alignItems = "top"
+    container.style.height = "calc(100vh - 0px)"
+    container.style.overflowY = "scroll"
+    container.style.overflowX = "hidden"
+
+    state.plotContainer = container
+    state.main.appendChild(container)
+  }
+
+  // NOTE(sen) Init file input
+  {
+    let container = document.createElement("div")
+    let input = document.createElement("input")
+    input.setAttribute("type", "file")
+    input.addEventListener("change", (event) => {
+      let file = event.target.files[0]
+      if (file !== null && file !== undefined) {
+        state.fileSelectTextElement.innerHTML = file.name
+        file.text().then(updateData)
+      }
+    })
+
+    input.style.opacity = 0
+    input.style.width = "100%"
+    input.style.height = "100%"
+
+    let label = document.createElement("div")
+    label.innerHTML = "SELECT FILE"
+    label.style.position = "absolute"
+    label.style.top = "0px"
+    label.style.left = "0px"
+    label.style.textAlign = "center"
+    label.style.width = "100%"
+    label.style.height = "100%"
+    label.style.lineHeight = "100px"
+    label.style.fontWeight = "bold"
+    label.style.letterSpacing = "2px"
+
+    container.style.border = "1px dashed var(--color-fileSelectBorder)"
+    container.style.width = "100%"
+    container.style.height = label.style.lineHeight
+    container.style.position = "relative"
+    container.style.flexShrink = "0"
+    container.style.boxSizing = "border-box"
+    container.style.marginBottom = "20px"
+
+    container.appendChild(label)
+    container.appendChild(input)
+    state.inputContainer.appendChild(container)
+    state.fileSelectTextElement = label
+  }
+
+  // NOTE(sen) Init dark/light switch
+  {
+    let themeSwitch = document.createElement("div")
+
+    themeSwitch.style.display = "flex"
+    themeSwitch.style.flexDirection = "row"
+    themeSwitch.style.marginBottom = "20px"
+    themeSwitch.style.cursor = "pointer"
+
+    let options = ["dark", "light"]
+    let optionEls = []
+    for (let option of options) {
+      let optionEl = document.createElement("div")
+
+      optionEl.innerHTML = option.toUpperCase()
+      optionEl.style.padding = "5px"
+      optionEl.style.border = "1px solid var(--color-border)"
+      optionEl.style.flexGrow = "1"
+      optionEl.style.textAlign = "center"
+      optionEl.style.fontWeight = "bold"
+      optionEl.style.letterSpacing = "2px"
+
+      if (option === state.colors.theme) {
+        optionEl.style.background = "var(--color-selected)"
+      }
+
+      themeSwitch.appendChild(optionEl)
+      optionEls.push(optionEl)
+    }
+
+    themeSwitch.addEventListener("click", (event) => {
+      let targetTheme = "dark"
+      let selectionTarget = 0
+      let inheritTarget = 1
+      if (state.colors.theme === "dark") {
+        targetTheme = "light"
+        selectionTarget = 1
+        inheritTarget = 0
+      }
+      state.colors.theme = targetTheme
+      document.documentElement.setAttribute("theme", targetTheme)
+      optionEls[selectionTarget].style.background = "var(--color-selected)"
+      optionEls[inheritTarget].style.background = "inherit"
+    })
+
+    state.inputContainer.appendChild(themeSwitch)
+  }
+
+  // NOTE(sen) Init opacity inputs
+  {
+    let opacitiesEl = document.createElement("div")
+    for (let varName of Object.keys(state.opacities)) {
+      let opacityEl = document.createElement("div")
+      opacityEl.innerHTML = varName.toUpperCase()
+
+      opacityEl.addEventListener("click", (event) => {
+        let targetOpacity = 0
+        if (state.opacities[varName].value === 0) {
+          targetOpacity = state.opacities[varName].default
+        }
+
+        state.opacities[varName].value = targetOpacity
+
+        if (targetOpacity > 0) {
+          event.target.style.background = "var(--color-selected)"
+        } else {
+          event.target.style.background = "inherit"
+        }
+
+        let alpha = targetOpacity.toString(16).padStart(2, "0")
+        let attrName = "stroke"
+        if (varName === "counts" || varName === "points") {
+          attrName = "fill"
+        }
+        for (let element of state.opacities[varName].elements) {
+          let currentColFull = element.getAttribute(attrName)
+          let currentColNoAlpha = currentColFull.slice(0, 7)
+          let newCol = currentColNoAlpha + alpha
+          element.setAttributeNS(null, attrName, newCol)
+        }
+      })
+
+      opacityEl.style.cursor = "pointer"
+      opacityEl.style.border = "1px solid var(--color-border)"
+      opacityEl.style.textAlign = "center"
+      opacityEl.style.padding = "5px"
+      if (state.opacities[varName].value > 0) {
+        opacityEl.style.background = "var(--color-selected)"
+      }
+      opacityEl.style.fontWeight = "bold"
+      opacityEl.style.letterSpacing = "2px"
+
+      opacitiesEl.appendChild(opacityEl)
+    }
+
+    opacitiesEl.style.marginBottom = "20px"
+
+    state.inputContainer.appendChild(opacitiesEl)
+    state.opacitiesContainer = opacitiesEl
+  }
+
+  // NOTE(sen) Init sliders
+  {
+    let sliders = document.createElement("div")
+    sliders.style.marginBottom = "5px"
+    state.slidersContainer = sliders
+    state.inputContainer.appendChild(sliders)
+  }
+
+  // NOTE(sen) Init filters container
+  {
+    let filtersContainer = document.createElement("div")
+
+    filtersContainer.style.display = "flex"
+    filtersContainer.style.flexDirection = "row"
+    filtersContainer.style.flexWrap = "wrap"
+
+    state.filtersContainer = filtersContainer
+    state.inputContainer.appendChild(filtersContainer)
+  }
+
+  // TODO(sen) Dev only for testing
+  fetch("/data/data.csv")
+    .then((resp) => resp.text())
+    .then(updateData)
+</script>
