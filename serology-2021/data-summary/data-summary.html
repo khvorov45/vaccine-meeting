@@ -2358,8 +2358,9 @@
     state.inputContainer.appendChild(sliders)
   }
 
-  // TODO(sen) Dev only for testing
+  // NOTE(sen) Dev only for now
   fetch("/data/data.csv")
     .then((resp) => resp.text())
     .then(updateData)
+    .catch((e) => {})
 </script>
