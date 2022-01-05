@@ -1660,6 +1660,40 @@
     }
   }
 
+  const updateFilterColors = () => {
+    for (let varName of Object.keys(state.filters)) {
+      let otherVarNames = Object.keys(state.filters).filter(
+        (key) => key !== varName
+      )
+
+      for (let [optionIndex, option] of state.filters[
+        varName
+      ].options.entries()) {
+        let testRows = state.data.filter((row) => {
+          let result = row[varName] === option
+          if (result) {
+            for (let otherVarName of otherVarNames) {
+              result =
+                row[otherVarName] === state.filters[otherVarName].selected
+              if (!result) {
+                break
+              }
+            }
+          }
+          return result
+        })
+
+        let element = state.filters[varName].elements[optionIndex]
+
+        if (testRows.length === 0) {
+          element.style.color = "var(--color-error)"
+        } else {
+          element.style.color = "inherit"
+        }
+      }
+    }
+  }
+
   const findNonEmptyFilterSubset = () => {
     if (!areAllFiltersSet()) {
       let currentSettings = []
@@ -1729,39 +1763,7 @@
       }
 
       updateSliderSubtype()
-
-      // NOTE(sen) Update filter colors
-      for (let varName of Object.keys(state.filters)) {
-        let otherVarNames = Object.keys(state.filters).filter(
-          (key) => key !== varName
-        )
-
-        for (let [optionIndex, option] of state.filters[
-          varName
-        ].options.entries()) {
-          let testRows = state.data.filter((row) => {
-            let result = row[varName] === option
-            if (result) {
-              for (let otherVarName of otherVarNames) {
-                result =
-                  row[otherVarName] === state.filters[otherVarName].selected
-                if (!result) {
-                  break
-                }
-              }
-            }
-            return result
-          })
-
-          let element = state.filters[varName].elements[optionIndex]
-
-          if (testRows.length === 0) {
-            element.style.color = "var(--color-error)"
-          } else {
-            element.style.color = "inherit"
-          }
-        }
-      }
+      updateFilterColors()
     }
   }
 
@@ -1865,6 +1867,7 @@
   }
 
   const updateCirculatingAverageData = () => {
+    state.dataCirculatingAverageTitres = []
     if (state.dataCladeAverageTitres.length > 0) {
       let groupVars = Object.keys(state.dataCladeAverageTitres[0]).filter(
         (key) =>
@@ -1910,6 +1913,7 @@
       state.data = parseData(contentsString)
 
       // NOTE(sen) Clade frequencies
+      state.cladeFreqs = {}
       for (row of state.data) {
         if (state.cladeFreqs[row.clade] === undefined) {
           state.cladeFreqs[row.clade] = row.clade_freq
@@ -1917,6 +1921,7 @@
       }
 
       // NOTE(sen) Subtype clades
+      state.subtypeClades = {}
       if (state.data.length > 0) {
         let subtypes = Array.from(
           new Set(state.data.map((row) => row.subtype))
@@ -1935,6 +1940,9 @@
 
       // NOTE(sen) Populate clade frequency sliders
       state.slidersContainer.innerHTML = ""
+      while (state.slidersContainer.lastChild) {
+        state.slidersContainer.removeChild(state.slidersContainer.lastChild)
+      }
       state.subtypeSlidersContainers = {}
       state.cladeFreqElements = {}
       for (let [subtype, clades] of Object.entries(state.subtypeClades)) {
@@ -1976,6 +1984,7 @@
       }
 
       // NOTE(sen) Work out clade-average titres
+      state.dataCladeAverageTitres = []
       if (state.data.length > 0) {
         let groupVars = Object.keys(state.data[0]).filter(
           (key) => key !== "titre" && key !== "virus" && key !== "egg_cell"
@@ -2004,6 +2013,8 @@
 
       // NOTE(sen) Populate filters
       for (let varName of Object.keys(state.filters)) {
+        state.filters[varName].selected = null
+
         state.filters[varName].options = Array.from(
           new Set(state.data.map((row) => row[varName]))
         )
@@ -2067,6 +2078,7 @@
             updateTitrePlot()
             updateTitreCladeAveragePlot()
             updateTitreCirculatingAveragePlot()
+            updateFilterColors()
             if (varName === "subtype") {
               updateSliderSubtype()
             }
@@ -2295,18 +2307,15 @@
         if (varName === "counts" || varName === "points") {
           attrName = "fill"
         }
-        for (let element of state.opacities[varName].titrePlotElements) {
-          let currentColFull = element.getAttribute(attrName)
-          let currentColNoAlpha = currentColFull.slice(0, 7)
-          let newCol = currentColNoAlpha + alpha
-          element.setAttributeNS(null, attrName, newCol)
-        }
-        for (let element of state.opacities[varName]
-          .titreCladeAveragePlotElements) {
-          let currentColFull = element.getAttribute(attrName)
-          let currentColNoAlpha = currentColFull.slice(0, 7)
-          let newCol = currentColNoAlpha + alpha
-          element.setAttributeNS(null, attrName, newCol)
+        for (let [name, val] of Object.entries(state.opacities[varName])) {
+          if (name.endsWith("Elements")) {
+            for (let element of state.opacities[varName][name]) {
+              let currentColFull = element.getAttribute(attrName)
+              let currentColNoAlpha = currentColFull.slice(0, 7)
+              let newCol = currentColNoAlpha + alpha
+              element.setAttributeNS(null, attrName, newCol)
+            }
+          }
         }
       })
 
