@@ -1918,8 +1918,8 @@
       state.cladeFreqsDefault = {}
       for (row of state.data) {
         if (state.cladeFreqs[row.clade] === undefined) {
-          state.cladeFreqs[row.clade] = row.clade_freq
-          state.cladeFreqsDefault[row.clade] = row.clade_freq
+          state.cladeFreqs[row.clade] = Math.round(row.clade_freq * 100) / 100
+          state.cladeFreqsDefault[row.clade] = state.cladeFreqs[row.clade]
         }
       }
 
