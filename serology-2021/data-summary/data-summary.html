@@ -462,10 +462,14 @@
     return boxplot
   }
 
-  const createTitrePlotSvg = (data, vaccineStrains, opacities) => {
+  const createSvgElement = () => {
     let plotSvg = document.createElementNS(XMLNS, "svg")
-
     plotSvg.style.flexShrink = "0"
+    return plotSvg
+  }
+
+  const createTitrePlotSvg = (data, vaccineStrains, opacities, colors) => {
+    let plotSvg = createSvgElement()
 
     if (data !== null && data !== undefined && data.length > 0) {
       //
@@ -483,15 +487,6 @@
       let prePostDistance = 40
       let boxPlotWidth = 15
       let svgTextLineHeightGuess = 20
-
-      let preVaxCol = "#308A36"
-      let postVaxCol = "#7FA438"
-      let vaccinePreVaxCol = "#8E3164"
-      let vaccinePostVaxCol = "#B0403D"
-      let textCol = "var(--color-text)"
-      let axisCol = "#aaaaaa"
-      let thresholdLineCol = axisCol + opacities.line40.value.toString(16)
-      let gridCol = "#99999944"
 
       //
       // SECTION Scales
@@ -604,9 +599,9 @@
       //
 
       let yAxis = createTitreAxisElement(
-        textCol,
-        axisCol,
-        gridCol,
+        colors.text,
+        colors.axis,
+        colors.grid,
         plotWidth,
         plotHeight,
         axisPadBottom,
@@ -628,14 +623,14 @@
       xLine.setAttributeNS(null, "x2", plotWidth)
       xLine.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
       xLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
-      xLine.setAttributeNS(null, "stroke", axisCol)
+      xLine.setAttributeNS(null, "stroke", colors.axis)
       plotSvg.appendChild(xLine)
       let xLine2 = document.createElementNS(XMLNS, "line")
       xLine2.setAttributeNS(null, "x1", axisPadLeft)
       xLine2.setAttributeNS(null, "x2", plotWidth)
       xLine2.setAttributeNS(null, "y1", axisPadTop)
       xLine2.setAttributeNS(null, "y2", axisPadTop)
-      xLine2.setAttributeNS(null, "stroke", axisCol)
+      xLine2.setAttributeNS(null, "stroke", colors.axis)
       plotSvg.appendChild(xLine2)
 
       // NOTE(sen) Ticks and labels
@@ -652,7 +647,7 @@
             "y2",
             plotHeight - axisPadBottom + 1 + tickLength
           )
-          tick.setAttributeNS(null, "stroke", axisCol)
+          tick.setAttributeNS(null, "stroke", colors.axis)
           plotSvg.appendChild(tick)
 
           let yCoord = plotHeight - axisPadBottom + tickLength
@@ -660,7 +655,7 @@
           let label = document.createElementNS(XMLNS, "text")
           label.setAttributeNS(null, "x", 0)
           label.setAttributeNS(null, "y", 0)
-          label.setAttributeNS(null, "fill", textCol)
+          label.setAttributeNS(null, "fill", colors.text)
           label.setAttributeNS(null, "dominant-baseline", "hanging")
           label.setAttributeNS(null, "text-anchor", "end")
           label.setAttributeNS(null, "text-wrap", "wrap")
@@ -675,7 +670,7 @@
           let cladeLabel = document.createElementNS(XMLNS, "text")
           cladeLabel.setAttributeNS(null, "x", 0)
           cladeLabel.setAttributeNS(null, "y", 0)
-          cladeLabel.setAttributeNS(null, "fill", textCol)
+          cladeLabel.setAttributeNS(null, "fill", colors.text)
           cladeLabel.setAttributeNS(null, "dominant-baseline", "hanging")
           cladeLabel.setAttributeNS(null, "text-anchor", "end")
           cladeLabel.setAttributeNS(null, "text-wrap", "wrap")
@@ -707,7 +702,7 @@
       line40.setAttributeNS(null, "x2", plotWidth)
       line40.setAttributeNS(null, "y1", scaleTitre(40))
       line40.setAttributeNS(null, "y2", scaleTitre(40))
-      line40.setAttributeNS(null, "stroke", thresholdLineCol)
+      line40.setAttributeNS(null, "stroke", colors.thresholdLine)
       line40.setAttributeNS(null, "stroke-dasharray", "5,5")
       plotSvg.appendChild(line40)
       opacities.line40.titrePlotElements.push(line40)
@@ -730,7 +725,7 @@
           markerLine.setAttributeNS(null, "x2", markerLineX)
           markerLine.setAttributeNS(null, "y1", axisPadTop)
           markerLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
-          markerLine.setAttributeNS(null, "stroke", axisCol)
+          markerLine.setAttributeNS(null, "stroke", colors.axis)
           plotSvg.appendChild(markerLine)
         }
 
@@ -739,7 +734,7 @@
         let markerTextX = (labLastX + labFirstX) / 2
         markerText.setAttributeNS(null, "x", markerTextX)
         markerText.setAttributeNS(null, "y", axisPadTop - tickLength)
-        markerText.setAttributeNS(null, "fill", textCol)
+        markerText.setAttributeNS(null, "fill", colors.text)
         markerText.setAttributeNS(null, "text-anchor", "middle")
         markerText.innerHTML = labs[labIndex]
         plotSvg.appendChild(markerText)
@@ -756,11 +751,11 @@
           let preVaxPoints = 0
           let postVaxPoints = 0
 
-          let thisPreVaxCol = preVaxCol
-          let thisPostVaxCol = postVaxCol
+          let thisPreVaxCol = colors.preVax
+          let thisPostVaxCol = colors.postVax
           if (vaccineStrains.includes(virusName)) {
-            thisPreVaxCol = vaccinePreVaxCol
-            thisPostVaxCol = vaccinePostVaxCol
+            thisPreVaxCol = colors.vaccinePreVax
+            thisPostVaxCol = colors.vaccinePostVax
           }
 
           for (let serumId of serumIds) {
@@ -897,10 +892,13 @@
     return plotSvg
   }
 
-  const createTitreCladeAveragePlotSvg = (data, vaccineClades, opacities) => {
-    let plotSvg = document.createElementNS(XMLNS, "svg")
-
-    plotSvg.style.flexShrink = "0"
+  const createTitreCladeAveragePlotSvg = (
+    data,
+    vaccineClades,
+    opacities,
+    colors
+  ) => {
+    let plotSvg = createSvgElement()
 
     if (data !== null && data !== undefined && data.length > 0) {
       //
@@ -917,15 +915,6 @@
       let tickLength = 5
       let prePostDistance = 40
       let boxPlotWidth = 15
-
-      let preVaxCol = "#308A36"
-      let postVaxCol = "#7FA438"
-      let vaccinePreVaxCol = "#8E3164"
-      let vaccinePostVaxCol = "#B0403D"
-      let textCol = "var(--color-text)"
-      let axisCol = "#aaaaaa"
-      let thresholdLineCol = axisCol + opacities.line40.value.toString(16)
-      let gridCol = "#99999944"
 
       //
       // SECTION Scales
@@ -998,9 +987,9 @@
       //
 
       let yAxis = createTitreAxisElement(
-        textCol,
-        axisCol,
-        gridCol,
+        colors.text,
+        colors.axis,
+        colors.grid,
         plotWidth,
         plotHeight,
         axisPadBottom,
@@ -1022,14 +1011,14 @@
       xLine.setAttributeNS(null, "x2", plotWidth)
       xLine.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
       xLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
-      xLine.setAttributeNS(null, "stroke", axisCol)
+      xLine.setAttributeNS(null, "stroke", colors.axis)
       plotSvg.appendChild(xLine)
       let xLine2 = document.createElementNS(XMLNS, "line")
       xLine2.setAttributeNS(null, "x1", axisPadLeft)
       xLine2.setAttributeNS(null, "x2", plotWidth)
       xLine2.setAttributeNS(null, "y1", axisPadTop)
       xLine2.setAttributeNS(null, "y2", axisPadTop)
-      xLine2.setAttributeNS(null, "stroke", axisCol)
+      xLine2.setAttributeNS(null, "stroke", colors.axis)
       plotSvg.appendChild(xLine2)
 
       // NOTE(sen) Ticks and labels
@@ -1046,7 +1035,7 @@
             "y2",
             plotHeight - axisPadBottom + 1 + tickLength
           )
-          tick.setAttributeNS(null, "stroke", axisCol)
+          tick.setAttributeNS(null, "stroke", colors.axis)
           plotSvg.appendChild(tick)
 
           let yCoord = plotHeight - axisPadBottom + tickLength * 2
@@ -1054,7 +1043,7 @@
           let label = document.createElementNS(XMLNS, "text")
           label.setAttributeNS(null, "x", 0)
           label.setAttributeNS(null, "y", 0)
-          label.setAttributeNS(null, "fill", textCol)
+          label.setAttributeNS(null, "fill", colors.text)
           label.setAttributeNS(null, "dominant-baseline", "hanging")
           label.setAttributeNS(null, "text-anchor", "end")
           label.setAttributeNS(null, "text-wrap", "wrap")
@@ -1084,7 +1073,7 @@
       line40.setAttributeNS(null, "x2", plotWidth)
       line40.setAttributeNS(null, "y1", scaleTitre(40))
       line40.setAttributeNS(null, "y2", scaleTitre(40))
-      line40.setAttributeNS(null, "stroke", thresholdLineCol)
+      line40.setAttributeNS(null, "stroke", colors.thresholdLine)
       line40.setAttributeNS(null, "stroke-dasharray", "5,5")
       plotSvg.appendChild(line40)
       opacities.line40.titreCladeAveragePlotElements.push(line40)
@@ -1107,7 +1096,7 @@
           markerLine.setAttributeNS(null, "x2", markerLineX)
           markerLine.setAttributeNS(null, "y1", axisPadTop)
           markerLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
-          markerLine.setAttributeNS(null, "stroke", axisCol)
+          markerLine.setAttributeNS(null, "stroke", colors.axis)
           plotSvg.appendChild(markerLine)
         }
 
@@ -1116,7 +1105,7 @@
         let markerTextX = (labLastX + labFirstX) / 2
         markerText.setAttributeNS(null, "x", markerTextX)
         markerText.setAttributeNS(null, "y", axisPadTop - tickLength)
-        markerText.setAttributeNS(null, "fill", textCol)
+        markerText.setAttributeNS(null, "fill", colors.text)
         markerText.setAttributeNS(null, "text-anchor", "middle")
         markerText.innerHTML = labs[labIndex]
         plotSvg.appendChild(markerText)
@@ -1133,11 +1122,11 @@
           let preVaxPoints = 0
           let postVaxPoints = 0
 
-          let thisPreVaxCol = preVaxCol
-          let thisPostVaxCol = postVaxCol
+          let thisPreVaxCol = colors.preVax
+          let thisPostVaxCol = colors.postVax
           if (vaccineClades.includes(cladeName)) {
-            thisPreVaxCol = vaccinePreVaxCol
-            thisPostVaxCol = vaccinePostVaxCol
+            thisPreVaxCol = colors.vaccinePreVax
+            thisPostVaxCol = colors.vaccinePostVax
           }
 
           for (let serumId of serumIds) {
@@ -1271,10 +1260,8 @@
     return plotSvg
   }
 
-  const createTitreCirculatingAveragePlotSvg = (data, opacities) => {
-    let plotSvg = document.createElementNS(XMLNS, "svg")
-
-    plotSvg.style.flexShrink = "0"
+  const createTitreCirculatingAveragePlotSvg = (data, opacities, colors) => {
+    let plotSvg = createSvgElement()
 
     if (data !== null && data !== undefined && data.length > 0) {
       //
@@ -1291,13 +1278,6 @@
       let tickLength = 5
       let prePostDistance = 40
       let boxPlotWidth = 15
-
-      let preVaxCol = "#308A36"
-      let postVaxCol = "#7FA438"
-      let textCol = "var(--color-text)"
-      let axisCol = "#aaaaaa"
-      let thresholdLineCol = axisCol + opacities.line40.value.toString(16)
-      let gridCol = "#99999944"
 
       //
       // SECTION Scales
@@ -1348,9 +1328,9 @@
       //
 
       let yAxis = createTitreAxisElement(
-        textCol,
-        axisCol,
-        gridCol,
+        colors.text,
+        colors.axis,
+        colors.grid,
         plotWidth,
         plotHeight,
         axisPadBottom,
@@ -1372,14 +1352,14 @@
       xLine.setAttributeNS(null, "x2", plotWidth)
       xLine.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
       xLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
-      xLine.setAttributeNS(null, "stroke", axisCol)
+      xLine.setAttributeNS(null, "stroke", colors.axis)
       plotSvg.appendChild(xLine)
       let xLine2 = document.createElementNS(XMLNS, "line")
       xLine2.setAttributeNS(null, "x1", axisPadLeft)
       xLine2.setAttributeNS(null, "x2", plotWidth)
       xLine2.setAttributeNS(null, "y1", axisPadTop)
       xLine2.setAttributeNS(null, "y2", axisPadTop)
-      xLine2.setAttributeNS(null, "stroke", axisCol)
+      xLine2.setAttributeNS(null, "stroke", colors.axis)
       plotSvg.appendChild(xLine2)
 
       // NOTE(sen) Ticks and labels
@@ -1395,7 +1375,7 @@
           "y2",
           plotHeight - axisPadBottom + 1 + tickLength
         )
-        tick.setAttributeNS(null, "stroke", axisCol)
+        tick.setAttributeNS(null, "stroke", colors.axis)
         plotSvg.appendChild(tick)
 
         let yCoord = plotHeight - axisPadBottom + tickLength * 2
@@ -1403,7 +1383,7 @@
         let label = document.createElementNS(XMLNS, "text")
         label.setAttributeNS(null, "x", 0)
         label.setAttributeNS(null, "y", 0)
-        label.setAttributeNS(null, "fill", textCol)
+        label.setAttributeNS(null, "fill", colors.text)
         label.setAttributeNS(null, "dominant-baseline", "hanging")
         label.setAttributeNS(null, "text-anchor", "middle")
         label.setAttributeNS(null, "text-wrap", "wrap")
@@ -1427,7 +1407,7 @@
       line40.setAttributeNS(null, "x2", plotWidth)
       line40.setAttributeNS(null, "y1", scaleTitre(40))
       line40.setAttributeNS(null, "y2", scaleTitre(40))
-      line40.setAttributeNS(null, "stroke", thresholdLineCol)
+      line40.setAttributeNS(null, "stroke", colors.thresholdLine)
       line40.setAttributeNS(null, "stroke-dasharray", "5,5")
       plotSvg.appendChild(line40)
       opacities.line40.titreCirculatingAveragePlotElements.push(line40)
@@ -1461,10 +1441,10 @@
               let yCoord = scaleLogtitre(Math.log(titre))
               let xCoord = scaleLabIndex(labIndex) - prePostDistance / 2
 
-              let col = preVaxCol
+              let col = colors.preVax
               if (timepoint === "Post-vax") {
                 xCoord += prePostDistance
-                col = postVaxCol
+                col = colors.postVax
                 postVaxPoints += 1
               } else {
                 preVaxPoints += 1
@@ -1505,7 +1485,7 @@
             line.setAttributeNS(
               null,
               "stroke",
-              preVaxCol + opacities.lines.value.toString(16)
+              colors.preVax + opacities.lines.value.toString(16)
             )
             plotSvg.appendChild(line)
             opacities.lines.titreCirculatingAveragePlotElements.push(line)
@@ -1517,13 +1497,13 @@
           // NOTE(sen) Counts
           let count = document.createElementNS(XMLNS, "text")
 
-          let col = preVaxCol
+          let col = colors.preVax
           let xCoord = scaleLabIndex(labIndex) - prePostDistance / 2
           count.innerHTML = preVaxPoints
           let titres = labDataPrevax
           if (timepoint == "Post-vax") {
             xCoord += prePostDistance
-            col = postVaxCol
+            col = colors.postVax
             count.innerHTML = postVaxPoints
             titres = labDataPostvax
           }
@@ -1619,6 +1599,14 @@
     },
     colors: {
       theme: "dark",
+      preVax: "#308A36",
+      postVax: "#7FA438",
+      vaccinePreVax: "#8E3164",
+      vaccinePostVax: "#B0403D",
+      text: "var(--color-text)",
+      axis: "#aaaaaa",
+      thresholdLine: null,
+      grid: "#99999944",
     },
     sizes: {
       inputBar: "200px",
@@ -1637,6 +1625,8 @@
     fileSelectTextElement: null,
     scrollbarStyle: null,
   }
+  state.colors.thresholdLine =
+    state.colors.axis + state.opacities.line40.value.toString(16)
 
   const areAllFiltersSet = () => {
     let allFiltersSet = true
@@ -1802,7 +1792,8 @@
           "A/Hong Kong/2671/2019e",
           "B/Washington/02/2019e",
         ],
-        state.opacities
+        state.opacities,
+        state.colors
       )
 
       state.titrePlotContainer.appendChild(plotSvg)
@@ -1829,7 +1820,8 @@
       let plotCladeAverageTitresSvg = createTitreCladeAveragePlotSvg(
         dataSubsetCladeAverages,
         ["A5a.1", "A1b/137F", "V1A.3"],
-        state.opacities
+        state.opacities,
+        state.colors
       )
 
       state.titreCladeAveragePlotContainer.appendChild(
@@ -1858,7 +1850,8 @@
       let plotCirculatingAverageTitresSvg =
         createTitreCirculatingAveragePlotSvg(
           dataSubsetCirculatingAverages,
-          state.opacities
+          state.opacities,
+          state.colors
         )
 
       state.titreCirculatingAveragePlotContainer.appendChild(
