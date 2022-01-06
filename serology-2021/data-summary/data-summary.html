@@ -289,9 +289,7 @@
   }
 
   const createTitreAxisElement = (
-    textCol,
-    axisCol,
-    gridCol,
+    colors,
     plotWidth,
     plotHeight,
     axisPadBottom,
@@ -307,7 +305,7 @@
     let yTitle = document.createElementNS(XMLNS, "text")
     yTitle.setAttributeNS(null, "x", 0)
     yTitle.setAttributeNS(null, "y", 0)
-    yTitle.setAttributeNS(null, "fill", textCol)
+    yTitle.setAttributeNS(null, "fill", colors.text)
     yTitle.setAttributeNS(
       null,
       "transform",
@@ -324,14 +322,14 @@
     yLine.setAttributeNS(null, "x2", axisPadLeft)
     yLine.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
     yLine.setAttributeNS(null, "y2", axisPadTop)
-    yLine.setAttributeNS(null, "stroke", axisCol)
+    yLine.setAttributeNS(null, "stroke", colors.axis)
     titreAxis.appendChild(yLine)
     let yLine2 = document.createElementNS(XMLNS, "line")
     yLine2.setAttributeNS(null, "x1", plotWidth)
     yLine2.setAttributeNS(null, "x2", plotWidth)
     yLine2.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
     yLine2.setAttributeNS(null, "y2", axisPadTop)
-    yLine2.setAttributeNS(null, "stroke", axisCol)
+    yLine2.setAttributeNS(null, "stroke", colors.axis)
     titreAxis.appendChild(yLine2)
 
     // NOTE(sen) Ticks and numbers
@@ -344,7 +342,7 @@
       tick.setAttributeNS(null, "x2", axisPadLeft - 1)
       tick.setAttributeNS(null, "y1", yCoord)
       tick.setAttributeNS(null, "y2", yCoord)
-      tick.setAttributeNS(null, "stroke", axisCol)
+      tick.setAttributeNS(null, "stroke", colors.axis)
       titreAxis.appendChild(tick)
 
       let gridline = document.createElementNS(XMLNS, "line")
@@ -352,13 +350,13 @@
       gridline.setAttributeNS(null, "x2", plotWidth)
       gridline.setAttributeNS(null, "y1", yCoord)
       gridline.setAttributeNS(null, "y2", yCoord)
-      gridline.setAttributeNS(null, "stroke", gridCol)
+      gridline.setAttributeNS(null, "stroke", colors.grid)
       titreAxis.appendChild(gridline)
 
       let number = document.createElementNS(XMLNS, "text")
       number.setAttributeNS(null, "x", axisPadLeft - tickLength * 1.5)
       number.setAttributeNS(null, "y", yCoord)
-      number.setAttributeNS(null, "fill", textCol)
+      number.setAttributeNS(null, "fill", colors.text)
       number.setAttributeNS(null, "dominant-baseline", "middle")
       number.setAttributeNS(null, "text-anchor", "end")
       number.innerHTML = yTick.toFixed()
@@ -599,9 +597,7 @@
       //
 
       let yAxis = createTitreAxisElement(
-        colors.text,
-        colors.axis,
-        colors.grid,
+        colors,
         plotWidth,
         plotHeight,
         axisPadBottom,
@@ -987,9 +983,7 @@
       //
 
       let yAxis = createTitreAxisElement(
-        colors.text,
-        colors.axis,
-        colors.grid,
+        colors,
         plotWidth,
         plotHeight,
         axisPadBottom,
@@ -1328,9 +1322,7 @@
       //
 
       let yAxis = createTitreAxisElement(
-        colors.text,
-        colors.axis,
-        colors.grid,
+        colors,
         plotWidth,
         plotHeight,
         axisPadBottom,
