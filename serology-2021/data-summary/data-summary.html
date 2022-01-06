@@ -288,14 +288,17 @@
     return result
   }
 
+  const reduceAxisPadBottom = (newValue, oldSizes) => {
+    sizes = { ...oldSizes }
+    sizes.plotHeight -= sizes.axisPadBottom - newValue
+    sizes.axisPadBottom = newValue
+    return sizes
+  }
+
   const createTitreAxisElement = (
     colors,
     plotWidth,
-    plotHeight,
-    axisPadBottom,
-    axisPadLeft,
-    axisPadTop,
-    tickLength,
+    sizes,
     scaleTitre,
     title
   ) => {
@@ -309,7 +312,9 @@
     yTitle.setAttributeNS(
       null,
       "transform",
-      `translate(${0}, ${(plotHeight - axisPadBottom) / 2}) rotate(-90)`
+      `translate(${0}, ${
+        (sizes.plotHeight - sizes.axisPadBottom) / 2
+      }) rotate(-90)`
     )
     yTitle.setAttributeNS(null, "dominant-baseline", "hanging")
     yTitle.setAttributeNS(null, "text-anchor", "middle")
@@ -318,17 +323,17 @@
 
     // NOTE(sen) Line
     let yLine = document.createElementNS(XMLNS, "line")
-    yLine.setAttributeNS(null, "x1", axisPadLeft)
-    yLine.setAttributeNS(null, "x2", axisPadLeft)
-    yLine.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
-    yLine.setAttributeNS(null, "y2", axisPadTop)
+    yLine.setAttributeNS(null, "x1", sizes.axisPadLeft)
+    yLine.setAttributeNS(null, "x2", sizes.axisPadLeft)
+    yLine.setAttributeNS(null, "y1", sizes.plotHeight - sizes.axisPadBottom)
+    yLine.setAttributeNS(null, "y2", sizes.axisPadTop)
     yLine.setAttributeNS(null, "stroke", colors.axis)
     titreAxis.appendChild(yLine)
     let yLine2 = document.createElementNS(XMLNS, "line")
     yLine2.setAttributeNS(null, "x1", plotWidth)
     yLine2.setAttributeNS(null, "x2", plotWidth)
-    yLine2.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
-    yLine2.setAttributeNS(null, "y2", axisPadTop)
+    yLine2.setAttributeNS(null, "y1", sizes.plotHeight - sizes.axisPadBottom)
+    yLine2.setAttributeNS(null, "y2", sizes.axisPadTop)
     yLine2.setAttributeNS(null, "stroke", colors.axis)
     titreAxis.appendChild(yLine2)
 
@@ -338,15 +343,15 @@
       let yCoord = scaleTitre(yTick)
 
       let tick = document.createElementNS(XMLNS, "line")
-      tick.setAttributeNS(null, "x1", axisPadLeft - tickLength - 1)
-      tick.setAttributeNS(null, "x2", axisPadLeft - 1)
+      tick.setAttributeNS(null, "x1", sizes.axisPadLeft - sizes.tickLength - 1)
+      tick.setAttributeNS(null, "x2", sizes.axisPadLeft - 1)
       tick.setAttributeNS(null, "y1", yCoord)
       tick.setAttributeNS(null, "y2", yCoord)
       tick.setAttributeNS(null, "stroke", colors.axis)
       titreAxis.appendChild(tick)
 
       let gridline = document.createElementNS(XMLNS, "line")
-      gridline.setAttributeNS(null, "x1", axisPadLeft + 1)
+      gridline.setAttributeNS(null, "x1", sizes.axisPadLeft + 1)
       gridline.setAttributeNS(null, "x2", plotWidth)
       gridline.setAttributeNS(null, "y1", yCoord)
       gridline.setAttributeNS(null, "y2", yCoord)
@@ -354,7 +359,11 @@
       titreAxis.appendChild(gridline)
 
       let number = document.createElementNS(XMLNS, "text")
-      number.setAttributeNS(null, "x", axisPadLeft - tickLength * 1.5)
+      number.setAttributeNS(
+        null,
+        "x",
+        sizes.axisPadLeft - sizes.tickLength * 1.5
+      )
       number.setAttributeNS(null, "y", yCoord)
       number.setAttributeNS(null, "fill", colors.text)
       number.setAttributeNS(null, "dominant-baseline", "middle")
@@ -466,26 +475,16 @@
     return plotSvg
   }
 
-  const createTitrePlotSvg = (data, vaccineStrains, opacities, colors) => {
+  const createTitrePlotSvg = (
+    data,
+    vaccineStrains,
+    opacities,
+    colors,
+    sizes
+  ) => {
     let plotSvg = createSvgElement()
 
     if (data !== null && data !== undefined && data.length > 0) {
-      //
-      // SECTION Sizes and colors
-      //
-
-      let plotHeight = 600
-      let widthPerVirus = 100
-      let axisPadLeft = 80
-      let axisPadBottom = 250
-      let axisPadTop = 20
-      let dataPadX = 50
-      let dataPadY = 10
-      let tickLength = 5
-      let prePostDistance = 40
-      let boxPlotWidth = 15
-      let svgTextLineHeightGuess = 20
-
       //
       // SECTION Scales
       //
@@ -496,8 +495,8 @@
           val,
           Math.log(5),
           Math.log(10240),
-          plotHeight - dataPadY - axisPadBottom,
-          dataPadY + axisPadTop
+          sizes.plotHeight - sizes.dataPadY - sizes.axisPadBottom,
+          sizes.dataPadY + sizes.axisPadTop
         )
       let scaleTitre = (val) => scaleLogtitre(Math.log(val))
 
@@ -560,9 +559,9 @@
       let labVirusCumCounts = arrCumSum(labVirusCounts)
 
       let plotWidth =
-        dataPadX +
-        axisPadLeft +
-        widthPerVirus * labVirusCumCounts[labVirusCumCounts.length - 1]
+        sizes.dataPadX +
+        sizes.axisPadLeft +
+        sizes.widthPerElement * labVirusCumCounts[labVirusCumCounts.length - 1]
 
       const scaleLabIndexVirusIndex = (labIndex, virusIndex) => {
         let virusCount = labVirusCounts[labIndex]
@@ -573,8 +572,8 @@
           realIndex,
           0,
           labVirusCumCounts[labVirusCumCounts.length - 1] - 1,
-          axisPadLeft + dataPadX,
-          plotWidth - dataPadX
+          sizes.axisPadLeft + sizes.dataPadX,
+          plotWidth - sizes.dataPadX
         )
         return result
       }
@@ -586,10 +585,10 @@
       plotSvg.setAttributeNS(
         null,
         "viewBox",
-        "0 0 " + plotWidth + " " + plotHeight
+        "0 0 " + plotWidth + " " + sizes.plotHeight
       )
       plotSvg.setAttributeNS(null, "width", plotWidth)
-      plotSvg.setAttributeNS(null, "height", plotHeight)
+      plotSvg.setAttributeNS(null, "height", sizes.plotHeight)
       plotSvg.style.display = "block"
 
       //
@@ -599,11 +598,7 @@
       let yAxis = createTitreAxisElement(
         colors,
         plotWidth,
-        plotHeight,
-        axisPadBottom,
-        axisPadLeft,
-        axisPadTop,
-        tickLength,
+        sizes,
         scaleTitre,
         "Titre"
       )
@@ -615,17 +610,17 @@
 
       // NOTE(sen) Line
       let xLine = document.createElementNS(XMLNS, "line")
-      xLine.setAttributeNS(null, "x1", axisPadLeft)
+      xLine.setAttributeNS(null, "x1", sizes.axisPadLeft)
       xLine.setAttributeNS(null, "x2", plotWidth)
-      xLine.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
-      xLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
+      xLine.setAttributeNS(null, "y1", sizes.plotHeight - sizes.axisPadBottom)
+      xLine.setAttributeNS(null, "y2", sizes.plotHeight - sizes.axisPadBottom)
       xLine.setAttributeNS(null, "stroke", colors.axis)
       plotSvg.appendChild(xLine)
       let xLine2 = document.createElementNS(XMLNS, "line")
-      xLine2.setAttributeNS(null, "x1", axisPadLeft)
+      xLine2.setAttributeNS(null, "x1", sizes.axisPadLeft)
       xLine2.setAttributeNS(null, "x2", plotWidth)
-      xLine2.setAttributeNS(null, "y1", axisPadTop)
-      xLine2.setAttributeNS(null, "y2", axisPadTop)
+      xLine2.setAttributeNS(null, "y1", sizes.axisPadTop)
+      xLine2.setAttributeNS(null, "y2", sizes.axisPadTop)
       xLine2.setAttributeNS(null, "stroke", colors.axis)
       plotSvg.appendChild(xLine2)
 
@@ -637,16 +632,20 @@
           let tick = document.createElementNS(XMLNS, "line")
           tick.setAttributeNS(null, "x1", xCoord)
           tick.setAttributeNS(null, "x2", xCoord)
-          tick.setAttributeNS(null, "y1", plotHeight - axisPadBottom + 1)
+          tick.setAttributeNS(
+            null,
+            "y1",
+            sizes.plotHeight - sizes.axisPadBottom + 1
+          )
           tick.setAttributeNS(
             null,
             "y2",
-            plotHeight - axisPadBottom + 1 + tickLength
+            sizes.plotHeight - sizes.axisPadBottom + 1 + sizes.tickLength
           )
           tick.setAttributeNS(null, "stroke", colors.axis)
           plotSvg.appendChild(tick)
 
-          let yCoord = plotHeight - axisPadBottom + tickLength
+          let yCoord = sizes.plotHeight - sizes.axisPadBottom + sizes.tickLength
 
           let label = document.createElementNS(XMLNS, "text")
           label.setAttributeNS(null, "x", 0)
@@ -674,7 +673,7 @@
             null,
             "transform",
             `translate(${
-              xCoord + svgTextLineHeightGuess
+              xCoord + sizes.svgTextLineHeightGuess
             }, ${yCoord}) rotate(-45)`
           )
           let cladeName = virusClades[virusName]
@@ -694,7 +693,7 @@
 
       // NOTE(sen) Line at 40
       let line40 = document.createElementNS(XMLNS, "line")
-      line40.setAttributeNS(null, "x1", axisPadLeft)
+      line40.setAttributeNS(null, "x1", sizes.axisPadLeft)
       line40.setAttributeNS(null, "x2", plotWidth)
       line40.setAttributeNS(null, "y1", scaleTitre(40))
       line40.setAttributeNS(null, "y2", scaleTitre(40))
@@ -716,11 +715,15 @@
         )
         if (labIndex < labViruses.length - 1) {
           let markerLine = document.createElementNS(XMLNS, "line")
-          let markerLineX = labLastX + widthPerVirus / 2
+          let markerLineX = labLastX + sizes.widthPerElement / 2
           markerLine.setAttributeNS(null, "x1", markerLineX)
           markerLine.setAttributeNS(null, "x2", markerLineX)
-          markerLine.setAttributeNS(null, "y1", axisPadTop)
-          markerLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
+          markerLine.setAttributeNS(null, "y1", sizes.axisPadTop)
+          markerLine.setAttributeNS(
+            null,
+            "y2",
+            sizes.plotHeight - sizes.axisPadBottom
+          )
           markerLine.setAttributeNS(null, "stroke", colors.axis)
           plotSvg.appendChild(markerLine)
         }
@@ -729,7 +732,11 @@
         let markerText = document.createElementNS(XMLNS, "text")
         let markerTextX = (labLastX + labFirstX) / 2
         markerText.setAttributeNS(null, "x", markerTextX)
-        markerText.setAttributeNS(null, "y", axisPadTop - tickLength)
+        markerText.setAttributeNS(
+          null,
+          "y",
+          sizes.axisPadTop - sizes.tickLength
+        )
         markerText.setAttributeNS(null, "fill", colors.text)
         markerText.setAttributeNS(null, "text-anchor", "middle")
         markerText.innerHTML = labs[labIndex]
@@ -775,11 +782,11 @@
                     labIndex,
                     virusIndex + (Math.random() - 0.5) * 0.05
                   ) -
-                  prePostDistance / 2
+                  sizes.prePostDistance / 2
 
                 let col = thisPreVaxCol
                 if (timepoint === "Post-vax") {
-                  xCoord += prePostDistance
+                  xCoord += sizes.prePostDistance
                   col = thisPostVaxCol
                   postVaxPoints += 1
                 } else {
@@ -836,11 +843,11 @@
             let col = thisPreVaxCol
             let xCoord =
               scaleLabIndexVirusIndex(labIndex, virusIndex) -
-              prePostDistance / 2
+              sizes.prePostDistance / 2
             count.innerHTML = preVaxPoints
             let titres = virusDataPrevax
             if (timepoint == "Post-vax") {
-              xCoord += prePostDistance
+              xCoord += sizes.prePostDistance
               col = thisPostVaxCol
               count.innerHTML = postVaxPoints
               titres = virusDataPostvax
@@ -873,7 +880,7 @@
               scaleLogtitre(boxplotStats.median),
               scaleLogtitre(boxplotStats.q75),
               scaleLogtitre(boxplotStats.top),
-              boxPlotWidth,
+              sizes.boxPlotWidth,
               xCoord,
               col + opacities.boxplots.value.toString(16)
             )
@@ -892,26 +899,12 @@
     data,
     vaccineClades,
     opacities,
-    colors
+    colors,
+    sizes
   ) => {
     let plotSvg = createSvgElement()
 
     if (data !== null && data !== undefined && data.length > 0) {
-      //
-      // SECTION Sizes and colors
-      //
-
-      let plotHeight = 400
-      let widthPerVirus = 100
-      let axisPadLeft = 80
-      let axisPadBottom = 80
-      let axisPadTop = 20
-      let dataPadX = 50
-      let dataPadY = 10
-      let tickLength = 5
-      let prePostDistance = 40
-      let boxPlotWidth = 15
-
       //
       // SECTION Scales
       //
@@ -922,8 +915,8 @@
           val,
           Math.log(5),
           Math.log(10240),
-          plotHeight - dataPadY - axisPadBottom,
-          dataPadY + axisPadTop
+          sizes.plotHeight - sizes.dataPadY - sizes.axisPadBottom,
+          sizes.dataPadY + sizes.axisPadTop
         )
       let scaleTitre = (val) => scaleLogtitre(Math.log(val))
 
@@ -946,9 +939,9 @@
       let labCladeCumCounts = arrCumSum(labCladeCounts)
 
       let plotWidth =
-        dataPadX +
-        axisPadLeft +
-        widthPerVirus * labCladeCumCounts[labCladeCumCounts.length - 1]
+        sizes.dataPadX +
+        sizes.axisPadLeft +
+        sizes.widthPerElement * labCladeCumCounts[labCladeCumCounts.length - 1]
 
       const scaleLabIndexCladeIndex = (labIndex, cladeIndex) => {
         let cladeCount = labCladeCounts[labIndex]
@@ -959,8 +952,8 @@
           realIndex,
           0,
           labCladeCumCounts[labCladeCumCounts.length - 1] - 1,
-          axisPadLeft + dataPadX,
-          plotWidth - dataPadX
+          sizes.axisPadLeft + sizes.dataPadX,
+          plotWidth - sizes.dataPadX
         )
         return result
       }
@@ -972,10 +965,10 @@
       plotSvg.setAttributeNS(
         null,
         "viewBox",
-        "0 0 " + plotWidth + " " + plotHeight
+        "0 0 " + plotWidth + " " + sizes.plotHeight
       )
       plotSvg.setAttributeNS(null, "width", plotWidth)
-      plotSvg.setAttributeNS(null, "height", plotHeight)
+      plotSvg.setAttributeNS(null, "height", sizes.plotHeight)
       plotSvg.style.display = "block"
 
       //
@@ -985,11 +978,7 @@
       let yAxis = createTitreAxisElement(
         colors,
         plotWidth,
-        plotHeight,
-        axisPadBottom,
-        axisPadLeft,
-        axisPadTop,
-        tickLength,
+        sizes,
         scaleTitre,
         "Clade average titre"
       )
@@ -1001,17 +990,17 @@
 
       // NOTE(sen) Line
       let xLine = document.createElementNS(XMLNS, "line")
-      xLine.setAttributeNS(null, "x1", axisPadLeft)
+      xLine.setAttributeNS(null, "x1", sizes.axisPadLeft)
       xLine.setAttributeNS(null, "x2", plotWidth)
-      xLine.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
-      xLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
+      xLine.setAttributeNS(null, "y1", sizes.plotHeight - sizes.axisPadBottom)
+      xLine.setAttributeNS(null, "y2", sizes.plotHeight - sizes.axisPadBottom)
       xLine.setAttributeNS(null, "stroke", colors.axis)
       plotSvg.appendChild(xLine)
       let xLine2 = document.createElementNS(XMLNS, "line")
-      xLine2.setAttributeNS(null, "x1", axisPadLeft)
+      xLine2.setAttributeNS(null, "x1", sizes.axisPadLeft)
       xLine2.setAttributeNS(null, "x2", plotWidth)
-      xLine2.setAttributeNS(null, "y1", axisPadTop)
-      xLine2.setAttributeNS(null, "y2", axisPadTop)
+      xLine2.setAttributeNS(null, "y1", sizes.axisPadTop)
+      xLine2.setAttributeNS(null, "y2", sizes.axisPadTop)
       xLine2.setAttributeNS(null, "stroke", colors.axis)
       plotSvg.appendChild(xLine2)
 
@@ -1023,16 +1012,21 @@
           let tick = document.createElementNS(XMLNS, "line")
           tick.setAttributeNS(null, "x1", xCoord)
           tick.setAttributeNS(null, "x2", xCoord)
-          tick.setAttributeNS(null, "y1", plotHeight - axisPadBottom + 1)
+          tick.setAttributeNS(
+            null,
+            "y1",
+            sizes.plotHeight - sizes.axisPadBottom + 1
+          )
           tick.setAttributeNS(
             null,
             "y2",
-            plotHeight - axisPadBottom + 1 + tickLength
+            sizes.plotHeight - sizes.axisPadBottom + 1 + sizes.tickLength
           )
           tick.setAttributeNS(null, "stroke", colors.axis)
           plotSvg.appendChild(tick)
 
-          let yCoord = plotHeight - axisPadBottom + tickLength * 2
+          let yCoord =
+            sizes.plotHeight - sizes.axisPadBottom + sizes.tickLength * 2
 
           let label = document.createElementNS(XMLNS, "text")
           label.setAttributeNS(null, "x", 0)
@@ -1063,7 +1057,7 @@
 
       // NOTE(sen) Line at 40
       let line40 = document.createElementNS(XMLNS, "line")
-      line40.setAttributeNS(null, "x1", axisPadLeft)
+      line40.setAttributeNS(null, "x1", sizes.axisPadLeft)
       line40.setAttributeNS(null, "x2", plotWidth)
       line40.setAttributeNS(null, "y1", scaleTitre(40))
       line40.setAttributeNS(null, "y2", scaleTitre(40))
@@ -1085,11 +1079,15 @@
         )
         if (labIndex < labClades.length - 1) {
           let markerLine = document.createElementNS(XMLNS, "line")
-          let markerLineX = labLastX + widthPerVirus / 2
+          let markerLineX = labLastX + sizes.widthPerElement / 2
           markerLine.setAttributeNS(null, "x1", markerLineX)
           markerLine.setAttributeNS(null, "x2", markerLineX)
-          markerLine.setAttributeNS(null, "y1", axisPadTop)
-          markerLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
+          markerLine.setAttributeNS(null, "y1", sizes.axisPadTop)
+          markerLine.setAttributeNS(
+            null,
+            "y2",
+            sizes.plotHeight - sizes.axisPadBottom
+          )
           markerLine.setAttributeNS(null, "stroke", colors.axis)
           plotSvg.appendChild(markerLine)
         }
@@ -1098,7 +1096,11 @@
         let markerText = document.createElementNS(XMLNS, "text")
         let markerTextX = (labLastX + labFirstX) / 2
         markerText.setAttributeNS(null, "x", markerTextX)
-        markerText.setAttributeNS(null, "y", axisPadTop - tickLength)
+        markerText.setAttributeNS(
+          null,
+          "y",
+          sizes.axisPadTop - sizes.tickLength
+        )
         markerText.setAttributeNS(null, "fill", colors.text)
         markerText.setAttributeNS(null, "text-anchor", "middle")
         markerText.innerHTML = labs[labIndex]
@@ -1142,11 +1144,11 @@
                     labIndex,
                     cladeIndex + (Math.random() - 0.5) * 0.05
                   ) -
-                  prePostDistance / 2
+                  sizes.prePostDistance / 2
 
                 let col = thisPreVaxCol
                 if (timepoint === "Post-vax") {
-                  xCoord += prePostDistance
+                  xCoord += sizes.prePostDistance
                   col = thisPostVaxCol
                   postVaxPoints += 1
                 } else {
@@ -1203,11 +1205,11 @@
             let col = thisPreVaxCol
             let xCoord =
               scaleLabIndexCladeIndex(labIndex, cladeIndex) -
-              prePostDistance / 2
+              sizes.prePostDistance / 2
             count.innerHTML = preVaxPoints
             let titres = cladeDataPrevax
             if (timepoint == "Post-vax") {
-              xCoord += prePostDistance
+              xCoord += sizes.prePostDistance
               col = thisPostVaxCol
               count.innerHTML = postVaxPoints
               titres = cladeDataPostvax
@@ -1239,7 +1241,7 @@
               scaleLogtitre(boxplotStats.median),
               scaleLogtitre(boxplotStats.q75),
               scaleLogtitre(boxplotStats.top),
-              boxPlotWidth,
+              sizes.boxPlotWidth,
               xCoord,
               col + opacities.boxplots.value.toString(16)
             )
@@ -1254,25 +1256,15 @@
     return plotSvg
   }
 
-  const createTitreCirculatingAveragePlotSvg = (data, opacities, colors) => {
+  const createTitreCirculatingAveragePlotSvg = (
+    data,
+    opacities,
+    colors,
+    sizes
+  ) => {
     let plotSvg = createSvgElement()
 
     if (data !== null && data !== undefined && data.length > 0) {
-      //
-      // SECTION Sizes and colors
-      //
-
-      let plotHeight = 400
-      let widthPerLab = 100
-      let axisPadLeft = 80
-      let axisPadBottom = 80
-      let axisPadTop = 20
-      let dataPadX = 50
-      let dataPadY = 10
-      let tickLength = 5
-      let prePostDistance = 40
-      let boxPlotWidth = 15
-
       //
       // SECTION Scales
       //
@@ -1283,8 +1275,8 @@
           val,
           Math.log(5),
           Math.log(10240),
-          plotHeight - dataPadY - axisPadBottom,
-          dataPadY + axisPadTop
+          sizes.plotHeight - sizes.dataPadY - sizes.axisPadBottom,
+          sizes.dataPadY + sizes.axisPadTop
         )
       let scaleTitre = (val) => scaleLogtitre(Math.log(val))
 
@@ -1293,15 +1285,15 @@
         stringSort
       )
 
-      let plotWidth = widthPerLab * labs.length + axisPadLeft
+      let plotWidth = sizes.widthPerElement * labs.length + sizes.axisPadLeft
 
       const scaleLabIndex = (labIndex) =>
         scale(
           labIndex,
           0,
           labs.length - 1,
-          axisPadLeft + dataPadX,
-          plotWidth - dataPadX
+          sizes.axisPadLeft + sizes.dataPadX,
+          plotWidth - sizes.dataPadX
         )
 
       //
@@ -1311,10 +1303,10 @@
       plotSvg.setAttributeNS(
         null,
         "viewBox",
-        "0 0 " + plotWidth + " " + plotHeight
+        "0 0 " + plotWidth + " " + sizes.plotHeight
       )
       plotSvg.setAttributeNS(null, "width", plotWidth)
-      plotSvg.setAttributeNS(null, "height", plotHeight)
+      plotSvg.setAttributeNS(null, "height", sizes.plotHeight)
       plotSvg.style.display = "block"
 
       //
@@ -1324,11 +1316,7 @@
       let yAxis = createTitreAxisElement(
         colors,
         plotWidth,
-        plotHeight,
-        axisPadBottom,
-        axisPadLeft,
-        axisPadTop,
-        tickLength,
+        sizes,
         scaleTitre,
         "Circulating average titre"
       )
@@ -1340,17 +1328,17 @@
 
       // NOTE(sen) Line
       let xLine = document.createElementNS(XMLNS, "line")
-      xLine.setAttributeNS(null, "x1", axisPadLeft)
+      xLine.setAttributeNS(null, "x1", sizes.axisPadLeft)
       xLine.setAttributeNS(null, "x2", plotWidth)
-      xLine.setAttributeNS(null, "y1", plotHeight - axisPadBottom)
-      xLine.setAttributeNS(null, "y2", plotHeight - axisPadBottom)
+      xLine.setAttributeNS(null, "y1", sizes.plotHeight - sizes.axisPadBottom)
+      xLine.setAttributeNS(null, "y2", sizes.plotHeight - sizes.axisPadBottom)
       xLine.setAttributeNS(null, "stroke", colors.axis)
       plotSvg.appendChild(xLine)
       let xLine2 = document.createElementNS(XMLNS, "line")
-      xLine2.setAttributeNS(null, "x1", axisPadLeft)
+      xLine2.setAttributeNS(null, "x1", sizes.axisPadLeft)
       xLine2.setAttributeNS(null, "x2", plotWidth)
-      xLine2.setAttributeNS(null, "y1", axisPadTop)
-      xLine2.setAttributeNS(null, "y2", axisPadTop)
+      xLine2.setAttributeNS(null, "y1", sizes.axisPadTop)
+      xLine2.setAttributeNS(null, "y2", sizes.axisPadTop)
       xLine2.setAttributeNS(null, "stroke", colors.axis)
       plotSvg.appendChild(xLine2)
 
@@ -1361,16 +1349,21 @@
         let tick = document.createElementNS(XMLNS, "line")
         tick.setAttributeNS(null, "x1", xCoord)
         tick.setAttributeNS(null, "x2", xCoord)
-        tick.setAttributeNS(null, "y1", plotHeight - axisPadBottom + 1)
+        tick.setAttributeNS(
+          null,
+          "y1",
+          sizes.plotHeight - sizes.axisPadBottom + 1
+        )
         tick.setAttributeNS(
           null,
           "y2",
-          plotHeight - axisPadBottom + 1 + tickLength
+          sizes.plotHeight - sizes.axisPadBottom + 1 + sizes.tickLength
         )
         tick.setAttributeNS(null, "stroke", colors.axis)
         plotSvg.appendChild(tick)
 
-        let yCoord = plotHeight - axisPadBottom + tickLength * 2
+        let yCoord =
+          sizes.plotHeight - sizes.axisPadBottom + sizes.tickLength * 2
 
         let label = document.createElementNS(XMLNS, "text")
         label.setAttributeNS(null, "x", 0)
@@ -1395,7 +1388,7 @@
 
       // NOTE(sen) Line at 40
       let line40 = document.createElementNS(XMLNS, "line")
-      line40.setAttributeNS(null, "x1", axisPadLeft)
+      line40.setAttributeNS(null, "x1", sizes.axisPadLeft)
       line40.setAttributeNS(null, "x2", plotWidth)
       line40.setAttributeNS(null, "y1", scaleTitre(40))
       line40.setAttributeNS(null, "y2", scaleTitre(40))
@@ -1431,11 +1424,11 @@
             if (titre) {
               let point = document.createElementNS(XMLNS, "circle")
               let yCoord = scaleLogtitre(Math.log(titre))
-              let xCoord = scaleLabIndex(labIndex) - prePostDistance / 2
+              let xCoord = scaleLabIndex(labIndex) - sizes.prePostDistance / 2
 
               let col = colors.preVax
               if (timepoint === "Post-vax") {
-                xCoord += prePostDistance
+                xCoord += sizes.prePostDistance
                 col = colors.postVax
                 postVaxPoints += 1
               } else {
@@ -1490,11 +1483,11 @@
           let count = document.createElementNS(XMLNS, "text")
 
           let col = colors.preVax
-          let xCoord = scaleLabIndex(labIndex) - prePostDistance / 2
+          let xCoord = scaleLabIndex(labIndex) - sizes.prePostDistance / 2
           count.innerHTML = preVaxPoints
           let titres = labDataPrevax
           if (timepoint == "Post-vax") {
-            xCoord += prePostDistance
+            xCoord += sizes.prePostDistance
             col = colors.postVax
             count.innerHTML = postVaxPoints
             titres = labDataPostvax
@@ -1526,7 +1519,7 @@
             scaleLogtitre(boxplotStats.median),
             scaleLogtitre(boxplotStats.q75),
             scaleLogtitre(boxplotStats.top),
-            boxPlotWidth,
+            sizes.boxPlotWidth,
             xCoord,
             col + opacities.boxplots.value.toString(16)
           )
@@ -1599,6 +1592,19 @@
       axis: "#aaaaaa",
       thresholdLine: null,
       grid: "#99999944",
+    },
+    defaultPlotSizes: {
+      plotHeight: 600,
+      widthPerElement: 100,
+      axisPadLeft: 80,
+      axisPadBottom: 250,
+      axisPadTop: 20,
+      dataPadX: 50,
+      dataPadY: 10,
+      tickLength: 5,
+      prePostDistance: 40,
+      boxPlotWidth: 15,
+      svgTextLineHeightGuess: 20,
     },
     sizes: {
       inputBar: "200px",
@@ -1785,7 +1791,8 @@
           "B/Washington/02/2019e",
         ],
         state.opacities,
-        state.colors
+        state.colors,
+        state.defaultPlotSizes
       )
 
       state.titrePlotContainer.appendChild(plotSvg)
@@ -1813,7 +1820,8 @@
         dataSubsetCladeAverages,
         ["A5a.1", "A1b/137F", "V1A.3"],
         state.opacities,
-        state.colors
+        state.colors,
+        reduceAxisPadBottom(100, state.defaultPlotSizes)
       )
 
       state.titreCladeAveragePlotContainer.appendChild(
@@ -1843,7 +1851,8 @@
         createTitreCirculatingAveragePlotSvg(
           dataSubsetCirculatingAverages,
           state.opacities,
-          state.colors
+          state.colors,
+          reduceAxisPadBottom(40, state.defaultPlotSizes)
         )
 
       state.titreCirculatingAveragePlotContainer.appendChild(
