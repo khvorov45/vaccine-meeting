@@ -1572,6 +1572,7 @@
     data: [],
     dataCladeAverageTitres: [],
     dataCirculatingAverageTitres: [],
+    cladeFreqsDefault: {},
     cladeFreqs: {},
     subtypeClades: {},
     filters: {
@@ -1914,9 +1915,11 @@
 
       // NOTE(sen) Clade frequencies
       state.cladeFreqs = {}
+      state.cladeFreqsDefault = {}
       for (row of state.data) {
         if (state.cladeFreqs[row.clade] === undefined) {
           state.cladeFreqs[row.clade] = row.clade_freq
+          state.cladeFreqsDefault[row.clade] = row.clade_freq
         }
       }
 
@@ -1939,7 +1942,6 @@
       }
 
       // NOTE(sen) Populate clade frequency sliders
-      state.slidersContainer.innerHTML = ""
       while (state.slidersContainer.lastChild) {
         state.slidersContainer.removeChild(state.slidersContainer.lastChild)
       }
@@ -1957,11 +1959,23 @@
             clade + " (" + Math.round(state.cladeFreqs[clade] * 100) + "%)"
           name.style.textAlign = "center"
 
+          let reset = document.createElement("div")
+          reset.innerHTML = "⟲"
+          reset.style.cursor = "pointer"
+          reset.style.color = "var(--color-border)"
+
+          let top = document.createElement("div")
+          top.style.display = "flex"
+          top.style.justifyContent = "space-between"
+
+          top.appendChild(name)
+          top.appendChild(reset)
+
           let input = document.createElement("input")
           input.setAttribute("type", "range")
           input.setAttribute("min", "0")
           input.setAttribute("max", "100")
-          input.setAttribute("value", state.cladeFreqs[clade] * 100)
+          input.value = state.cladeFreqs[clade] * 100
           input.addEventListener("input", (event) => {
             state.cladeFreqs[clade] = event.target.value / 100
             name.innerHTML = clade + " (" + event.target.value + "%)"
@@ -1969,9 +1983,19 @@
               el.innerHTML = clade + " (" + event.target.value + "%)"
             }
             updateCirculatingAverageData()
+            if (state.cladeFreqs[clade] === state.cladeFreqsDefault[clade]) {
+              reset.style.color = "var(--color-border)"
+            } else {
+              reset.style.color = "var(--color-text)"
+            }
           })
 
-          slider.appendChild(name)
+          reset.addEventListener("click", (event) => {
+            input.value = state.cladeFreqsDefault[clade] * 100
+            input.dispatchEvent(new Event("input"))
+          })
+
+          slider.appendChild(top)
           slider.appendChild(input)
 
           subtypeContainer.appendChild(slider)
