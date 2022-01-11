@@ -476,7 +476,14 @@
   const createSvgElement = () => {
     let plotSvg = document.createElementNS(XMLNS, "svg")
     plotSvg.style.flexShrink = "0"
+    plotSvg.style.display = "block"
     return plotSvg
+  }
+
+  const setPlotSvgSize = (svg, width, height) => {
+    svg.setAttributeNS(null, "viewBox", "0 0 " + width + " " + height)
+    svg.setAttributeNS(null, "width", width)
+    svg.setAttributeNS(null, "height", height)
   }
 
   const createScaleLogtitre = (sizes) => {
@@ -576,18 +583,7 @@
         return result
       }
 
-      //
-      // SECTION Plot
-      //
-
-      plotSvg.setAttributeNS(
-        null,
-        "viewBox",
-        "0 0 " + plotWidth + " " + sizes.plotHeight
-      )
-      plotSvg.setAttributeNS(null, "width", plotWidth)
-      plotSvg.setAttributeNS(null, "height", sizes.plotHeight)
-      plotSvg.style.display = "block"
+      setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight)
 
       //
       // SECTION Y-Axis
@@ -945,18 +941,7 @@
         return result
       }
 
-      //
-      // SECTION Plot
-      //
-
-      plotSvg.setAttributeNS(
-        null,
-        "viewBox",
-        "0 0 " + plotWidth + " " + sizes.plotHeight
-      )
-      plotSvg.setAttributeNS(null, "width", plotWidth)
-      plotSvg.setAttributeNS(null, "height", sizes.plotHeight)
-      plotSvg.style.display = "block"
+      setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight)
 
       //
       // SECTION Y-Axis
@@ -1274,18 +1259,7 @@
           plotWidth - sizes.dataPadX
         )
 
-      //
-      // SECTION Plot
-      //
-
-      plotSvg.setAttributeNS(
-        null,
-        "viewBox",
-        "0 0 " + plotWidth + " " + sizes.plotHeight
-      )
-      plotSvg.setAttributeNS(null, "width", plotWidth)
-      plotSvg.setAttributeNS(null, "height", sizes.plotHeight)
-      plotSvg.style.display = "block"
+      setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight)
 
       //
       // SECTION Y-Axis
