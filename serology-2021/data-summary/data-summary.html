@@ -432,6 +432,17 @@
     return element
   }
 
+  const createDashedHLine = (yCoord, plotWidth, sizes, color) => {
+    let el = document.createElementNS(XMLNS, "line")
+    el.setAttributeNS(null, "x1", sizes.axisPadLeft)
+    el.setAttributeNS(null, "x2", plotWidth)
+    el.setAttributeNS(null, "y1", yCoord)
+    el.setAttributeNS(null, "y2", yCoord)
+    el.setAttributeNS(null, "stroke", color)
+    el.setAttributeNS(null, "stroke-dasharray", "5,5")
+    return el
+  }
+
   const calcBoxplotStats = (arr) => {
     let arrSortedAsc = arrAsc(arr)
     let stats = {}
@@ -692,13 +703,12 @@
       //
 
       // NOTE(sen) Line at 40
-      let line40 = document.createElementNS(XMLNS, "line")
-      line40.setAttributeNS(null, "x1", sizes.axisPadLeft)
-      line40.setAttributeNS(null, "x2", plotWidth)
-      line40.setAttributeNS(null, "y1", scaleTitre(40))
-      line40.setAttributeNS(null, "y2", scaleTitre(40))
-      line40.setAttributeNS(null, "stroke", colors.thresholdLine)
-      line40.setAttributeNS(null, "stroke-dasharray", "5,5")
+      let line40 = createDashedHLine(
+        scaleTitre(40),
+        plotWidth,
+        sizes,
+        colors.thresholdLine
+      )
       plotSvg.appendChild(line40)
       opacities.line40.titrePlotElements.push(line40)
 
@@ -997,13 +1007,12 @@
       //
 
       // NOTE(sen) Line at 40
-      let line40 = document.createElementNS(XMLNS, "line")
-      line40.setAttributeNS(null, "x1", sizes.axisPadLeft)
-      line40.setAttributeNS(null, "x2", plotWidth)
-      line40.setAttributeNS(null, "y1", scaleTitre(40))
-      line40.setAttributeNS(null, "y2", scaleTitre(40))
-      line40.setAttributeNS(null, "stroke", colors.thresholdLine)
-      line40.setAttributeNS(null, "stroke-dasharray", "5,5")
+      let line40 = createDashedHLine(
+        scaleTitre(40),
+        plotWidth,
+        sizes,
+        colors.thresholdLine
+      )
       plotSvg.appendChild(line40)
       opacities.line40.titreCladeAveragePlotElements.push(line40)
 
@@ -1265,13 +1274,12 @@
       //
 
       // NOTE(sen) Line at 40
-      let line40 = document.createElementNS(XMLNS, "line")
-      line40.setAttributeNS(null, "x1", sizes.axisPadLeft)
-      line40.setAttributeNS(null, "x2", plotWidth)
-      line40.setAttributeNS(null, "y1", scaleTitre(40))
-      line40.setAttributeNS(null, "y2", scaleTitre(40))
-      line40.setAttributeNS(null, "stroke", colors.thresholdLine)
-      line40.setAttributeNS(null, "stroke-dasharray", "5,5")
+      let line40 = createDashedHLine(
+        scaleTitre(40),
+        plotWidth,
+        sizes,
+        colors.thresholdLine
+      )
       plotSvg.appendChild(line40)
       opacities.line40.titreCirculatingAveragePlotElements.push(line40)
 
