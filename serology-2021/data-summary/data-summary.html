@@ -399,6 +399,20 @@
     return xLine2
   }
 
+  const createXTick = (xCoord, sizes, colors) => {
+    let tick = document.createElementNS(XMLNS, "line")
+    tick.setAttributeNS(null, "x1", xCoord)
+    tick.setAttributeNS(null, "x2", xCoord)
+    tick.setAttributeNS(null, "y1", sizes.plotHeight - sizes.axisPadBottom + 1)
+    tick.setAttributeNS(
+      null,
+      "y2",
+      sizes.plotHeight - sizes.axisPadBottom + 1 + sizes.tickLength
+    )
+    tick.setAttributeNS(null, "stroke", colors.axis)
+    return tick
+  }
+
   const calcBoxplotStats = (arr) => {
     let arrSortedAsc = arrAsc(arr)
     let stats = {}
@@ -631,21 +645,7 @@
         for (let [virusIndex, virusName] of virusNames.entries()) {
           let xCoord = scaleLabIndexVirusIndex(labIndex, virusIndex)
 
-          let tick = document.createElementNS(XMLNS, "line")
-          tick.setAttributeNS(null, "x1", xCoord)
-          tick.setAttributeNS(null, "x2", xCoord)
-          tick.setAttributeNS(
-            null,
-            "y1",
-            sizes.plotHeight - sizes.axisPadBottom + 1
-          )
-          tick.setAttributeNS(
-            null,
-            "y2",
-            sizes.plotHeight - sizes.axisPadBottom + 1 + sizes.tickLength
-          )
-          tick.setAttributeNS(null, "stroke", colors.axis)
-          plotSvg.appendChild(tick)
+          plotSvg.appendChild(createXTick(xCoord, sizes, colors))
 
           let yCoord = sizes.plotHeight - sizes.axisPadBottom + sizes.tickLength
 
@@ -977,21 +977,7 @@
         for (let [cladeIndex, cladeName] of cladeNames.entries()) {
           let xCoord = scaleLabIndexCladeIndex(labIndex, cladeIndex)
 
-          let tick = document.createElementNS(XMLNS, "line")
-          tick.setAttributeNS(null, "x1", xCoord)
-          tick.setAttributeNS(null, "x2", xCoord)
-          tick.setAttributeNS(
-            null,
-            "y1",
-            sizes.plotHeight - sizes.axisPadBottom + 1
-          )
-          tick.setAttributeNS(
-            null,
-            "y2",
-            sizes.plotHeight - sizes.axisPadBottom + 1 + sizes.tickLength
-          )
-          tick.setAttributeNS(null, "stroke", colors.axis)
-          plotSvg.appendChild(tick)
+          plotSvg.appendChild(createXTick(xCoord, sizes, colors))
 
           let yCoord =
             sizes.plotHeight - sizes.axisPadBottom + sizes.tickLength * 2
@@ -1282,21 +1268,7 @@
       for (let [labIndex, labName] of labs.entries()) {
         let xCoord = scaleLabIndex(labIndex)
 
-        let tick = document.createElementNS(XMLNS, "line")
-        tick.setAttributeNS(null, "x1", xCoord)
-        tick.setAttributeNS(null, "x2", xCoord)
-        tick.setAttributeNS(
-          null,
-          "y1",
-          sizes.plotHeight - sizes.axisPadBottom + 1
-        )
-        tick.setAttributeNS(
-          null,
-          "y2",
-          sizes.plotHeight - sizes.axisPadBottom + 1 + sizes.tickLength
-        )
-        tick.setAttributeNS(null, "stroke", colors.axis)
-        plotSvg.appendChild(tick)
+        plotSvg.appendChild(createXTick(xCoord, sizes, colors))
 
         let yCoord =
           sizes.plotHeight - sizes.axisPadBottom + sizes.tickLength * 2
