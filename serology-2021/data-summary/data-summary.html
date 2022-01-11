@@ -462,6 +462,16 @@
     return point
   }
 
+  const createFacetLabel = (xCoord, col, label, sizes) => {
+    let el = document.createElementNS(XMLNS, "text")
+    el.setAttributeNS(null, "x", xCoord)
+    el.setAttributeNS(null, "y", sizes.axisPadTop - sizes.tickLength)
+    el.setAttributeNS(null, "fill", col)
+    el.setAttributeNS(null, "text-anchor", "middle")
+    el.innerHTML = label
+    return el
+  }
+
   const calcBoxplotStats = (arr) => {
     let arrSortedAsc = arrAsc(arr)
     let stats = {}
@@ -749,17 +759,13 @@
         }
 
         // NOTE(sen) Lab marker text
-        let markerText = document.createElementNS(XMLNS, "text")
         let markerTextX = (labLastX + labFirstX) / 2
-        markerText.setAttributeNS(null, "x", markerTextX)
-        markerText.setAttributeNS(
-          null,
-          "y",
-          sizes.axisPadTop - sizes.tickLength
+        let markerText = createFacetLabel(
+          markerTextX,
+          colors.text,
+          labs[labIndex],
+          sizes
         )
-        markerText.setAttributeNS(null, "fill", colors.text)
-        markerText.setAttributeNS(null, "text-anchor", "middle")
-        markerText.innerHTML = labs[labIndex]
         plotSvg.appendChild(markerText)
 
         for (let [virusIndex, virusName] of virusNames.entries()) {
@@ -1040,17 +1046,13 @@
         }
 
         // NOTE(sen) Lab marker text
-        let markerText = document.createElementNS(XMLNS, "text")
         let markerTextX = (labLastX + labFirstX) / 2
-        markerText.setAttributeNS(null, "x", markerTextX)
-        markerText.setAttributeNS(
-          null,
-          "y",
-          sizes.axisPadTop - sizes.tickLength
+        let markerText = createFacetLabel(
+          markerTextX,
+          colors.text,
+          labs[labIndex],
+          sizes
         )
-        markerText.setAttributeNS(null, "fill", colors.text)
-        markerText.setAttributeNS(null, "text-anchor", "middle")
-        markerText.innerHTML = labs[labIndex]
         plotSvg.appendChild(markerText)
 
         for (let [cladeIndex, cladeName] of cladeNames.entries()) {
