@@ -443,6 +443,15 @@
     return el
   }
 
+  const createPoint = (xCoord, yCoord, col) => {
+    let point = document.createElementNS(XMLNS, "circle")
+    point.setAttributeNS(null, "cx", xCoord)
+    point.setAttributeNS(null, "cy", yCoord)
+    point.setAttributeNS(null, "r", "2")
+    point.setAttributeNS(null, "fill", col)
+    return point
+  }
+
   const calcBoxplotStats = (arr) => {
     let arrSortedAsc = arrAsc(arr)
     let stats = {}
@@ -783,7 +792,6 @@
               let coords = null
 
               if (titre) {
-                let point = document.createElementNS(XMLNS, "circle")
                 let yCoord = scaleLogtitre(
                   Math.log(titre) + Math.random() * 0.1
                 )
@@ -803,12 +811,9 @@
                   preVaxPoints += 1
                 }
 
-                point.setAttributeNS(null, "cx", xCoord)
-                point.setAttributeNS(null, "cy", yCoord)
-                point.setAttributeNS(null, "r", "2")
-                point.setAttributeNS(
-                  null,
-                  "fill",
+                let point = createPoint(
+                  xCoord,
+                  yCoord,
                   col + opacities.points.value.toString(16)
                 )
                 plotSvg.appendChild(point)
@@ -1087,7 +1092,6 @@
               let coords = null
 
               if (titre) {
-                let point = document.createElementNS(XMLNS, "circle")
                 let yCoord = scaleLogtitre(Math.log(titre))
                 let xCoord =
                   scaleLabIndexCladeIndex(
@@ -1105,12 +1109,9 @@
                   preVaxPoints += 1
                 }
 
-                point.setAttributeNS(null, "cx", xCoord)
-                point.setAttributeNS(null, "cy", yCoord)
-                point.setAttributeNS(null, "r", "2")
-                point.setAttributeNS(
-                  null,
-                  "fill",
+                let point = createPoint(
+                  xCoord,
+                  yCoord,
                   col + opacities.points.value.toString(16)
                 )
                 plotSvg.appendChild(point)
@@ -1308,7 +1309,6 @@
             let coords = null
 
             if (titre) {
-              let point = document.createElementNS(XMLNS, "circle")
               let yCoord = scaleLogtitre(Math.log(titre))
               let xCoord = scaleLabIndex(labIndex) - sizes.prePostDistance / 2
 
@@ -1321,12 +1321,9 @@
                 preVaxPoints += 1
               }
 
-              point.setAttributeNS(null, "cx", xCoord)
-              point.setAttributeNS(null, "cy", yCoord)
-              point.setAttributeNS(null, "r", "2")
-              point.setAttributeNS(
-                null,
-                "fill",
+              let point = createPoint(
+                xCoord,
+                yCoord,
                 col + opacities.points.value.toString(16)
               )
               plotSvg.appendChild(point)
