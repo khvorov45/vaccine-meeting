@@ -413,6 +413,25 @@
     return tick
   }
 
+  const createXLabel = (label, angle, textAnchor, xCoord, sizes, colors) => {
+    let yCoord = sizes.plotHeight - sizes.axisPadBottom + sizes.tickLength * 2
+
+    let element = document.createElementNS(XMLNS, "text")
+    element.setAttributeNS(null, "x", 0)
+    element.setAttributeNS(null, "y", 0)
+    element.setAttributeNS(null, "fill", colors.text)
+    element.setAttributeNS(null, "dominant-baseline", "hanging")
+    element.setAttributeNS(null, "text-anchor", textAnchor)
+    element.setAttributeNS(null, "text-wrap", "wrap")
+    element.setAttributeNS(
+      null,
+      "transform",
+      `translate(${xCoord}, ${yCoord}) rotate(${angle})`
+    )
+    element.innerHTML = label
+    return element
+  }
+
   const calcBoxplotStats = (arr) => {
     let arrSortedAsc = arrAsc(arr)
     let stats = {}
@@ -647,44 +666,23 @@
 
           plotSvg.appendChild(createXTick(xCoord, sizes, colors))
 
-          let yCoord = sizes.plotHeight - sizes.axisPadBottom + sizes.tickLength
-
-          let label = document.createElementNS(XMLNS, "text")
-          label.setAttributeNS(null, "x", 0)
-          label.setAttributeNS(null, "y", 0)
-          label.setAttributeNS(null, "fill", colors.text)
-          label.setAttributeNS(null, "dominant-baseline", "hanging")
-          label.setAttributeNS(null, "text-anchor", "end")
-          label.setAttributeNS(null, "text-wrap", "wrap")
-          label.setAttributeNS(
-            null,
-            "transform",
-            `translate(${xCoord}, ${yCoord}) rotate(-45)`
+          plotSvg.appendChild(
+            createXLabel(virusName, -45, "end", xCoord, sizes, colors)
           )
-          label.innerHTML = virusName
-          plotSvg.appendChild(label)
 
-          let cladeLabel = document.createElementNS(XMLNS, "text")
-          cladeLabel.setAttributeNS(null, "x", 0)
-          cladeLabel.setAttributeNS(null, "y", 0)
-          cladeLabel.setAttributeNS(null, "fill", colors.text)
-          cladeLabel.setAttributeNS(null, "dominant-baseline", "hanging")
-          cladeLabel.setAttributeNS(null, "text-anchor", "end")
-          cladeLabel.setAttributeNS(null, "text-wrap", "wrap")
-          cladeLabel.setAttributeNS(
-            null,
-            "transform",
-            `translate(${
-              xCoord + sizes.svgTextLineHeightGuess
-            }, ${yCoord}) rotate(-45)`
-          )
           let cladeName = virusClades[virusName]
-          cladeLabel.innerHTML =
-            cladeName +
-            " (" +
-            Math.round(state.cladeFreqs[cladeName] * 100) +
-            "%)"
+          let cladeFreq = Math.round(state.cladeFreqs[cladeName] * 100)
+          let cladeLabel = createXLabel(
+            cladeName + " (" + cladeFreq + "%)",
+            -45,
+            "end",
+            xCoord + sizes.svgTextLineHeightGuess,
+            sizes,
+            colors
+          )
+
           plotSvg.appendChild(cladeLabel)
+
           state.cladeFreqElements[cladeName].push(cladeLabel)
         }
       }
@@ -979,26 +977,15 @@
 
           plotSvg.appendChild(createXTick(xCoord, sizes, colors))
 
-          let yCoord =
-            sizes.plotHeight - sizes.axisPadBottom + sizes.tickLength * 2
-
-          let label = document.createElementNS(XMLNS, "text")
-          label.setAttributeNS(null, "x", 0)
-          label.setAttributeNS(null, "y", 0)
-          label.setAttributeNS(null, "fill", colors.text)
-          label.setAttributeNS(null, "dominant-baseline", "hanging")
-          label.setAttributeNS(null, "text-anchor", "end")
-          label.setAttributeNS(null, "text-wrap", "wrap")
-          label.setAttributeNS(
-            null,
-            "transform",
-            `translate(${xCoord}, ${yCoord}) rotate(-30)`
+          let cladeFreq = Math.round(state.cladeFreqs[cladeName] * 100)
+          let label = createXLabel(
+            cladeName + " (" + cladeFreq + "%)",
+            -30,
+            "end",
+            xCoord,
+            sizes,
+            colors
           )
-          label.innerHTML =
-            cladeName +
-            " (" +
-            Math.round(state.cladeFreqs[cladeName] * 100) +
-            "%)"
 
           plotSvg.appendChild(label)
           state.cladeFreqElements[cladeName].push(label)
@@ -1267,27 +1254,10 @@
       // NOTE(sen) Ticks and labels
       for (let [labIndex, labName] of labs.entries()) {
         let xCoord = scaleLabIndex(labIndex)
-
         plotSvg.appendChild(createXTick(xCoord, sizes, colors))
-
-        let yCoord =
-          sizes.plotHeight - sizes.axisPadBottom + sizes.tickLength * 2
-
-        let label = document.createElementNS(XMLNS, "text")
-        label.setAttributeNS(null, "x", 0)
-        label.setAttributeNS(null, "y", 0)
-        label.setAttributeNS(null, "fill", colors.text)
-        label.setAttributeNS(null, "dominant-baseline", "hanging")
-        label.setAttributeNS(null, "text-anchor", "middle")
-        label.setAttributeNS(null, "text-wrap", "wrap")
-        label.setAttributeNS(
-          null,
-          "transform",
-          `translate(${xCoord}, ${yCoord}) rotate(0)`
+        plotSvg.appendChild(
+          createXLabel(labName, 0, "middle", xCoord, sizes, colors)
         )
-        label.innerHTML = labName
-
-        plotSvg.appendChild(label)
       }
 
       //
