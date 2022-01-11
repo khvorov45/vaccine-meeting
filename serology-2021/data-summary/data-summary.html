@@ -443,6 +443,16 @@
     return el
   }
 
+  const createVLine = (xCoord, col, sizes) => {
+    let el = document.createElementNS(XMLNS, "line")
+    el.setAttributeNS(null, "x1", xCoord)
+    el.setAttributeNS(null, "x2", xCoord)
+    el.setAttributeNS(null, "y1", sizes.axisPadTop)
+    el.setAttributeNS(null, "y2", sizes.plotHeight - sizes.axisPadBottom)
+    el.setAttributeNS(null, "stroke", col)
+    return el
+  }
+
   const createPoint = (xCoord, yCoord, col) => {
     let point = document.createElementNS(XMLNS, "circle")
     point.setAttributeNS(null, "cx", xCoord)
@@ -733,17 +743,8 @@
           labVirusCounts[labIndex] - 1
         )
         if (labIndex < labViruses.length - 1) {
-          let markerLine = document.createElementNS(XMLNS, "line")
           let markerLineX = labLastX + sizes.widthPerElement / 2
-          markerLine.setAttributeNS(null, "x1", markerLineX)
-          markerLine.setAttributeNS(null, "x2", markerLineX)
-          markerLine.setAttributeNS(null, "y1", sizes.axisPadTop)
-          markerLine.setAttributeNS(
-            null,
-            "y2",
-            sizes.plotHeight - sizes.axisPadBottom
-          )
-          markerLine.setAttributeNS(null, "stroke", colors.axis)
+          let markerLine = createVLine(markerLineX, colors.axis, sizes)
           plotSvg.appendChild(markerLine)
         }
 
@@ -788,7 +789,7 @@
               (row) => row.serum_id == serumId
             )
 
-            function drawPoint(titre, timepoint) {
+            const drawPoint = (titre, timepoint) => {
               let coords = null
 
               if (titre) {
@@ -1033,17 +1034,8 @@
           labCladeCounts[labIndex] - 1
         )
         if (labIndex < labClades.length - 1) {
-          let markerLine = document.createElementNS(XMLNS, "line")
           let markerLineX = labLastX + sizes.widthPerElement / 2
-          markerLine.setAttributeNS(null, "x1", markerLineX)
-          markerLine.setAttributeNS(null, "x2", markerLineX)
-          markerLine.setAttributeNS(null, "y1", sizes.axisPadTop)
-          markerLine.setAttributeNS(
-            null,
-            "y2",
-            sizes.plotHeight - sizes.axisPadBottom
-          )
-          markerLine.setAttributeNS(null, "stroke", colors.axis)
+          let markerLine = createVLine(markerLineX, colors.axis, sizes)
           plotSvg.appendChild(markerLine)
         }
 
@@ -1088,7 +1080,7 @@
               (row) => row.serum_id == serumId
             )
 
-            function drawPoint(titre, timepoint) {
+            const drawPoint = (titre, timepoint) => {
               let coords = null
 
               if (titre) {
