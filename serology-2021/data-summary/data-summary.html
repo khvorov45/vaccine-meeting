@@ -472,6 +472,16 @@
     return el
   }
 
+  const createLine = (x1, x2, y1, y2, col) => {
+    let line = document.createElementNS(XMLNS, "line")
+    line.setAttributeNS(null, "x1", x1)
+    line.setAttributeNS(null, "x2", x2)
+    line.setAttributeNS(null, "y1", y1)
+    line.setAttributeNS(null, "y2", y2)
+    line.setAttributeNS(null, "stroke", col)
+    return line
+  }
+
   const calcBoxplotStats = (arr) => {
     let arrSortedAsc = arrAsc(arr)
     let stats = {}
@@ -842,14 +852,11 @@
 
             // NOTE(sen) Line
             if (p1 != null && p2 != null) {
-              let line = document.createElementNS(XMLNS, "line")
-              line.setAttributeNS(null, "x1", p1.x)
-              line.setAttributeNS(null, "x2", p2.x)
-              line.setAttributeNS(null, "y1", p1.y)
-              line.setAttributeNS(null, "y2", p2.y)
-              line.setAttributeNS(
-                null,
-                "stroke",
+              let line = createLine(
+                p1.x,
+                p2.x,
+                p1.y,
+                p2.y,
                 thisPreVaxCol + opacities.lines.value.toString(16)
               )
               plotSvg.appendChild(line)
@@ -1127,14 +1134,11 @@
 
             // NOTE(sen) Line
             if (p1 != null && p2 != null) {
-              let line = document.createElementNS(XMLNS, "line")
-              line.setAttributeNS(null, "x1", p1.x)
-              line.setAttributeNS(null, "x2", p2.x)
-              line.setAttributeNS(null, "y1", p1.y)
-              line.setAttributeNS(null, "y2", p2.y)
-              line.setAttributeNS(
-                null,
-                "stroke",
+              let line = createLine(
+                p1.x,
+                p2.x,
+                p1.y,
+                p2.y,
                 thisPreVaxCol + opacities.lines.value.toString(16)
               )
               plotSvg.appendChild(line)
@@ -1339,14 +1343,11 @@
 
           // NOTE(sen) Line
           if (p1 != null && p2 != null) {
-            let line = document.createElementNS(XMLNS, "line")
-            line.setAttributeNS(null, "x1", p1.x)
-            line.setAttributeNS(null, "x2", p2.x)
-            line.setAttributeNS(null, "y1", p1.y)
-            line.setAttributeNS(null, "y2", p2.y)
-            line.setAttributeNS(
-              null,
-              "stroke",
+            let line = createLine(
+              p1.x,
+              p2.x,
+              p1.y,
+              p2.y,
               colors.preVax + opacities.lines.value.toString(16)
             )
             plotSvg.appendChild(line)
