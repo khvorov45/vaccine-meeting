@@ -379,6 +379,26 @@
     return titreAxis
   }
 
+  const createXAxisBottomLine = (plotWidth, sizes, colors) => {
+    let xLine = document.createElementNS(XMLNS, "line")
+    xLine.setAttributeNS(null, "x1", sizes.axisPadLeft)
+    xLine.setAttributeNS(null, "x2", plotWidth)
+    xLine.setAttributeNS(null, "y1", sizes.plotHeight - sizes.axisPadBottom)
+    xLine.setAttributeNS(null, "y2", sizes.plotHeight - sizes.axisPadBottom)
+    xLine.setAttributeNS(null, "stroke", colors.axis)
+    return xLine
+  }
+
+  const createXAxisTopLine = (plotWidth, sizes, colors) => {
+    let xLine2 = document.createElementNS(XMLNS, "line")
+    xLine2.setAttributeNS(null, "x1", sizes.axisPadLeft)
+    xLine2.setAttributeNS(null, "x2", plotWidth)
+    xLine2.setAttributeNS(null, "y1", sizes.axisPadTop)
+    xLine2.setAttributeNS(null, "y2", sizes.axisPadTop)
+    xLine2.setAttributeNS(null, "stroke", colors.axis)
+    return xLine2
+  }
+
   const calcBoxplotStats = (arr) => {
     let arrSortedAsc = arrAsc(arr)
     let stats = {}
@@ -603,20 +623,8 @@
       //
 
       // NOTE(sen) Line
-      let xLine = document.createElementNS(XMLNS, "line")
-      xLine.setAttributeNS(null, "x1", sizes.axisPadLeft)
-      xLine.setAttributeNS(null, "x2", plotWidth)
-      xLine.setAttributeNS(null, "y1", sizes.plotHeight - sizes.axisPadBottom)
-      xLine.setAttributeNS(null, "y2", sizes.plotHeight - sizes.axisPadBottom)
-      xLine.setAttributeNS(null, "stroke", colors.axis)
-      plotSvg.appendChild(xLine)
-      let xLine2 = document.createElementNS(XMLNS, "line")
-      xLine2.setAttributeNS(null, "x1", sizes.axisPadLeft)
-      xLine2.setAttributeNS(null, "x2", plotWidth)
-      xLine2.setAttributeNS(null, "y1", sizes.axisPadTop)
-      xLine2.setAttributeNS(null, "y2", sizes.axisPadTop)
-      xLine2.setAttributeNS(null, "stroke", colors.axis)
-      plotSvg.appendChild(xLine2)
+      plotSvg.appendChild(createXAxisBottomLine(plotWidth, sizes, colors))
+      plotSvg.appendChild(createXAxisTopLine(plotWidth, sizes, colors))
 
       // NOTE(sen) Ticks and labels
       for (let [labIndex, virusNames] of labViruses.entries()) {
@@ -961,20 +969,8 @@
       //
 
       // NOTE(sen) Line
-      let xLine = document.createElementNS(XMLNS, "line")
-      xLine.setAttributeNS(null, "x1", sizes.axisPadLeft)
-      xLine.setAttributeNS(null, "x2", plotWidth)
-      xLine.setAttributeNS(null, "y1", sizes.plotHeight - sizes.axisPadBottom)
-      xLine.setAttributeNS(null, "y2", sizes.plotHeight - sizes.axisPadBottom)
-      xLine.setAttributeNS(null, "stroke", colors.axis)
-      plotSvg.appendChild(xLine)
-      let xLine2 = document.createElementNS(XMLNS, "line")
-      xLine2.setAttributeNS(null, "x1", sizes.axisPadLeft)
-      xLine2.setAttributeNS(null, "x2", plotWidth)
-      xLine2.setAttributeNS(null, "y1", sizes.axisPadTop)
-      xLine2.setAttributeNS(null, "y2", sizes.axisPadTop)
-      xLine2.setAttributeNS(null, "stroke", colors.axis)
-      plotSvg.appendChild(xLine2)
+      plotSvg.appendChild(createXAxisBottomLine(plotWidth, sizes, colors))
+      plotSvg.appendChild(createXAxisTopLine(plotWidth, sizes, colors))
 
       // NOTE(sen) Ticks and labels
       for (let [labIndex, cladeNames] of labClades.entries()) {
@@ -1279,20 +1275,8 @@
       //
 
       // NOTE(sen) Line
-      let xLine = document.createElementNS(XMLNS, "line")
-      xLine.setAttributeNS(null, "x1", sizes.axisPadLeft)
-      xLine.setAttributeNS(null, "x2", plotWidth)
-      xLine.setAttributeNS(null, "y1", sizes.plotHeight - sizes.axisPadBottom)
-      xLine.setAttributeNS(null, "y2", sizes.plotHeight - sizes.axisPadBottom)
-      xLine.setAttributeNS(null, "stroke", colors.axis)
-      plotSvg.appendChild(xLine)
-      let xLine2 = document.createElementNS(XMLNS, "line")
-      xLine2.setAttributeNS(null, "x1", sizes.axisPadLeft)
-      xLine2.setAttributeNS(null, "x2", plotWidth)
-      xLine2.setAttributeNS(null, "y1", sizes.axisPadTop)
-      xLine2.setAttributeNS(null, "y2", sizes.axisPadTop)
-      xLine2.setAttributeNS(null, "stroke", colors.axis)
-      plotSvg.appendChild(xLine2)
+      plotSvg.appendChild(createXAxisBottomLine(plotWidth, sizes, colors))
+      plotSvg.appendChild(createXAxisTopLine(plotWidth, sizes, colors))
 
       // NOTE(sen) Ticks and labels
       for (let [labIndex, labName] of labs.entries()) {
