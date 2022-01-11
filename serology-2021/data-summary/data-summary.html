@@ -482,6 +482,17 @@
     return line
   }
 
+  const createCount = (count, xCoord, yCoord, col) => {
+    let el = document.createElementNS(XMLNS, "text")
+    el.innerHTML = count
+    el.setAttributeNS(null, "x", xCoord)
+    el.setAttributeNS(null, "y", yCoord)
+    el.setAttributeNS(null, "fill", col)
+    el.setAttributeNS(null, "text-anchor", "middle")
+    el.setAttributeNS(null, "dominant-baseline", "hanging")
+    return el
+  }
+
   const calcBoxplotStats = (arr) => {
     let arrSortedAsc = arrAsc(arr)
     let stats = {}
@@ -867,32 +878,26 @@
           // NOTE(sen) Point counts and boxplots
           for (let timepoint of ["Pre-vax", "Post-vax"]) {
             // NOTE(sen) Counts
-            let count = document.createElementNS(XMLNS, "text")
-
             let col = thisPreVaxCol
             let xCoord =
               scaleLabIndexVirusIndex(labIndex, virusIndex) -
               sizes.prePostDistance / 2
-            count.innerHTML = preVaxPoints
+            let countValue = preVaxPoints
             let titres = virusDataPrevax
             if (timepoint == "Post-vax") {
               xCoord += sizes.prePostDistance
               col = thisPostVaxCol
-              count.innerHTML = postVaxPoints
+              countValue = postVaxPoints
               titres = virusDataPostvax
             }
 
             let yCoord = scaleTitre(10240)
-
-            count.setAttributeNS(null, "x", xCoord)
-            count.setAttributeNS(null, "y", yCoord)
-            count.setAttributeNS(
-              null,
-              "fill",
+            let count = createCount(
+              countValue,
+              xCoord,
+              yCoord,
               col + opacities.counts.value.toString(16)
             )
-            count.setAttributeNS(null, "text-anchor", "middle")
-            count.setAttributeNS(null, "dominant-baseline", "hanging")
             plotSvg.appendChild(count)
             opacities.counts.titrePlotElements.push(count)
 
@@ -1149,31 +1154,26 @@
           // NOTE(sen) Point counts and boxplots
           for (let timepoint of ["Pre-vax", "Post-vax"]) {
             // NOTE(sen) Counts
-            let count = document.createElementNS(XMLNS, "text")
-
             let col = thisPreVaxCol
             let xCoord =
               scaleLabIndexCladeIndex(labIndex, cladeIndex) -
               sizes.prePostDistance / 2
-            count.innerHTML = preVaxPoints
+            let countValue = preVaxPoints
             let titres = cladeDataPrevax
             if (timepoint == "Post-vax") {
               xCoord += sizes.prePostDistance
               col = thisPostVaxCol
-              count.innerHTML = postVaxPoints
+              countValue = postVaxPoints
               titres = cladeDataPostvax
             }
 
             let yCoord = scaleTitre(10240)
-            count.setAttributeNS(null, "x", xCoord)
-            count.setAttributeNS(null, "y", yCoord)
-            count.setAttributeNS(
-              null,
-              "fill",
+            let count = createCount(
+              countValue,
+              xCoord,
+              yCoord,
               col + opacities.counts.value.toString(16)
             )
-            count.setAttributeNS(null, "text-anchor", "middle")
-            count.setAttributeNS(null, "dominant-baseline", "hanging")
             plotSvg.appendChild(count)
             opacities.counts.titreCladeAveragePlotElements.push(count)
 
@@ -1358,29 +1358,25 @@
         // NOTE(sen) Point counts and boxplots
         for (let timepoint of ["Pre-vax", "Post-vax"]) {
           // NOTE(sen) Counts
-          let count = document.createElementNS(XMLNS, "text")
 
           let col = colors.preVax
           let xCoord = scaleLabIndex(labIndex) - sizes.prePostDistance / 2
-          count.innerHTML = preVaxPoints
+          let countValue = preVaxPoints
           let titres = labDataPrevax
           if (timepoint == "Post-vax") {
             xCoord += sizes.prePostDistance
             col = colors.postVax
-            count.innerHTML = postVaxPoints
+            countValue = postVaxPoints
             titres = labDataPostvax
           }
 
           let yCoord = scaleTitre(10240)
-          count.setAttributeNS(null, "x", xCoord)
-          count.setAttributeNS(null, "y", yCoord)
-          count.setAttributeNS(
-            null,
-            "fill",
+          let count = createCount(
+            countValue,
+            xCoord,
+            yCoord,
             col + opacities.counts.value.toString(16)
           )
-          count.setAttributeNS(null, "text-anchor", "middle")
-          count.setAttributeNS(null, "dominant-baseline", "hanging")
           plotSvg.appendChild(count)
           opacities.counts.titreCirculatingAveragePlotElements.push(count)
 
