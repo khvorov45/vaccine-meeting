@@ -121,15 +121,15 @@
 <script>
   let XMLNS = "http://www.w3.org/2000/svg"
 
-  function arrAsc(arr) {
+  const arrAsc = (arr) => {
     return arr.sort((a, b) => a - b)
   }
 
-  function arrSum(arr) {
+  const arrSum = (arr) => {
     return arr.reduce((a, b) => a + b, 0)
   }
 
-  function arrCumSum(arr) {
+  const arrCumSum = (arr) => {
     let result = []
     let current = 0
     for (val of arr) {
@@ -139,17 +139,17 @@
     return result
   }
 
-  function arrMean(arr) {
+  const arrMean = (arr) => {
     return arrSum(arr) / arr.length
   }
 
-  function arrSd(arr) {
+  const arrSd = (arr) => {
     const mu = arrMean(arr)
     const diffArr = arr.map((a) => (a - mu) ** 2)
     return Math.sqrt(arrSum(diffArr) / (arr.length - 1))
   }
 
-  function arrSortedAscQuantile(sorted, q) {
+  const arrSortedAscQuantile = (sorted, q) => {
     const pos = (sorted.length - 1) * q
     const base = Math.floor(pos)
     const rest = pos - base
@@ -160,16 +160,20 @@
     return result
   }
 
-  function arrQuantile(arr, q) {
+  const arrQuantile = (arr, q) => {
     return arrSortedAscQuantile(arrAsc(arr), q)
   }
 
-  function arrSortedAscMin(sorted) {
+  const arrSortedAscMin = (sorted) => {
     return sorted[0]
   }
 
-  function arrSortedAscMax(sorted) {
+  const arrSortedAscMax = (sorted) => {
     return sorted[sorted.length - 1]
+  }
+
+  const arrUnique = (arr) => {
+    return Array.from(new Set(arr))
   }
 
   const groupByOne = (rows, key) => {
@@ -265,7 +269,7 @@
     return result
   }
 
-  function parseData(input) {
+  const parseData = (input) => {
     let result = []
     if (input.length > 0) {
       let lines = input.split(/\r?\n/).filter((line) => line !== "")
@@ -475,6 +479,17 @@
     return plotSvg
   }
 
+  const createScaleLogtitre = (sizes) => {
+    return (val) =>
+      scale(
+        val,
+        Math.log(5),
+        Math.log(10240),
+        sizes.plotHeight - sizes.dataPadY - sizes.axisPadBottom,
+        sizes.dataPadY + sizes.axisPadTop
+      )
+  }
+
   const createTitrePlotSvg = (
     data,
     vaccineStrains,
@@ -490,14 +505,7 @@
       //
 
       // NOTE(sen) Y-Axis
-      let scaleLogtitre = (val) =>
-        scale(
-          val,
-          Math.log(5),
-          Math.log(10240),
-          sizes.plotHeight - sizes.dataPadY - sizes.axisPadBottom,
-          sizes.dataPadY + sizes.axisPadTop
-        )
+      let scaleLogtitre = createScaleLogtitre(sizes)
       let scaleTitre = (val) => scaleLogtitre(Math.log(val))
 
       // NOTE(sen) X-Axis
@@ -508,22 +516,12 @@
         }
       }
 
-      let labs = Array.from(new Set(data.map((row) => row.testing_lab))).sort(
-        (a, b) => {
-          result = 0
-          if (a > b) {
-            result = 1
-          } else if (a < b) {
-            result - 1
-          }
-          return result
-        }
-      )
+      let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort)
       let labViruses = []
       let labVirusCounts = []
       for (let lab of labs) {
         let labData = data.filter((row) => row.testing_lab == lab)
-        let viruses = Array.from(new Set(labData.map((row) => row.virus))).sort(
+        let viruses = arrUnique(labData.map((row) => row.virus)).sort(
           (v1, v2) => {
             let result = 0
             let yearPat = /(\d{4})e?$/
@@ -705,7 +703,7 @@
       // NOTE(sen) The rest of the plot
       for (let [labIndex, virusNames] of labViruses.entries()) {
         let labData = data.filter((row) => row.testing_lab == labs[labIndex])
-        let serumIds = Array.from(new Set(labData.map((row) => row.serum_id)))
+        let serumIds = arrUnique(labData.map((row) => row.serum_id))
 
         // NOTE(sen) Lab marker line
         let labFirstX = scaleLabIndexVirusIndex(labIndex, 0)
@@ -910,29 +908,18 @@
       //
 
       // NOTE(sen) Y-Axis
-      let scaleLogtitre = (val) =>
-        scale(
-          val,
-          Math.log(5),
-          Math.log(10240),
-          sizes.plotHeight - sizes.dataPadY - sizes.axisPadBottom,
-          sizes.dataPadY + sizes.axisPadTop
-        )
+      let scaleLogtitre = createScaleLogtitre(sizes)
       let scaleTitre = (val) => scaleLogtitre(Math.log(val))
 
       // NOTE(sen) X-Axis
 
-      let labs = Array.from(new Set(data.map((row) => row.testing_lab))).sort(
-        stringSort
-      )
+      let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort)
 
       let labClades = []
       let labCladeCounts = []
       for (let lab of labs) {
         let labData = data.filter((row) => row.testing_lab == lab)
-        let clades = Array.from(new Set(labData.map((row) => row.clade))).sort(
-          stringSort
-        )
+        let clades = arrUnique(labData.map((row) => row.clade)).sort(stringSort)
         labClades.push(clades)
         labCladeCounts.push(clades.length)
       }
@@ -1069,7 +1056,7 @@
       // NOTE(sen) The rest of the plot
       for (let [labIndex, cladeNames] of labClades.entries()) {
         let labData = data.filter((row) => row.testing_lab == labs[labIndex])
-        let serumIds = Array.from(new Set(labData.map((row) => row.serum_id)))
+        let serumIds = arrUnique(labData.map((row) => row.serum_id))
 
         // NOTE(sen) Lab marker line
         let labFirstX = scaleLabIndexCladeIndex(labIndex, 0)
@@ -1270,20 +1257,11 @@
       //
 
       // NOTE(sen) Y-Axis
-      let scaleLogtitre = (val) =>
-        scale(
-          val,
-          Math.log(5),
-          Math.log(10240),
-          sizes.plotHeight - sizes.dataPadY - sizes.axisPadBottom,
-          sizes.dataPadY + sizes.axisPadTop
-        )
+      let scaleLogtitre = createScaleLogtitre(sizes)
       let scaleTitre = (val) => scaleLogtitre(Math.log(val))
 
       // NOTE(sen) X-Axis
-      let labs = Array.from(new Set(data.map((row) => row.testing_lab))).sort(
-        stringSort
-      )
+      let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort)
 
       let plotWidth = sizes.widthPerElement * labs.length + sizes.axisPadLeft
 
@@ -1400,7 +1378,7 @@
       // NOTE(sen) The rest of the plot
       for (let [labIndex, labName] of labs.entries()) {
         let labData = data.filter((row) => row.testing_lab == labName)
-        let serumIds = Array.from(new Set(labData.map((row) => row.serum_id)))
+        let serumIds = arrUnique(labData.map((row) => row.serum_id))
 
         let labDataPrevax = labData.filter((row) => row.timepoint === "Pre-vax")
         let labDataPostvax = labData.filter(
@@ -1920,16 +1898,14 @@
       // NOTE(sen) Subtype clades
       state.subtypeClades = {}
       if (state.data.length > 0) {
-        let subtypes = Array.from(
-          new Set(state.data.map((row) => row.subtype))
-        ).sort(desiredOrderSort(["H1", "H3", "BVic"]))
+        let subtypes = arrUnique(state.data.map((row) => row.subtype)).sort(
+          desiredOrderSort(["H1", "H3", "BVic"])
+        )
         for (let subtype of subtypes) {
-          let clades = Array.from(
-            new Set(
-              state.data
-                .filter((row) => row.subtype === subtype)
-                .map((row) => row.clade)
-            )
+          let clades = arrUnique(
+            state.data
+              .filter((row) => row.subtype === subtype)
+              .map((row) => row.clade)
           )
           state.subtypeClades[subtype] = clades.sort(stringSort)
         }
@@ -2033,8 +2009,8 @@
       for (let varName of Object.keys(state.filters)) {
         state.filters[varName].selected = null
 
-        state.filters[varName].options = Array.from(
-          new Set(state.data.map((row) => row[varName]))
+        state.filters[varName].options = arrUnique(
+          state.data.map((row) => row[varName])
         )
 
         switch (varName) {
