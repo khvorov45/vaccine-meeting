@@ -331,7 +331,8 @@
     plotWidth,
     sizes,
     scaleTitre,
-    title
+    title,
+    rise
   ) => {
     let titreAxis = document.createElementNS(XMLNS, "g")
 
@@ -370,6 +371,9 @@
 
     // NOTE(sen) Ticks and numbers
     let yTicks = [5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120, 10240]
+    if (rise) {
+      yTicks = [1, 2, 4, 8, 16, 32, 64, 128]
+    }
     for (let yTick of yTicks) {
       let yCoord = scaleTitre(yTick)
 
@@ -952,7 +956,7 @@
               titres = virusDataPostvax
             }
 
-            let yCoord = scaleTitre(10240)
+            let yCoord = sizes.axisPadTop + 2
             let count = createCount(
               countValue,
               xCoord,
@@ -1244,7 +1248,7 @@
               titres = cladeDataPostvax
             }
 
-            let yCoord = scaleTitre(10240)
+            let yCoord = sizes.axisPadTop + 2
             let count = createCount(
               countValue,
               xCoord,
@@ -1463,7 +1467,7 @@
             titres = labDataPostvax
           }
 
-          let yCoord = scaleTitre(10240)
+          let yCoord = sizes.axisPadTop + 2
           let count = createCount(
             countValue,
             xCoord,
@@ -1510,6 +1514,172 @@
           plotSvg.appendChild(gmtErrorBar)
           opacities.means.titreCirculatingAveragePlotElements.push(gmtErrorBar)
         } // NOTE(sen) for timepoint
+      } // NOTE(sen) for lab
+    } // NOTE(sen) if data
+
+    return plotSvg
+  }
+
+  const createRiseCirculatingAveragePlotSvg = (
+    data,
+    opacities,
+    colors,
+    sizes
+  ) => {
+    let plotSvg = createSvgElement()
+
+    if (data !== null && data !== undefined && data.length > 0) {
+      //
+      // SECTION Scales
+      //
+
+      // NOTE(sen) Y-Axis
+      let scaleLogrise = (val) =>
+        scale(
+          val,
+          0,
+          Math.log(150),
+          sizes.plotHeight - sizes.dataPadY - sizes.axisPadBottom,
+          sizes.dataPadY + sizes.axisPadTop
+        )
+      let scaleRise = (val) => scaleLogrise(Math.log(val))
+
+      // NOTE(sen) X-Axis
+      let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort)
+
+      let plotWidth = sizes.widthPerElement * labs.length + sizes.axisPadLeft
+
+      const scaleLabIndex = (labIndex) =>
+        scale(
+          labIndex,
+          0,
+          labs.length - 1,
+          sizes.axisPadLeft + sizes.dataPadX,
+          plotWidth - sizes.dataPadX
+        )
+
+      setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight)
+
+      //
+      // SECTION Y-Axis
+      //
+
+      let yAxis = createTitreAxisElement(
+        colors,
+        plotWidth,
+        sizes,
+        scaleRise,
+        "Circulating average rise",
+        true
+      )
+      plotSvg.appendChild(yAxis)
+
+      //
+      // SECTION X-axis
+      //
+
+      // NOTE(sen) Line
+      plotSvg.appendChild(createXAxisBottomLine(plotWidth, sizes, colors))
+      plotSvg.appendChild(createXAxisTopLine(plotWidth, sizes, colors))
+
+      // NOTE(sen) Ticks and labels
+      for (let [labIndex, labName] of labs.entries()) {
+        let xCoord = scaleLabIndex(labIndex)
+        plotSvg.appendChild(createXTick(xCoord, sizes, colors))
+        plotSvg.appendChild(
+          createXLabel(labName, 0, "middle", xCoord, sizes, colors)
+        )
+      }
+
+      //
+      // SECTION Main plot
+      //
+
+      // NOTE(sen) Line at 4
+      let line4 = createDashedHLine(
+        scaleRise(4),
+        plotWidth,
+        sizes,
+        colors.thresholdLine
+      )
+      plotSvg.appendChild(line4)
+      opacities.line40.titreCirculatingAveragePlotElements.push(line4)
+
+      let col = colors.preVax
+
+      // NOTE(sen) The rest of the plot
+      for (let [labIndex, labName] of labs.entries()) {
+        let labData = data.filter((row) => row.testing_lab == labName)
+
+        let points = 0
+
+        let xCoord = scaleLabIndex(labIndex)
+
+        for (let row of labData) {
+          let rise = row.titreCirculatingAverageRatio
+
+          if (isGood(rise)) {
+            points += 1
+
+            let yCoord = scaleRise(rise)
+
+            let point = createPoint(
+              xCoord,
+              yCoord,
+              col + colChannel255ToString(opacities.points.value)
+            )
+            plotSvg.appendChild(point)
+            opacities.points.titreCirculatingAveragePlotElements.push(point)
+          }
+        }
+
+        // NOTE(sen) Counts
+        let yCoord = sizes.axisPadTop + 2
+        let count = createCount(
+          points,
+          xCoord,
+          yCoord,
+          col + colChannel255ToString(opacities.counts.value)
+        )
+        plotSvg.appendChild(count)
+        opacities.counts.titreCirculatingAveragePlotElements.push(count)
+
+        // NOTE(sen) Boxplots
+        labData = labData
+          .filter((row) => isGood(row.titreCirculatingAverageRatio))
+          .map((row) => Math.log(row.titreCirculatingAverageRatio))
+
+        let boxplotStats = calcBoxplotStats(labData)
+
+        let boxplot = createBoxplotElement(
+          scaleLogrise(boxplotStats.bottom),
+          scaleLogrise(boxplotStats.q25),
+          scaleLogrise(boxplotStats.median),
+          scaleLogrise(boxplotStats.q75),
+          scaleLogrise(boxplotStats.top),
+          sizes.boxPlotWidth,
+          xCoord,
+          col + colChannel255ToString(opacities.boxplots.value)
+        )
+
+        plotSvg.appendChild(boxplot)
+        opacities.boxplots.titreCirculatingAveragePlotElements.push(boxplot)
+
+        // NOTE(sen) GMRs
+        let gmrStats = calcMeanStats(labData)
+        let gmrErrorBar = createErrorBar(
+          scaleLogrise(gmrStats.low),
+          scaleLogrise(gmrStats.mean),
+          scaleLogrise(gmrStats.high),
+          xCoord,
+          colChangeSaturation(
+            col + colChannel255ToString(opacities.means.value),
+            2
+          )
+        )
+
+        plotSvg.appendChild(gmrErrorBar)
+        opacities.means.titreCirculatingAveragePlotElements.push(gmrErrorBar)
       } // NOTE(sen) for lab
     } // NOTE(sen) if data
 
@@ -1830,6 +2000,8 @@
 
       let dataSubsetCirculatingAverages =
         state.dataCirculatingAverageTitres.filter(subsetFilter)
+      let dataSubsetCirculatingAverageRises =
+        state.dataCirculatingAverageRises.filter(subsetFilter)
 
       while (state.titreCirculatingAveragePlotContainer.lastChild) {
         state.titreCirculatingAveragePlotContainer.removeChild(
@@ -1841,16 +2013,29 @@
         state.opacities[varName].titreCirculatingAveragePlotElements = []
       }
 
+      let plotSizes = reduceAxisPadBottom(40, state.defaultPlotSizes)
+
       let plotCirculatingAverageTitresSvg =
         createTitreCirculatingAveragePlotSvg(
           dataSubsetCirculatingAverages,
           state.opacities,
           state.colors,
-          reduceAxisPadBottom(40, state.defaultPlotSizes)
+          plotSizes
         )
 
       state.titreCirculatingAveragePlotContainer.appendChild(
         plotCirculatingAverageTitresSvg
+      )
+
+      let plotCirculatingAverageRisesSvg = createRiseCirculatingAveragePlotSvg(
+        dataSubsetCirculatingAverageRises,
+        state.opacities,
+        state.colors,
+        plotSizes
+      )
+
+      state.titreCirculatingAveragePlotContainer.appendChild(
+        plotCirculatingAverageRisesSvg
       )
     }
   }
