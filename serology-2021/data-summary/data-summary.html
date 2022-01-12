@@ -372,7 +372,7 @@
     // NOTE(sen) Ticks and numbers
     let yTicks = [5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120, 10240]
     if (rise) {
-      yTicks = [1, 2, 4, 8, 16, 32, 64, 128]
+      yTicks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
     }
     for (let yTick of yTicks) {
       let yCoord = scaleTitre(yTick)
@@ -665,12 +665,18 @@
     svg.setAttributeNS(null, "height", height)
   }
 
-  const createScaleLogtitre = (sizes) => {
+  const createScaleLogtitre = (sizes, rise) => {
+    min = 5
+    max = 10240
+    if (rise) {
+      min = 1
+      max = 300
+    }
     return (val) =>
       scale(
         val,
-        Math.log(5),
-        Math.log(10240),
+        Math.log(min),
+        Math.log(max),
         sizes.plotHeight - sizes.dataPadY - sizes.axisPadBottom,
         sizes.dataPadY + sizes.axisPadTop
       )
@@ -1302,6 +1308,232 @@
     return plotSvg
   }
 
+  const createRiseCladeAveragePlotSvg = (
+    data,
+    vaccineClades,
+    opacities,
+    colors,
+    sizes
+  ) => {
+    let plotSvg = createSvgElement()
+
+    if (data !== null && data !== undefined && data.length > 0) {
+      //
+      // SECTION Scales
+      //
+
+      // NOTE(sen) Y-Axis
+      let scaleLogrise = createScaleLogtitre(sizes, true)
+      let scaleRise = (val) => scaleLogrise(Math.log(val))
+
+      // NOTE(sen) X-Axis
+
+      let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort)
+
+      let labClades = []
+      let labCladeCounts = []
+      for (let lab of labs) {
+        let labData = data.filter((row) => row.testing_lab == lab)
+        let clades = arrUnique(labData.map((row) => row.clade)).sort(stringSort)
+        labClades.push(clades)
+        labCladeCounts.push(clades.length)
+      }
+      let labCladeCumCounts = arrCumSum(labCladeCounts)
+
+      let plotWidth =
+        sizes.dataPadX +
+        sizes.axisPadLeft +
+        sizes.widthPerElement * labCladeCumCounts[labCladeCumCounts.length - 1]
+
+      const scaleLabIndexCladeIndex = (labIndex, cladeIndex) => {
+        let cladeCount = labCladeCounts[labIndex]
+        let cladeCumCount = labCladeCumCounts[labIndex]
+        let cladeCountOffset = cladeCumCount - cladeCount
+        let realIndex = cladeIndex + cladeCountOffset
+        let result = scale(
+          realIndex,
+          0,
+          labCladeCumCounts[labCladeCumCounts.length - 1] - 1,
+          sizes.axisPadLeft + sizes.dataPadX,
+          plotWidth - sizes.dataPadX
+        )
+        return result
+      }
+
+      setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight)
+
+      //
+      // SECTION Y-Axis
+      //
+
+      let yAxis = createTitreAxisElement(
+        colors,
+        plotWidth,
+        sizes,
+        scaleRise,
+        "Clade average rise",
+        true
+      )
+      plotSvg.appendChild(yAxis)
+
+      //
+      // SECTION X-axis
+      //
+
+      // NOTE(sen) Line
+      plotSvg.appendChild(createXAxisBottomLine(plotWidth, sizes, colors))
+      plotSvg.appendChild(createXAxisTopLine(plotWidth, sizes, colors))
+
+      // NOTE(sen) Ticks and labels
+      for (let [labIndex, cladeNames] of labClades.entries()) {
+        for (let [cladeIndex, cladeName] of cladeNames.entries()) {
+          let xCoord = scaleLabIndexCladeIndex(labIndex, cladeIndex)
+
+          plotSvg.appendChild(createXTick(xCoord, sizes, colors))
+
+          let cladeFreq = Math.round(state.cladeFreqs[cladeName] * 100)
+          let label = createXLabel(
+            cladeName + " (" + cladeFreq + "%)",
+            -30,
+            "end",
+            xCoord,
+            sizes,
+            colors
+          )
+
+          plotSvg.appendChild(label)
+          state.cladeFreqElements[cladeName].push(label)
+        }
+      }
+
+      //
+      // SECTION Main plot
+      //
+
+      // NOTE(sen) Line at 4
+      let line4 = createDashedHLine(
+        scaleRise(4),
+        plotWidth,
+        sizes,
+        colors.thresholdLine
+      )
+      plotSvg.appendChild(line4)
+      opacities.line40.titreCladeAveragePlotElements.push(line4)
+
+      // NOTE(sen) The rest of the plot
+      for (let [labIndex, cladeNames] of labClades.entries()) {
+        let labData = data.filter((row) => row.testing_lab == labs[labIndex])
+        let serumIds = arrUnique(labData.map((row) => row.serum_id))
+
+        // NOTE(sen) Lab marker line
+        let labFirstX = scaleLabIndexCladeIndex(labIndex, 0)
+        let labLastX = scaleLabIndexCladeIndex(
+          labIndex,
+          labCladeCounts[labIndex] - 1
+        )
+        if (labIndex < labClades.length - 1) {
+          let markerLineX = labLastX + sizes.widthPerElement / 2
+          let markerLine = createVLine(markerLineX, colors.axis, sizes)
+          plotSvg.appendChild(markerLine)
+        }
+
+        // NOTE(sen) Lab marker text
+        let markerTextX = (labLastX + labFirstX) / 2
+        let markerText = createFacetLabel(
+          markerTextX,
+          colors.text,
+          labs[labIndex],
+          sizes
+        )
+        plotSvg.appendChild(markerText)
+
+        for (let [cladeIndex, cladeName] of cladeNames.entries()) {
+          let cladeData = labData.filter((row) => row.clade == cladeName)
+
+          let points = 0
+
+          let thisCol = colors.preVax
+          if (vaccineClades.includes(cladeName)) {
+            thisCol = colors.vaccinePreVax
+          }
+
+          let xCoord = scaleLabIndexCladeIndex(
+            labIndex,
+            cladeIndex + (Math.random() - 0.5) * 0.05
+          )
+
+          for (let row of cladeData) {
+            let rise = row.titreCladeAverageRatio
+
+            if (isGood(rise)) {
+              points += 1
+
+              let yCoord = scaleRise(rise)
+
+              let point = createPoint(
+                xCoord,
+                yCoord,
+                thisCol + colChannel255ToString(opacities.points.value)
+              )
+              plotSvg.appendChild(point)
+              opacities.points.titreCladeAveragePlotElements.push(point)
+            }
+          }
+
+          // NOTE(sen) Counts
+          let yCoord = sizes.axisPadTop + 2
+          let count = createCount(
+            points,
+            xCoord,
+            yCoord,
+            thisCol + colChannel255ToString(opacities.counts.value)
+          )
+          plotSvg.appendChild(count)
+          opacities.counts.titreCladeAveragePlotElements.push(count)
+
+          // NOTE(sen) Boxplots
+          cladeData = cladeData
+            .filter((row) => isGood(row.titreCladeAverageRatio))
+            .map((row) => Math.log(row.titreCladeAverageRatio))
+
+          let boxplotStats = calcBoxplotStats(cladeData)
+
+          let boxplot = createBoxplotElement(
+            scaleLogrise(boxplotStats.bottom),
+            scaleLogrise(boxplotStats.q25),
+            scaleLogrise(boxplotStats.median),
+            scaleLogrise(boxplotStats.q75),
+            scaleLogrise(boxplotStats.top),
+            sizes.boxPlotWidth,
+            xCoord,
+            thisCol + colChannel255ToString(opacities.boxplots.value)
+          )
+
+          plotSvg.appendChild(boxplot)
+          opacities.boxplots.titreCladeAveragePlotElements.push(boxplot)
+
+          // NOTE(sen) GMRs
+          let gmrStats = calcMeanStats(cladeData)
+          let gmrErrorBar = createErrorBar(
+            scaleLogrise(gmrStats.low),
+            scaleLogrise(gmrStats.mean),
+            scaleLogrise(gmrStats.high),
+            xCoord,
+            colChangeSaturation(
+              thisCol + colChannel255ToString(opacities.means.value),
+              2
+            )
+          )
+
+          plotSvg.appendChild(gmrErrorBar)
+          opacities.means.titreCladeAveragePlotElements.push(gmrErrorBar)
+        } // NOTE(sen) for clade
+      } // NOTE(sen) for lab
+    } // NOTE(sen) if data
+
+    return plotSvg
+  }
+
   const createTitreCirculatingAveragePlotSvg = (
     data,
     opacities,
@@ -1534,14 +1766,7 @@
       //
 
       // NOTE(sen) Y-Axis
-      let scaleLogrise = (val) =>
-        scale(
-          val,
-          0,
-          Math.log(150),
-          sizes.plotHeight - sizes.dataPadY - sizes.axisPadBottom,
-          sizes.dataPadY + sizes.axisPadTop
-        )
+      let scaleLogrise = createScaleLogtitre(sizes, true)
       let scaleRise = (val) => scaleLogrise(Math.log(val))
 
       // NOTE(sen) X-Axis
@@ -1969,6 +2194,8 @@
 
       let dataSubsetCladeAverages =
         state.dataCladeAverageTitres.filter(subsetFilter)
+      let dataSubsetCladeAverageRises =
+        state.dataCladeAverageRises.filter(subsetFilter)
 
       while (state.titreCladeAveragePlotContainer.lastChild) {
         state.titreCladeAveragePlotContainer.removeChild(
@@ -1980,17 +2207,29 @@
         state.opacities[varName].titreCladeAveragePlotElements = []
       }
 
+      let plotSizes = reduceAxisPadBottom(100, state.defaultPlotSizes)
+      let vaccineClades = ["A5a.1", "A1b/137F", "V1A.3"]
+
       let plotCladeAverageTitresSvg = createTitreCladeAveragePlotSvg(
         dataSubsetCladeAverages,
-        ["A5a.1", "A1b/137F", "V1A.3"],
+        vaccineClades,
         state.opacities,
         state.colors,
-        reduceAxisPadBottom(100, state.defaultPlotSizes)
+        plotSizes
+      )
+
+      let plotCladeAverageRisesSvg = createRiseCladeAveragePlotSvg(
+        dataSubsetCladeAverageRises,
+        vaccineClades,
+        state.opacities,
+        state.colors,
+        plotSizes
       )
 
       state.titreCladeAveragePlotContainer.appendChild(
         plotCladeAverageTitresSvg
       )
+      state.titreCladeAveragePlotContainer.appendChild(plotCladeAverageRisesSvg)
     }
   }
 
