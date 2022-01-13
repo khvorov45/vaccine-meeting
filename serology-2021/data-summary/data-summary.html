@@ -2184,7 +2184,8 @@
     dataRises: [],
     dataCladeAverageRises: [],
     dataCirculatingAverageRises: [],
-    dataMode: "rises",
+    plotMode: ["titres", "rises"],
+    plotSumm: ["none", "clade", "circulating"],
     cladeFreqsDefault: {},
     cladeFreqs: {},
     subtypeClades: {},
@@ -2266,10 +2267,12 @@
     },
     main: document.getElementById("main"),
     inputContainer: null,
-    plotContainer: null,
-    titrePlotContainer: null,
-    titreCladeAveragePlotContainer: null,
-    titreCirculatingAveragePlotContainer: null,
+    plotContainer: {
+      element: null,
+      circulatingAverage: { element: null, titres: null, rises: null },
+      cladeAverage: { element: null, titres: null, rises: null },
+      noSummary: { element: null, titres: null, rises: null },
+    },
     slidersContainer: null,
     subtypeSlidersContainers: {},
     cladeFreqElements: {},
@@ -2431,8 +2434,10 @@
       let dataSubset = state.data.filter(subsetFilter)
       let dataRisesSubset = state.dataRises.filter(subsetFilter)
 
-      while (state.titrePlotContainer.lastChild) {
-        state.titrePlotContainer.removeChild(state.titrePlotContainer.lastChild)
+      while (state.plotContainer.noSummary.element.lastChild) {
+        state.plotContainer.noSummary.element.removeChild(
+          state.plotContainer.noSummary.element.lastChild
+        )
       }
 
       for (let varName of Object.keys(state.opacities)) {
@@ -2445,7 +2450,7 @@
         "B/Washington/02/2019e",
       ]
 
-      let plotSvg = createTitrePlotSvg(
+      state.plotContainer.noSummary.titres = createTitrePlotSvg(
         dataSubset,
         vaccineViruses,
         state.opacities,
@@ -2453,7 +2458,7 @@
         state.defaultPlotSizes
       )
 
-      let plotRisesSvg = createRisePlotSvg(
+      state.plotContainer.noSummary.rises = createRisePlotSvg(
         dataRisesSubset,
         vaccineViruses,
         state.opacities,
@@ -2461,8 +2466,12 @@
         state.defaultPlotSizes
       )
 
-      state.titrePlotContainer.appendChild(plotSvg)
-      state.titrePlotContainer.appendChild(plotRisesSvg)
+      state.plotContainer.noSummary.element.appendChild(
+        state.plotContainer.noSummary.titres
+      )
+      state.plotContainer.noSummary.element.appendChild(
+        state.plotContainer.noSummary.rises
+      )
     }
   }
 
@@ -2475,9 +2484,9 @@
       let dataSubsetCladeAverageRises =
         state.dataCladeAverageRises.filter(subsetFilter)
 
-      while (state.titreCladeAveragePlotContainer.lastChild) {
-        state.titreCladeAveragePlotContainer.removeChild(
-          state.titreCladeAveragePlotContainer.lastChild
+      while (state.plotContainer.cladeAverage.element.lastChild) {
+        state.plotContainer.cladeAverage.element.removeChild(
+          state.plotContainer.cladeAverage.element.lastChild
         )
       }
 
@@ -2488,7 +2497,7 @@
       let plotSizes = reduceAxisPadBottom(100, state.defaultPlotSizes)
       let vaccineClades = ["A5a.1", "A1b/137F", "V1A.3"]
 
-      let plotCladeAverageTitresSvg = createTitreCladeAveragePlotSvg(
+      state.plotContainer.cladeAverage.titres = createTitreCladeAveragePlotSvg(
         dataSubsetCladeAverages,
         vaccineClades,
         state.opacities,
@@ -2496,7 +2505,7 @@
         plotSizes
       )
 
-      let plotCladeAverageRisesSvg = createRiseCladeAveragePlotSvg(
+      state.plotContainer.cladeAverage.rises = createRiseCladeAveragePlotSvg(
         dataSubsetCladeAverageRises,
         vaccineClades,
         state.opacities,
@@ -2504,10 +2513,12 @@
         plotSizes
       )
 
-      state.titreCladeAveragePlotContainer.appendChild(
-        plotCladeAverageTitresSvg
+      state.plotContainer.cladeAverage.element.appendChild(
+        state.plotContainer.cladeAverage.titres
       )
-      state.titreCladeAveragePlotContainer.appendChild(plotCladeAverageRisesSvg)
+      state.plotContainer.cladeAverage.element.appendChild(
+        state.plotContainer.cladeAverage.rises
+      )
     }
   }
 
@@ -2520,9 +2531,9 @@
       let dataSubsetCirculatingAverageRises =
         state.dataCirculatingAverageRises.filter(subsetFilter)
 
-      while (state.titreCirculatingAveragePlotContainer.lastChild) {
-        state.titreCirculatingAveragePlotContainer.removeChild(
-          state.titreCirculatingAveragePlotContainer.lastChild
+      while (state.plotContainer.circulatingAverage.element.lastChild) {
+        state.plotContainer.circulatingAverage.element.removeChild(
+          state.plotContainer.circulatingAverage.element.lastChild
         )
       }
 
@@ -2532,7 +2543,7 @@
 
       let plotSizes = reduceAxisPadBottom(40, state.defaultPlotSizes)
 
-      let plotCirculatingAverageTitresSvg =
+      state.plotContainer.circulatingAverage.titres =
         createTitreCirculatingAveragePlotSvg(
           dataSubsetCirculatingAverages,
           state.opacities,
@@ -2540,19 +2551,20 @@
           plotSizes
         )
 
-      state.titreCirculatingAveragePlotContainer.appendChild(
-        plotCirculatingAverageTitresSvg
+      state.plotContainer.circulatingAverage.element.appendChild(
+        state.plotContainer.circulatingAverage.titres
       )
 
-      let plotCirculatingAverageRisesSvg = createRiseCirculatingAveragePlotSvg(
-        dataSubsetCirculatingAverageRises,
-        state.opacities,
-        state.colors,
-        plotSizes
-      )
+      state.plotContainer.circulatingAverage.rises =
+        createRiseCirculatingAveragePlotSvg(
+          dataSubsetCirculatingAverageRises,
+          state.opacities,
+          state.colors,
+          plotSizes
+        )
 
-      state.titreCirculatingAveragePlotContainer.appendChild(
-        plotCirculatingAverageRisesSvg
+      state.plotContainer.circulatingAverage.element.appendChild(
+        state.plotContainer.circulatingAverage.rises
       )
     }
   }
@@ -2966,39 +2978,24 @@
     container.style.overflowY = "scroll"
     container.style.overflowX = "hidden"
 
-    let titrePlotContainer = document.createElement("div")
-    let titreCladeAveragePlotContainer = document.createElement("div")
-    let titreCirculatingAveragePlotContainer = document.createElement("div")
-
-    titrePlotContainer.style.flexShrink = "0"
-    titrePlotContainer.style.overflowX = "scroll"
-    titrePlotContainer.style.overflowY = "hidden"
-
-    titreCladeAveragePlotContainer.style.flexShrink =
-      titrePlotContainer.style.flexShrink
-    titreCladeAveragePlotContainer.style.overflowX =
-      titrePlotContainer.style.overflowX
-    titreCladeAveragePlotContainer.style.overflowY =
-      titrePlotContainer.style.overflowY
-
-    titreCirculatingAveragePlotContainer.style.flexShrink =
-      titrePlotContainer.style.flexShrink
-    titreCirculatingAveragePlotContainer.style.overflowX =
-      titrePlotContainer.style.overflowX
-    titreCirculatingAveragePlotContainer.style.overflowY =
-      titrePlotContainer.style.overflowY
-
-    container.appendChild(titreCirculatingAveragePlotContainer)
-    container.appendChild(titreCladeAveragePlotContainer)
-    container.appendChild(titrePlotContainer)
-
-    state.titrePlotContainer = titrePlotContainer
-    state.titreCladeAveragePlotContainer = titreCladeAveragePlotContainer
-    state.titreCirculatingAveragePlotContainer =
-      titreCirculatingAveragePlotContainer
-
-    state.plotContainer = container
+    state.plotContainer.element = container
     state.main.appendChild(container)
+
+    const createPlotContainer = () => {
+      let el = document.createElement("div")
+      el.style.flexShrink = "0"
+      el.style.overflowX = "scroll"
+      el.style.overflowY = "hidden"
+      return el
+    }
+
+    for (let subPlotContainer of Object.keys(state.plotContainer)) {
+      if (subPlotContainer !== "element") {
+        let el = createPlotContainer()
+        state.plotContainer[subPlotContainer].element = el
+        container.appendChild(el)
+      }
+    }
   }
 
   // NOTE(sen) Init file input
@@ -3092,8 +3089,8 @@
     state.inputContainer.appendChild(themeSwitch)
   }
 
-  // NOTE(sen) Init titre/rise switch
-  /*{
+  // NOTE(sen) Init plot subset selection switches
+  {
     let modeSwitch = document.createElement("div")
 
     modeSwitch.style.display = "flex"
@@ -3102,7 +3099,6 @@
     modeSwitch.style.cursor = "pointer"
 
     let options = ["titres", "rises"]
-    let optionEls = []
     for (let option of options) {
       let optionEl = document.createElement("div")
 
@@ -3114,30 +3110,33 @@
       optionEl.style.fontWeight = "bold"
       optionEl.style.letterSpacing = "2px"
 
-      if (option === state.dataMode) {
+      if (state.plotMode.includes(option)) {
         optionEl.style.background = "var(--color-selected)"
       }
 
+      optionEl.addEventListener("click", (event) => {
+        let targetVisibility = "block"
+        if (state.plotMode.includes(option)) {
+          optionEl.style.background = "inherit"
+          state.plotMode = state.plotMode.filter((op) => op !== option)
+          targetVisibility = "none"
+        } else {
+          optionEl.style.background = "var(--color-selected)"
+          state.plotMode.push(option)
+        }
+        for (let summaryType of Object.keys(state.plotContainer)) {
+          if (summaryType !== "element") {
+            state.plotContainer[summaryType][option].style.display =
+              targetVisibility
+          }
+        }
+      })
+
       modeSwitch.appendChild(optionEl)
-      optionEls.push(optionEl)
     }
 
-    modeSwitch.addEventListener("click", (event) => {
-      let targetMode = "titres"
-      let selectionTarget = 0
-      let inheritTarget = 1
-      if (state.dataMode === "titres") {
-        targetMode = "rises"
-        selectionTarget = 1
-        inheritTarget = 0
-      }
-      state.dataMode = targetMode
-      optionEls[selectionTarget].style.background = "var(--color-selected)"
-      optionEls[inheritTarget].style.background = "inherit"
-    })
-
     state.inputContainer.appendChild(modeSwitch)
-  }*/
+  }
 
   // NOTE(sen) Init opacity inputs
   {
