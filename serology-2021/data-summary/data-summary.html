@@ -372,7 +372,7 @@
     // NOTE(sen) Ticks and numbers
     let yTicks = [5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120, 10240]
     if (rise) {
-      yTicks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+      yTicks = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
     }
     for (let yTick of yTicks) {
       let yCoord = scaleTitre(yTick)
@@ -670,7 +670,7 @@
     max = 10240
     if (rise) {
       min = 1
-      max = 300
+      max = 550
     }
     return (val) =>
       scale(
@@ -1009,6 +1009,272 @@
             plotSvg.appendChild(gmtErrorBar)
             opacities.means.titrePlotElements.push(gmtErrorBar)
           } // NOTE(sen) for (timepoint)
+        } // NOTE(sen) for (virus)
+      } // NOTE(sen) for (lab)
+    }
+
+    return plotSvg
+  }
+
+  const createRisePlotSvg = (
+    data,
+    vaccineStrains,
+    opacities,
+    colors,
+    sizes
+  ) => {
+    let plotSvg = createSvgElement()
+
+    if (data !== null && data !== undefined && data.length > 0) {
+      //
+      // SECTION Scales
+      //
+
+      // NOTE(sen) Y-Axis
+      let scaleLogrise = createScaleLogtitre(sizes, true)
+      let scaleRise = (val) => scaleLogrise(Math.log(val))
+
+      // NOTE(sen) X-Axis
+      let virusClades = {}
+      for (row of data) {
+        if (virusClades[row.virus] === undefined) {
+          virusClades[row.virus] = row.clade
+        }
+      }
+
+      let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort)
+      let labViruses = []
+      let labVirusCounts = []
+      for (let lab of labs) {
+        let labData = data.filter((row) => row.testing_lab == lab)
+        let viruses = arrUnique(labData.map((row) => row.virus)).sort(
+          (v1, v2) => {
+            let result = 0
+            let yearPat = /(\d{4})e?$/
+            let year1 = yearPat.exec(v1)[1]
+            let year2 = yearPat.exec(v2)[1]
+            if (year1 !== undefined && year2 !== undefined) {
+              result = year1 - year2
+            }
+
+            if (result === 0) {
+              let clade1 = virusClades[v1]
+              let clade2 = virusClades[v2]
+              if (clade1 > clade2) {
+                result = 1
+              } else {
+                result = -1
+              }
+            }
+
+            if (result === 0) {
+              if (v1 > v2) {
+                result = 1
+              } else {
+                result = -1
+              }
+            }
+            return result
+          }
+        )
+        labViruses.push(viruses)
+        labVirusCounts.push(viruses.length)
+      }
+      let labVirusCumCounts = arrCumSum(labVirusCounts)
+
+      let plotWidth =
+        sizes.dataPadX +
+        sizes.axisPadLeft +
+        sizes.widthPerElement * labVirusCumCounts[labVirusCumCounts.length - 1]
+
+      const scaleLabIndexVirusIndex = (labIndex, virusIndex) => {
+        let virusCount = labVirusCounts[labIndex]
+        let virusCumCount = labVirusCumCounts[labIndex]
+        let virusCountOffset = virusCumCount - virusCount
+        let realIndex = virusIndex + virusCountOffset
+        let result = scale(
+          realIndex,
+          0,
+          labVirusCumCounts[labVirusCumCounts.length - 1] - 1,
+          sizes.axisPadLeft + sizes.dataPadX,
+          plotWidth - sizes.dataPadX
+        )
+        return result
+      }
+
+      setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight)
+
+      //
+      // SECTION Y-Axis
+      //
+
+      let yAxis = createTitreAxisElement(
+        colors,
+        plotWidth,
+        sizes,
+        scaleRise,
+        "Titre",
+        true
+      )
+      plotSvg.appendChild(yAxis)
+
+      //
+      // SECTION X-axis
+      //
+
+      // NOTE(sen) Line
+      plotSvg.appendChild(createXAxisBottomLine(plotWidth, sizes, colors))
+      plotSvg.appendChild(createXAxisTopLine(plotWidth, sizes, colors))
+
+      // NOTE(sen) Ticks and labels
+      for (let [labIndex, virusNames] of labViruses.entries()) {
+        for (let [virusIndex, virusName] of virusNames.entries()) {
+          let xCoord = scaleLabIndexVirusIndex(labIndex, virusIndex)
+
+          plotSvg.appendChild(createXTick(xCoord, sizes, colors))
+
+          plotSvg.appendChild(
+            createXLabel(virusName, -45, "end", xCoord, sizes, colors)
+          )
+
+          let cladeName = virusClades[virusName]
+          let cladeFreq = Math.round(state.cladeFreqs[cladeName] * 100)
+          let cladeLabel = createXLabel(
+            cladeName + " (" + cladeFreq + "%)",
+            -45,
+            "end",
+            xCoord + sizes.svgTextLineHeightGuess,
+            sizes,
+            colors
+          )
+
+          plotSvg.appendChild(cladeLabel)
+
+          state.cladeFreqElements[cladeName].push(cladeLabel)
+        }
+      }
+
+      //
+      // SECTION Main plot
+      //
+
+      // NOTE(sen) Line at 4
+      let line4 = createDashedHLine(
+        scaleRise(4),
+        plotWidth,
+        sizes,
+        colors.thresholdLine
+      )
+      plotSvg.appendChild(line4)
+      opacities.line40.titrePlotElements.push(line4)
+
+      // NOTE(sen) The rest of the plot
+      for (let [labIndex, virusNames] of labViruses.entries()) {
+        let labData = data.filter((row) => row.testing_lab == labs[labIndex])
+        let serumIds = arrUnique(labData.map((row) => row.serum_id))
+
+        // NOTE(sen) Lab marker line
+        let labFirstX = scaleLabIndexVirusIndex(labIndex, 0)
+        let labLastX = scaleLabIndexVirusIndex(
+          labIndex,
+          labVirusCounts[labIndex] - 1
+        )
+        if (labIndex < labViruses.length - 1) {
+          let markerLineX = labLastX + sizes.widthPerElement / 2
+          let markerLine = createVLine(markerLineX, colors.axis, sizes)
+          plotSvg.appendChild(markerLine)
+        }
+
+        // NOTE(sen) Lab marker text
+        let markerTextX = (labLastX + labFirstX) / 2
+        let markerText = createFacetLabel(
+          markerTextX,
+          colors.text,
+          labs[labIndex],
+          sizes
+        )
+        plotSvg.appendChild(markerText)
+
+        for (let [virusIndex, virusName] of virusNames.entries()) {
+          let virusData = labData.filter((row) => row.virus == virusName)
+
+          let points = 0
+
+          let thisCol = colors.preVax
+          if (vaccineStrains.includes(virusName)) {
+            thisCol = colors.vaccinePreVax
+          }
+
+          let xCoord = scaleLabIndexVirusIndex(
+            labIndex,
+            virusIndex + (Math.random() - 0.5) * 0.05
+          )
+
+          for (let row of virusData) {
+            let rise = row.titreRatio
+
+            if (isGood(rise)) {
+              points += 1
+
+              let yCoord = scaleLogrise(Math.log(rise) + Math.random() * 0.1)
+
+              let point = createPoint(
+                xCoord,
+                yCoord,
+                thisCol + colChannel255ToString(opacities.points.value)
+              )
+              plotSvg.appendChild(point)
+              opacities.points.titrePlotElements.push(point)
+            }
+          }
+
+          // NOTE(sen) Counts
+          let yCoord = sizes.axisPadTop + 2
+          let count = createCount(
+            points,
+            xCoord,
+            yCoord,
+            thisCol + colChannel255ToString(opacities.counts.value)
+          )
+          plotSvg.appendChild(count)
+          opacities.counts.titrePlotElements.push(count)
+
+          // NOTE(sen) Boxplots
+          let rises = virusData
+            .filter((row) => !isNaN(row.titreRatio))
+            .map((row) => Math.log(row.titreRatio))
+
+          let boxplotStats = calcBoxplotStats(rises)
+
+          let boxplot = createBoxplotElement(
+            scaleLogrise(boxplotStats.bottom),
+            scaleLogrise(boxplotStats.q25),
+            scaleLogrise(boxplotStats.median),
+            scaleLogrise(boxplotStats.q75),
+            scaleLogrise(boxplotStats.top),
+            sizes.boxPlotWidth,
+            xCoord,
+            thisCol + colChannel255ToString(opacities.boxplots.value)
+          )
+
+          plotSvg.appendChild(boxplot)
+          opacities.boxplots.titrePlotElements.push(boxplot)
+
+          // NOTE(sen) GMRs
+          let gmrStats = calcMeanStats(rises)
+          let gmrErrorBar = createErrorBar(
+            scaleLogrise(gmrStats.low),
+            scaleLogrise(gmrStats.mean),
+            scaleLogrise(gmrStats.high),
+            xCoord,
+            colChangeSaturation(
+              thisCol + colChannel255ToString(opacities.means.value),
+              2
+            )
+          )
+
+          plotSvg.appendChild(gmrErrorBar)
+          opacities.means.titrePlotElements.push(gmrErrorBar)
         } // NOTE(sen) for (virus)
       } // NOTE(sen) for (lab)
     }
@@ -2163,6 +2429,7 @@
       const subsetFilter = createSubsetFilter()
 
       let dataSubset = state.data.filter(subsetFilter)
+      let dataRisesSubset = state.dataRises.filter(subsetFilter)
 
       while (state.titrePlotContainer.lastChild) {
         state.titrePlotContainer.removeChild(state.titrePlotContainer.lastChild)
@@ -2172,19 +2439,30 @@
         state.opacities[varName].titrePlotElements = []
       }
 
+      let vaccineViruses = [
+        "A/Guangdong-Maonan/SWL1536/2019e",
+        "A/Hong Kong/2671/2019e",
+        "B/Washington/02/2019e",
+      ]
+
       let plotSvg = createTitrePlotSvg(
         dataSubset,
-        [
-          "A/Guangdong-Maonan/SWL1536/2019e",
-          "A/Hong Kong/2671/2019e",
-          "B/Washington/02/2019e",
-        ],
+        vaccineViruses,
+        state.opacities,
+        state.colors,
+        state.defaultPlotSizes
+      )
+
+      let plotRisesSvg = createRisePlotSvg(
+        dataRisesSubset,
+        vaccineViruses,
         state.opacities,
         state.colors,
         state.defaultPlotSizes
       )
 
       state.titrePlotContainer.appendChild(plotSvg)
+      state.titrePlotContainer.appendChild(plotRisesSvg)
     }
   }
 
