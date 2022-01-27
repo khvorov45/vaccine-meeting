@@ -674,6 +674,12 @@
     svg.setAttributeNS(null, "height", height)
   }
 
+  const calcPlotWidth = (sizes, entryCount) => {
+    let result =
+      sizes.dataPadX + sizes.axisPadLeft + sizes.widthPerElement * entryCount
+    return result
+  }
+
   const createScaleLogtitre = (sizes, rise) => {
     min = 5
     max = 10240
@@ -688,6 +694,38 @@
         Math.log(max),
         sizes.plotHeight - sizes.dataPadY - sizes.axisPadBottom,
         sizes.dataPadY + sizes.axisPadTop
+      )
+  }
+
+  const createScaleFacetedCategorical = (facetEntryCounts, sizes) => {
+    let facetEntryCumCounts = arrCumSum(facetEntryCounts)
+    let totalCount = facetEntryCumCounts[facetEntryCumCounts.length - 1]
+    let plotWidth = calcPlotWidth(sizes, totalCount)
+    return (facetIndex, entryIndex) => {
+      let facetEntryCount = facetEntryCounts[facetIndex]
+      let facetEntryCumCount = facetEntryCumCounts[facetIndex]
+      let entryCountOffset = facetEntryCumCount - facetEntryCount
+      let realIndex = entryIndex + entryCountOffset
+      let result = scale(
+        realIndex,
+        0,
+        totalCount - 1,
+        sizes.axisPadLeft + sizes.dataPadX,
+        plotWidth - sizes.dataPadX
+      )
+      return result
+    }
+  }
+
+  const createScaleCategorical = (count, sizes) => {
+    let plotWidth = calcPlotWidth(sizes, count)
+    return (index) =>
+      scale(
+        index,
+        0,
+        count - 1,
+        sizes.axisPadLeft + sizes.dataPadX,
+        plotWidth - sizes.dataPadX
       )
   }
 
@@ -755,27 +793,13 @@
         labViruses.push(viruses)
         labVirusCounts.push(viruses.length)
       }
-      let labVirusCumCounts = arrCumSum(labVirusCounts)
 
-      let plotWidth =
-        sizes.dataPadX +
-        sizes.axisPadLeft +
-        sizes.widthPerElement * labVirusCumCounts[labVirusCumCounts.length - 1]
+      let plotWidth = calcPlotWidth(sizes, arrSum(labVirusCounts))
 
-      const scaleLabIndexVirusIndex = (labIndex, virusIndex) => {
-        let virusCount = labVirusCounts[labIndex]
-        let virusCumCount = labVirusCumCounts[labIndex]
-        let virusCountOffset = virusCumCount - virusCount
-        let realIndex = virusIndex + virusCountOffset
-        let result = scale(
-          realIndex,
-          0,
-          labVirusCumCounts[labVirusCumCounts.length - 1] - 1,
-          sizes.axisPadLeft + sizes.dataPadX,
-          plotWidth - sizes.dataPadX
-        )
-        return result
-      }
+      const scaleLabIndexVirusIndex = createScaleFacetedCategorical(
+        labVirusCounts,
+        sizes
+      )
 
       setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight)
 
@@ -1093,27 +1117,13 @@
         labViruses.push(viruses)
         labVirusCounts.push(viruses.length)
       }
-      let labVirusCumCounts = arrCumSum(labVirusCounts)
 
-      let plotWidth =
-        sizes.dataPadX +
-        sizes.axisPadLeft +
-        sizes.widthPerElement * labVirusCumCounts[labVirusCumCounts.length - 1]
+      let plotWidth = calcPlotWidth(sizes, arrSum(labVirusCounts))
 
-      const scaleLabIndexVirusIndex = (labIndex, virusIndex) => {
-        let virusCount = labVirusCounts[labIndex]
-        let virusCumCount = labVirusCumCounts[labIndex]
-        let virusCountOffset = virusCumCount - virusCount
-        let realIndex = virusIndex + virusCountOffset
-        let result = scale(
-          realIndex,
-          0,
-          labVirusCumCounts[labVirusCumCounts.length - 1] - 1,
-          sizes.axisPadLeft + sizes.dataPadX,
-          plotWidth - sizes.dataPadX
-        )
-        return result
-      }
+      const scaleLabIndexVirusIndex = createScaleFacetedCategorical(
+        labVirusCounts,
+        sizes
+      )
 
       setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight)
 
@@ -1329,27 +1339,13 @@
         labClades.push(clades)
         labCladeCounts.push(clades.length)
       }
-      let labCladeCumCounts = arrCumSum(labCladeCounts)
 
-      let plotWidth =
-        sizes.dataPadX +
-        sizes.axisPadLeft +
-        sizes.widthPerElement * labCladeCumCounts[labCladeCumCounts.length - 1]
+      let plotWidth = calcPlotWidth(sizes, arrSum(labCladeCounts))
 
-      const scaleLabIndexCladeIndex = (labIndex, cladeIndex) => {
-        let cladeCount = labCladeCounts[labIndex]
-        let cladeCumCount = labCladeCumCounts[labIndex]
-        let cladeCountOffset = cladeCumCount - cladeCount
-        let realIndex = cladeIndex + cladeCountOffset
-        let result = scale(
-          realIndex,
-          0,
-          labCladeCumCounts[labCladeCumCounts.length - 1] - 1,
-          sizes.axisPadLeft + sizes.dataPadX,
-          plotWidth - sizes.dataPadX
-        )
-        return result
-      }
+      const scaleLabIndexCladeIndex = createScaleFacetedCategorical(
+        labCladeCounts,
+        sizes
+      )
 
       setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight)
 
@@ -1625,27 +1621,13 @@
         labClades.push(clades)
         labCladeCounts.push(clades.length)
       }
-      let labCladeCumCounts = arrCumSum(labCladeCounts)
 
-      let plotWidth =
-        sizes.dataPadX +
-        sizes.axisPadLeft +
-        sizes.widthPerElement * labCladeCumCounts[labCladeCumCounts.length - 1]
+      let plotWidth = calcPlotWidth(sizes, arrSum(labCladeCounts))
 
-      const scaleLabIndexCladeIndex = (labIndex, cladeIndex) => {
-        let cladeCount = labCladeCounts[labIndex]
-        let cladeCumCount = labCladeCumCounts[labIndex]
-        let cladeCountOffset = cladeCumCount - cladeCount
-        let realIndex = cladeIndex + cladeCountOffset
-        let result = scale(
-          realIndex,
-          0,
-          labCladeCumCounts[labCladeCumCounts.length - 1] - 1,
-          sizes.axisPadLeft + sizes.dataPadX,
-          plotWidth - sizes.dataPadX
-        )
-        return result
-      }
+      const scaleLabIndexCladeIndex = createScaleFacetedCategorical(
+        labCladeCounts,
+        sizes
+      )
 
       setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight)
 
@@ -1845,16 +1827,9 @@
       // NOTE(sen) X-Axis
       let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort)
 
-      let plotWidth = sizes.widthPerElement * labs.length + sizes.axisPadLeft
+      let plotWidth = calcPlotWidth(sizes, labs.length)
 
-      const scaleLabIndex = (labIndex) =>
-        scale(
-          labIndex,
-          0,
-          labs.length - 1,
-          sizes.axisPadLeft + sizes.dataPadX,
-          plotWidth - sizes.dataPadX
-        )
+      const scaleLabIndex = createScaleCategorical(labs.length, sizes)
 
       setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight)
 
@@ -2069,16 +2044,9 @@
       // NOTE(sen) X-Axis
       let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort)
 
-      let plotWidth = sizes.widthPerElement * labs.length + sizes.axisPadLeft
+      let plotWidth = calcPlotWidth(sizes, labs.length)
 
-      const scaleLabIndex = (labIndex) =>
-        scale(
-          labIndex,
-          0,
-          labs.length - 1,
-          sizes.axisPadLeft + sizes.dataPadX,
-          plotWidth - sizes.dataPadX
-        )
+      const scaleLabIndex = createScaleCategorical(labs.length, sizes)
 
       setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight)
 
