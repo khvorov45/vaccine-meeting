@@ -2272,9 +2272,9 @@
     inputContainer: null,
     plotContainer: {
       element: null,
-      circulatingAverage: { element: null, titres: null, rises: null },
-      cladeAverage: { element: null, titres: null, rises: null },
       noSummary: { element: null, titres: null, rises: null },
+      cladeAverage: { element: null, titres: null, rises: null },
+      circulatingAverage: { element: null, titres: null, rises: null },
     },
     slidersContainer: null,
     subtypeSlidersContainers: {},
@@ -3216,10 +3216,16 @@
   }
 
   // NOTE(sen) Dev only for now
-  fetch("/data/data.csv")
+  fetch("/visualizer-data.csv")
     .then((resp) => resp.text())
     .then(updateData)
     .catch((e) => {
       console.error(e)
     })
+
+    // TODO(sen) Compare rises to 4 and vaccine rise
+    // TODO(sen) Cohort vaccination split
+    // TODO(sen) Better median visibility
+    // TODO(sen) Fix average H3-US-Elderly
+    // TODO(sen) Pull vaccine strains from data
 </script>
