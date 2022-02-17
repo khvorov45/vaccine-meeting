@@ -66,7 +66,8 @@ color_agegroup_center_facets <- function(plot, agegroups, centers) {
   gtab
 }
 
-test_plot <- plot_bars(testGMTs %>% filter(Influenza_Type == "BVic"), ref = "refGMTcell")
+temp <- "refGMTcell"
+test_plot <- plot_bars(testGMTs %>% filter(Influenza_Type == "BVic"), ref = temp)
 
 influenzatypes <- unique(testGMTs$Influenza_Type)
 reftypes <- c("GMTratio_egg", "GMTratio_cell")
@@ -116,18 +117,23 @@ scatter_data <- bind_rows(
   mn202202
 )
 
+clades <- read_csv("clades.csv")
+
+setdiff(clades$Test.Antigen, scatter_data$Test_Antigen)
+setdiff(scatter_data$Test_Antigen, clades$Test.Antigen)
+
 scatter_data_for_visualiser <- scatter_data %>% 
+  inner_join(clades %>% select(-Influenza_Type), by = c("Test_Antigen" = "Test.Antigen")) %>% 
   select(
-    serum_id = Serum_No, cohort = Agegroup, virus = Test_Antigen,
-    titre, subtype = "Influenza_Type", timepoint = time, egg_cell = Type, testing_lab = Centre,
+    serum_id = Serum_No, cohort = Agegroup, virus = Test_Antigen, clade = Clade,
+    titre, subtype = "Influenza_Type", timepoint = time, egg_cell = Type, serum_source = Centre
   ) %>% 
   mutate(
-    serum_source = "SerumSource",
+    testing_lab = "VIDRL",
     virus = if_else(egg_cell == "cell", virus, paste0(virus, "e")),
     timepoint = recode(timepoint, "Titre_wk0" = "Pre-vax", "Titre_wk4" = "Post-vax"),
     egg_cell = tools::toTitleCase(egg_cell),
-    clade = "Clade",
-    clade_freq = 1,
+    clade_freq = 0.5,
   )
 write_csv(scatter_data_for_visualiser, "visualizer-data.csv")
 
