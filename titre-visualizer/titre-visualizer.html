@@ -612,12 +612,16 @@
     let boxplot = document.createElementNS(XMLNS, "g")
     boxplot.setAttributeNS(null, "stroke", col)
 
-    const drawBoxplotHline = (yCoord, thickness) => {
+    const drawBoxplotHline = (yCoord, thickness, addWidth) => {
       let line = document.createElementNS(XMLNS, "line")
 
+      if (!addWidth) {
+        addWidth = 0
+      }
+
       if (isGood(xCoord) && isGood(yCoord) && isGood(boxWidth)) {
-        line.setAttributeNS(null, "x1", xCoord - boxWidth / 2)
-        line.setAttributeNS(null, "x2", xCoord + boxWidth / 2)
+        line.setAttributeNS(null, "x1", xCoord - (addWidth + boxWidth / 2))
+        line.setAttributeNS(null, "x2", xCoord + (addWidth + boxWidth / 2))
         line.setAttributeNS(null, "y1", yCoord)
         line.setAttributeNS(null, "y2", yCoord)
         line.setAttributeNS(null, "stroke-width", thickness)
@@ -626,7 +630,7 @@
       boxplot.appendChild(line)
     }
 
-    drawBoxplotHline(boxMid, 4)
+    drawBoxplotHline(boxMid, 4, 10)
     drawBoxplotHline(boxUp, 1)
     drawBoxplotHline(boxDown, 1)
 
@@ -3225,7 +3229,6 @@
 
     // TODO(sen) Compare rises to 4 and vaccine rise
     // TODO(sen) Cohort vaccination split
-    // TODO(sen) Better median visibility
     // TODO(sen) Fix average H3-US-Elderly
     // TODO(sen) Pull vaccine strains from data
 </script>
