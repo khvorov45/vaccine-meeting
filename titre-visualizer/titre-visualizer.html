@@ -2671,9 +2671,7 @@
       // NOTE(sen) Subtype clades
       state.subtypeClades = {}
       if (state.data.length > 0) {
-        let subtypes = arrUnique(state.data.map((row) => row.subtype)).sort(
-          desiredOrderSort(["H1", "H3", "BVic"])
-        )
+        let subtypes = arrUnique(state.data.map((row) => row.subtype)).sort(stringSort)
         for (let subtype of subtypes) {
           let clades = arrUnique(
             state.data
@@ -2771,7 +2769,9 @@
                 (row) => row.egg_cell === "Cell"
               )
             }
-            let logtitres = dataSubsetNoEggs.map((row) => Math.log(row.titre))
+            let logtitres = dataSubsetNoEggs
+              .filter(row => isGood(row.titre))
+              .map((row) => Math.log(row.titre))
             let logmean = arrMean(logtitres)
             return { titreCladeAverage: Math.exp(logmean) }
           }
@@ -3229,6 +3229,7 @@
 
     // TODO(sen) Compare rises to 4 and vaccine rise
     // TODO(sen) Cohort vaccination split
-    // TODO(sen) Fix average H3-US-Elderly
     // TODO(sen) Pull vaccine strains from data
+    // TODO(sen) Colorscheme
+    // TODO(sen) Plot left margin
 </script>
