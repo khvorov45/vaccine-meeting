@@ -1,7 +1,7 @@
 library(tidyverse)
 
 plot_bars <- function(dfn, ref) {
-  ref <- ensym(ref)
+  ref <- sym(ref)
   dfn %>%
     ggplot(aes(x = `Test Antigen`, y = !!ref)) +
     geom_bar(aes(fill = Type), stat = "identity") +
