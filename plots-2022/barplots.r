@@ -122,6 +122,8 @@ clades <- read_csv("clades.csv")
 setdiff(clades$Test.Antigen, scatter_data$Test_Antigen)
 setdiff(scatter_data$Test_Antigen, clades$Test.Antigen)
 
+unique(scatter_data$Test_Antigen) %>% sort()
+
 scatter_data_for_visualiser <- scatter_data %>% 
   inner_join(clades %>% select(-Influenza_Type), by = c("Test_Antigen" = "Test.Antigen")) %>% 
   select(
@@ -134,8 +136,15 @@ scatter_data_for_visualiser <- scatter_data %>%
     timepoint = recode(timepoint, "Titre_wk0" = "Pre-vax", "Titre_wk4" = "Post-vax"),
     egg_cell = tools::toTitleCase(egg_cell),
     clade_freq = 0.5,
+    vaccine_strain = virus %in% c(
+      "A/Victoria/2570/2019e",
+      "B/Washington/02/2019e",
+      "B/Phuket/3073/2013e"
+    ),
   )
+
 write_csv(scatter_data_for_visualiser, "visualizer-data.csv")
+write_csv(scatter_data_for_visualiser, "../titre-visualizer/visualizer-data.csv")
 
 summarise_logmean <- function(vec) {
   vec <- na.omit(vec)

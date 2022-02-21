@@ -282,6 +282,8 @@
             let value = values[index]
             if (name === "titre" || name === "clade_freq") {
               value = parseFloat(value)
+            } else if (name === "vaccine_strain") {
+              value = value === "TRUE"
             }
             row[name] = value
           }
@@ -2186,6 +2188,7 @@
 
   let state = {
     data: [],
+    dataVaccineViruses: [],
     dataCladeAverageTitres: [],
     dataCirculatingAverageTitres: [],
     dataRises: [],
@@ -2451,11 +2454,7 @@
         state.opacities[varName].titrePlotElements = []
       }
 
-      let vaccineViruses = [
-        "A/Guangdong-Maonan/SWL1536/2019e",
-        "A/Hong Kong/2671/2019e",
-        "B/Washington/02/2019e",
-      ]
+      let vaccineViruses = state.dataVaccineViruses
 
       state.plotContainer.noSummary.titres = createTitrePlotSvg(
         dataSubset,
@@ -2657,6 +2656,15 @@
     if (contentsString.length > 0) {
       // NOTE(sen) Main data
       state.data = parseData(contentsString)
+
+      // NOTE(sen) Vaccine viruses
+      for (row of state.data) {
+        if (row.vaccine_strain === true) {
+          if (!state.dataVaccineViruses.includes(row.virus)) {
+            state.dataVaccineViruses.push(row.virus)
+          }
+        }
+      }
 
       // NOTE(sen) Clade frequencies
       state.cladeFreqs = {}
@@ -3229,5 +3237,4 @@
 
     // TODO(sen) Compare rises to 4 and vaccine rise
     // TODO(sen) Cohort vaccination split
-    // TODO(sen) Pull vaccine strains from data
 </script>
