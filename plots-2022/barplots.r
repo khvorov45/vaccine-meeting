@@ -123,12 +123,14 @@ setdiff(clades$Test.Antigen, scatter_data$Test_Antigen)
 setdiff(scatter_data$Test_Antigen, clades$Test.Antigen)
 
 unique(scatter_data$Test_Antigen) %>% sort()
+unique(scatter_data$vax) %>% sort()
 
 scatter_data_for_visualiser <- scatter_data %>% 
   inner_join(clades %>% select(-Influenza_Type), by = c("Test_Antigen" = "Test.Antigen")) %>% 
   select(
     serum_id = Serum_No, cohort = Agegroup, virus = Test_Antigen, clade = Clade,
-    titre, subtype = "Influenza_Type", timepoint = time, egg_cell = Type, serum_source = Centre
+    titre, subtype = "Influenza_Type", timepoint = time, egg_cell = Type, serum_source = Centre,
+    vaccine = vax
   ) %>% 
   mutate(
     testing_lab = "VIDRL",
