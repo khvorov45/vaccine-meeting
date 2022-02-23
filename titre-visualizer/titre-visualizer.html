@@ -284,6 +284,8 @@
               value = parseFloat(value)
             } else if (name === "vaccine_strain") {
               value = value === "TRUE"
+            } else if (name === "cohort") {
+              value = value.toLowerCase()
             }
             row[name] = value
           }
@@ -2796,32 +2798,18 @@
 
         switch (varName) {
           case "cohort": {
-            state.filters[varName].options = state.filters[
-              varName
-            ].options.sort(
-              desiredOrderSort([
-                "Ped (<3 yr)",
-                "Ped (3-8 yr)",
-                "Ped (9-17 yr)",
-                "Ped (<18 yr)",
-                "Adult (18-49 yr)",
-                "Adult (50-64 yr)",
-                "Adult (18-64 yr)",
-                "Elderly (>=65yr)",
-              ])
-            )
+            state.filters[varName].options = state.filters[varName]
+              .options.sort(stringSort)
             break
           }
           case "subtype": {
-            state.filters[varName].options = state.filters[
-              varName
-            ].options.sort(desiredOrderSort(["H1", "H3", "BVic"]))
+            state.filters[varName].options = state.filters[varName]
+              .options.sort(desiredOrderSort(["H1", "H3", "BVic"]))
             break
           }
           case "serum_source": {
-            state.filters[varName].options = state.filters[
-              varName
-            ].options.sort((a, b) => (a > b ? 1 : a < b ? -1 : 0))
+            state.filters[varName].options = state.filters[varName]
+              .options.sort((a, b) => (a > b ? 1 : a < b ? -1 : 0))
             break
           }
         }
