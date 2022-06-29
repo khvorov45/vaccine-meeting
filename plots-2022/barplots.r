@@ -125,13 +125,13 @@ setdiff(scatter_data$Test_Antigen, clades$Test.Antigen)
 unique(scatter_data$Test_Antigen) %>% sort()
 unique(scatter_data$vax) %>% sort()
 
-scatter_data_for_visualiser <- scatter_data %>% 
-  inner_join(clades %>% select(-Influenza_Type), by = c("Test_Antigen" = "Test.Antigen")) %>% 
+scatter_data_for_visualiser <- scatter_data %>%
+  inner_join(clades %>% select(-Influenza_Type), by = c("Test_Antigen" = "Test.Antigen")) %>%
   select(
     serum_id = Serum_No, cohort = Agegroup, virus = Test_Antigen, clade = Clade,
     titre, subtype = "Influenza_Type", timepoint = time, egg_cell = Type, serum_source = Centre,
     vaccine = vax
-  ) %>% 
+  ) %>%
   mutate(
     testing_lab = "VIDRL",
     virus = if_else(egg_cell == "cell", virus, paste0(virus, "e")),
@@ -139,6 +139,7 @@ scatter_data_for_visualiser <- scatter_data %>%
     egg_cell = tools::toTitleCase(egg_cell),
     clade_freq = 0.5,
     vaccine_strain = virus %in% c(
+      "A/Darwin/6/2021e",
       "A/Victoria/2570/2019e",
       "B/Washington/02/2019e",
       "B/Phuket/3073/2013e"
@@ -174,10 +175,10 @@ plot_scatter <- function(data) {
         (as.numeric(factor(time, c("Titre_wk0", "Titre_wk4"))) - 1 - (length(times) - 1) / 2) * 0.2
   }
 
-  means <- data %>% 
-    group_by(Test_Antigen, Centre, Agegroup, time) %>% 
-    summarise(summarise_logmean(titre), .groups = "drop") %>% 
-    mutate(xpos = get_xpos(Test_Antigen, time), xpos_jit = xpos) 
+  means <- data %>%
+    group_by(Test_Antigen, Centre, Agegroup, time) %>%
+    summarise(summarise_logmean(titre), .groups = "drop") %>%
+    mutate(xpos = get_xpos(Test_Antigen, time), xpos_jit = xpos)
 
   data %>%
     mutate(
@@ -196,7 +197,7 @@ plot_scatter <- function(data) {
     scale_color_viridis_d(option = "A", begin = 0.5, end = 0.3) +
     guides(color = guide_legend(override.aes = list(alpha = 1))) +
     geom_line(aes(group = paste0(Test_Antigen, Agegroup, Centre, Serum_No)), alpha = 0) +
-    geom_point(shape = 18, alpha = 0.3) + 
+    geom_point(shape = 18, alpha = 0.3) +
     geom_line(aes(y = mean, group = Test_Antigen), data = means) +
     geom_pointrange(aes(y = mean, ymin = low, ymax = high), data = means, size = 1, fatten = 2)
 }
@@ -221,9 +222,9 @@ for (influenzatype in scatter_influenzatypes) {
     pl <- data_subset %>%
       plot_scatter() %>%
       color_agegroup_center_facets(scatter_agegroups, scatter_centers)
-    
+
     ggsave(
-      paste0(str_replace(influenzatype, "/", ""), type, "ref-scatterplot.pdf"), pl, 
+      paste0(str_replace(influenzatype, "/", ""), type, "ref-scatterplot.pdf"), pl,
       height = height, width = width, limitsize = FALSE
     )
   }
