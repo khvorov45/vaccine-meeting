@@ -2503,7 +2503,7 @@
       }
 
       let plotSizes = reduceAxisPadBottom(100, state.defaultPlotSizes)
-      let vaccineClades = ["A5a.1", "A1b/137F", "V1A.3"]
+      let vaccineClades = ["A.5a.2", "3C.2a1b.2a.2", "V1A.3a", "Y3"]
 
       state.plotContainer.cladeAverage.titres = createTitreCladeAveragePlotSvg(
         dataSubsetCladeAverages,
@@ -2762,7 +2762,7 @@
       state.dataCladeAverageTitres = []
       if (state.data.length > 0) {
         let groupVars = Object.keys(state.data[0]).filter(
-          (key) => key !== "titre" && key !== "virus" && key !== "egg_cell"
+          (key) => key !== "titre" && key !== "virus" && key !== "egg_cell" && key !== "vaccine_strain"
         )
         let groupedData = groupByMultiple(
           state.data.filter((row) => row.clade !== "unassigned"),
