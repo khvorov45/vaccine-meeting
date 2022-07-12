@@ -2093,7 +2093,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	plotMode: ["titres", "rises"],
 	plotSumm: ["none", "clade", "circulating"],
 	cladeFreqsDefault: {},
 	cladeFreqs: {},
@@ -2920,6 +2919,7 @@ const main = () => {
 	modeSwitch.style.marginBottom = "20px"
 	modeSwitch.style.cursor = "pointer"
 
+	let plotMode = ["titres", "rises"]
 	const modeOptions = ["titres", "rises"]
 	for (let option of modeOptions) {
 		const optionEl = addDiv(modeSwitch)
@@ -2931,19 +2931,19 @@ const main = () => {
 		optionEl.style.fontWeight = "bold"
 		optionEl.style.letterSpacing = "2px"
 
-		if (state.plotMode.includes(option)) {
+		if (plotMode.includes(option)) {
 			optionEl.style.background = "var(--color-selected)"
 		}
 
 		optionEl.addEventListener("click", (event) => {
 			let targetVisibility = "block"
-			if (state.plotMode.includes(option)) {
+			if (plotMode.includes(option)) {
 				optionEl.style.background = "inherit"
-				state.plotMode = state.plotMode.filter((op) => op !== option)
+				plotMode = plotMode.filter((op) => op !== option)
 				targetVisibility = "none"
 			} else {
 				optionEl.style.background = "var(--color-selected)"
-				state.plotMode.push(option)
+				plotMode.push(option)
 			}
 			for (let summaryType of Object.keys(state.plotContainer)) {
 				if (summaryType !== "element") {
