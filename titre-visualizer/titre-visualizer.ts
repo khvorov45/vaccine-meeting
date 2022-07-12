@@ -1,4 +1,6 @@
-let XMLNS = "http://www.w3.org/2000/svg"
+//
+// SECTION Array
+//
 
 const arrAsc = (arr) => {
 	return arr.sort((a, b) => a - b)
@@ -54,6 +56,21 @@ const arrSortedAscMax = (sorted) => {
 const arrUnique = (arr) => {
 	return Array.from(new Set(arr))
 }
+
+//
+// SECTION DOM
+//
+
+const XMLNS = "http://www.w3.org/2000/svg"
+const createEl = (name: string) => document.createElement(name)
+const createDiv = () => createEl("div")
+const addEl = (parent: HTMLElement, child: HTMLElement) => {parent.appendChild(child); return child}
+const addDiv = (parent: HTMLElement) => addEl(parent, createDiv())
+const removeChildren = (el: HTMLElement) => {while (el.lastChild) {el.removeChild(el.lastChild)}}
+
+//
+// SECTION ?
+//
 
 const groupByOne = (rows, key) => {
 	let result = {}
@@ -549,7 +566,7 @@ const createBoxplotElement = (
 }
 
 const createSvgElement = () => {
-	let plotSvg = document.createElementNS(XMLNS, "svg") as HTMLElement
+	let plotSvg = document.createElementNS(XMLNS, "svg") as unknown as HTMLElement
 	plotSvg.style.flexShrink = "0"
 	plotSvg.style.display = "block"
 	return plotSvg
@@ -2570,9 +2587,7 @@ const updateData = (contentsString) => {
 		}
 
 		// NOTE(sen) Populate clade frequency sliders
-		while (state.slidersContainer.lastChild) {
-			state.slidersContainer.removeChild(state.slidersContainer.lastChild)
-		}
+		removeChildren(state.slidersContainer)
 		state.subtypeSlidersContainers = {}
 		state.cladeFreqElements = {}
 		for (let [subtype, clades] of Object.entries(state.subtypeClades)) {
@@ -2805,58 +2820,31 @@ const updateData = (contentsString) => {
 	}
 }
 
-// NOTE(sen) Init body
-{
-	let body = document.getElementsByTagName("body")[0]
+const main = () => {
+	const mainEl = document.getElementById("main")!
 
-	body.style.background = "var(--color-background)"
-	body.style.color = "var(--color-text)"
-	body.style.margin = "0"
-	body.style.fontFamily =
-		'-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",sans-serif'
-}
+	const inputBarSize = 200
+	const inputContainer = addDiv(mainEl)
+	inputContainer.style.display = "flex"
+	inputContainer.style.flexDirection = "column"
+	inputContainer.style.alignItems = "left"
+	inputContainer.style.width = inputBarSize + "px"
+	inputContainer.style.marginRight = "10px"
+	inputContainer.style.height = "100vh"
+	inputContainer.style.overflowY = "scroll"
+	inputContainer.style.overflowX = "hidden"
+	inputContainer.style.flexShrink = "0"
 
-// NOTE(sen) Init whole page container
-{
-	let container = state.main
-	container.style.display = "flex"
-	container.style.flexDirection = "row"
-}
-
-// NOTE(sen) Init input container
-{
-	let container = document.createElement("div")
-
-	container.style.display = "flex"
-	container.style.flexDirection = "column"
-	container.style.alignItems = "left"
-	container.style.width = state.sizes.inputBar
-	container.style.marginRight = "10px"
-	container.style.height = "100vh"
-	container.style.overflowY = "scroll"
-	container.style.overflowX = "hidden"
-	container.style.flexShrink = "0"
-
-	state.inputContainer = container
-	state.main.appendChild(container)
-}
-
-// NOTE(sen) Init plot container
-{
-	let container = document.createElement("div")
-
-	container.style.display = "flex"
-	container.style.flexDirection = "column"
-	container.style.alignItems = "top"
-	container.style.height = "calc(100vh - 0px)"
-	container.style.overflowY = "scroll"
-	container.style.overflowX = "hidden"
-
-	state.plotContainer.element = container
-	state.main.appendChild(container)
+	const plotContainer = addDiv(mainEl)
+	plotContainer.style.display = "flex"
+	plotContainer.style.flexDirection = "column"
+	plotContainer.style.alignItems = "top"
+	plotContainer.style.height = "calc(100vh - 0px)"
+	plotContainer.style.overflowY = "scroll"
+	plotContainer.style.overflowX = "hidden"
 
 	const createPlotContainer = () => {
-		let el = document.createElement("div")
+		let el = createDiv()
 		el.style.flexShrink = "0"
 		el.style.overflowX = "scroll"
 		el.style.overflowY = "hidden"
@@ -2865,71 +2853,58 @@ const updateData = (contentsString) => {
 
 	for (let subPlotContainer of Object.keys(state.plotContainer)) {
 		if (subPlotContainer !== "element") {
-			let el = createPlotContainer()
+			let el = addEl(plotContainer, createPlotContainer())
 			state.plotContainer[subPlotContainer].element = el
-			container.appendChild(el)
 		}
 	}
-}
 
-// NOTE(sen) Init file input
-{
-	let container = document.createElement("div")
-	let input = document.createElement("input")
-	input.setAttribute("type", "file")
-	input.addEventListener("change", (event) => {
+	const fileInputContainer = addDiv(inputContainer)
+	const fileInputLabel = addDiv(fileInputContainer)
+	fileInputLabel.innerHTML = "SELECT FILE"
+	fileInputLabel.style.position = "absolute"
+	fileInputLabel.style.top = "0px"
+	fileInputLabel.style.left = "0px"
+	fileInputLabel.style.textAlign = "center"
+	fileInputLabel.style.width = "100%"
+	fileInputLabel.style.height = "100%"
+	fileInputLabel.style.lineHeight = "100px"
+	fileInputLabel.style.fontWeight = "bold"
+	fileInputLabel.style.letterSpacing = "2px"
+
+	const fileInput = addEl(fileInputContainer, createEl("input"))
+	fileInput.setAttribute("type", "file")
+	fileInput.addEventListener("change", (event) => {
 		let file = (<HTMLInputElement>event.target).files[0]
 		if (file !== null && file !== undefined) {
-			state.fileSelectTextElement.innerHTML = file.name
+			fileInputLabel.innerHTML = file.name
 			file.text().then(updateData)
 		}
 	})
 
-	input.style.opacity = "0"
-	input.style.width = "100%"
-	input.style.height = "100%"
+	fileInput.style.opacity = "0"
+	fileInput.style.cursor = "pointer"
+	fileInput.style.width = "100%"
+	fileInput.style.height = "100%"
 
-	let label = document.createElement("div")
-	label.innerHTML = "SELECT FILE"
-	label.style.position = "absolute"
-	label.style.top = "0px"
-	label.style.left = "0px"
-	label.style.textAlign = "center"
-	label.style.width = "100%"
-	label.style.height = "100%"
-	label.style.lineHeight = "100px"
-	label.style.fontWeight = "bold"
-	label.style.letterSpacing = "2px"
+	fileInputContainer.style.border = "1px dashed var(--color-fileSelectBorder)"
+	fileInputContainer.style.width = "100%"
+	fileInputContainer.style.height = fileInputLabel.style.lineHeight
+	fileInputContainer.style.position = "relative"
+	fileInputContainer.style.flexShrink = "0"
+	fileInputContainer.style.boxSizing = "border-box"
+	fileInputContainer.style.marginBottom = "20px"
 
-	container.style.border = "1px dashed var(--color-fileSelectBorder)"
-	container.style.width = "100%"
-	container.style.height = label.style.lineHeight
-	container.style.position = "relative"
-	container.style.flexShrink = "0"
-	container.style.boxSizing = "border-box"
-	container.style.marginBottom = "20px"
-
-	container.appendChild(label)
-	container.appendChild(input)
-	state.inputContainer.appendChild(container)
-	state.fileSelectTextElement = label
-}
-
-// NOTE(sen) Init dark/light switch
-{
-	let themeSwitch = document.createElement("div")
-
+	const themeSwitch = addDiv(inputContainer)
 	themeSwitch.style.display = "flex"
 	themeSwitch.style.flexDirection = "row"
 	themeSwitch.style.marginBottom = "20px"
 	themeSwitch.style.cursor = "pointer"
 
-	let options = ["dark", "light"]
-	let optionEls = []
-	for (let option of options) {
-		let optionEl = document.createElement("div")
-
-		optionEl.innerHTML = option.toUpperCase()
+	const themeOptions = ["dark", "light"]
+	const optionEls = []
+	for (let option of themeOptions) {
+		const optionEl = addDiv(themeSwitch)
+		optionEl.textContent = option.toUpperCase()
 		optionEl.style.padding = "5px"
 		optionEl.style.border = "1px solid var(--color-border)"
 		optionEl.style.flexGrow = "1"
@@ -2941,7 +2916,6 @@ const updateData = (contentsString) => {
 			optionEl.style.background = "var(--color-selected)"
 		}
 
-		themeSwitch.appendChild(optionEl)
 		optionEls.push(optionEl)
 	}
 
@@ -2960,23 +2934,17 @@ const updateData = (contentsString) => {
 		optionEls[inheritTarget].style.background = "inherit"
 	})
 
-	state.inputContainer.appendChild(themeSwitch)
-}
 
-// NOTE(sen) Init plot subset selection switches
-{
-	let modeSwitch = document.createElement("div")
-
+	const modeSwitch = addDiv(inputContainer)
 	modeSwitch.style.display = "flex"
 	modeSwitch.style.flexDirection = "row"
 	modeSwitch.style.marginBottom = "20px"
 	modeSwitch.style.cursor = "pointer"
 
-	let options = ["titres", "rises"]
-	for (let option of options) {
-		let optionEl = document.createElement("div")
-
-		optionEl.innerHTML = option.toUpperCase()
+	const modeOptions = ["titres", "rises"]
+	for (let option of modeOptions) {
+		const optionEl = addDiv(modeSwitch)
+		optionEl.textContent = option.toUpperCase()
 		optionEl.style.padding = "5px"
 		optionEl.style.border = "1px solid var(--color-border)"
 		optionEl.style.flexGrow = "1"
@@ -3000,24 +2968,18 @@ const updateData = (contentsString) => {
 			}
 			for (let summaryType of Object.keys(state.plotContainer)) {
 				if (summaryType !== "element") {
-					state.plotContainer[summaryType][option].style.display =
-						targetVisibility
+					state.plotContainer[summaryType][option].style.display = targetVisibility
 				}
 			}
 		})
-
-		modeSwitch.appendChild(optionEl)
 	}
 
-	state.inputContainer.appendChild(modeSwitch)
-}
+	const opacitiesEl = addDiv(inputContainer)
+	opacitiesEl.style.marginBottom = "20px"
 
-// NOTE(sen) Init opacity inputs
-{
-	let opacitiesEl = document.createElement("div")
 	for (let varName of Object.keys(state.opacities)) {
-		let opacityEl = document.createElement("div")
-		opacityEl.innerHTML = varName.toUpperCase()
+		const opacityEl = createDiv()
+		opacityEl.textContent = varName.toUpperCase()
 
 		opacityEl.addEventListener("click", (event) => {
 			let targetOpacity = 0
@@ -3067,42 +3029,35 @@ const updateData = (contentsString) => {
 		opacitiesEl.appendChild(opacityEl)
 	}
 
-	opacitiesEl.style.marginBottom = "20px"
-
-	state.inputContainer.appendChild(opacitiesEl)
-	state.opacitiesContainer = opacitiesEl
-}
-
-// NOTE(sen) Init filters container
-{
-	let filtersContainer = document.createElement("div")
-
+	const filtersContainer = addDiv(inputContainer)
 	filtersContainer.style.display = "flex"
 	filtersContainer.style.flexDirection = "row"
 	filtersContainer.style.flexWrap = "wrap"
 
-	state.filtersContainer = filtersContainer
-	state.inputContainer.appendChild(filtersContainer)
-}
-
-// NOTE(sen) Init sliders
-{
-	let sliders = document.createElement("div")
+	const sliders = addDiv(inputContainer)
 	sliders.style.marginBottom = "5px"
+
+	state.fileSelectTextElement = fileInputLabel
+	state.inputContainer = inputContainer
+	state.plotContainer.element = plotContainer
+	state.opacitiesContainer = opacitiesEl
+	state.filtersContainer = filtersContainer
 	state.slidersContainer = sliders
-	state.inputContainer.appendChild(sliders)
+
+	// NOTE(sen) Dev only for now
+	fetch("/visualizer-data.csv")
+		.then((resp) => resp.text())
+		.then(updateData)
+		.catch(console.error)
 }
 
-// NOTE(sen) Dev only for now
-fetch("/visualizer-data.csv")
-	.then((resp) => resp.text())
-	.then(updateData)
-	.catch(console.error)
+main()
 
 // TODO(sen) Compare rises to 4 and vaccine rise
 // TODO(sen) Cohort vaccination split
 // TODO(sen) Combine age groups
 // TODO(sen) Combine labs
+// TODO(sen) Configurable virus combinations
 
 // NOTE(sen) To make this a "module"
 export {}

@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Titre visualizer">
+  <title>Titre visualizer</title>
 </head>
-
-<body>
-  <div id="main"></div>
-</body>
 
 <style>
   :root {
@@ -117,5 +116,15 @@
     cursor: pointer;
   }
 </style>
+
+<body
+  style="
+    background-color: var(--color-background);
+    color: var(--color-text);
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  ">
+  <div id="main" style="display: flex; flex-direction: row;"></div>
+</body>
 
 <script type="module" src="titre-visualizer.js"></script>
