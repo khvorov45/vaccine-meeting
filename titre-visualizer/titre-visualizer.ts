@@ -2143,7 +2143,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	opacitiesContainer: null,
 	fileSelectTextElement: null,
 	scrollbarStyle: null,
 }
@@ -2966,8 +2965,8 @@ const main = () => {
 		})
 	}
 
-	const opacitiesEl = addDiv(inputContainer)
-	opacitiesEl.style.marginBottom = "20px"
+	const opacitiesContainer = addDiv(inputContainer)
+	opacitiesContainer.style.marginBottom = "20px"
 
 	const opacities: Opacities = {
 		points: {
@@ -3064,7 +3063,7 @@ const main = () => {
 		opacityEl.style.fontWeight = "bold"
 		opacityEl.style.letterSpacing = "2px"
 
-		opacitiesEl.appendChild(opacityEl)
+		opacitiesContainer.appendChild(opacityEl)
 	}
 
 	const filtersContainer = addDiv(inputContainer)
@@ -3076,7 +3075,6 @@ const main = () => {
 	slidersContainer.style.marginBottom = "5px"
 
 	state.fileSelectTextElement = fileInputLabel
-	state.opacitiesContainer = opacitiesEl
 
 	const defaultPlotSizes = {
 		plotHeight: 600,
