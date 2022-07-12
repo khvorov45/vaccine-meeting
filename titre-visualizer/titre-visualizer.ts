@@ -9,6 +9,21 @@ type CladeFreqs = Record<string, number>
 type SubtypeClades = Record<string, string[]>
 type Filter = {elements: HTMLElement[], options: [], selected: string}
 type Filters = {subtype: Filter, serum_source: Filter, cohort: Filter,}
+type Opacity = {
+	titrePlotElements: HTMLElement[],
+	titreCladeAveragePlotElements: HTMLElement[],
+	titreCirculatingAveragePlotElements: HTMLElement[],
+	value: number,
+	default: number,
+}
+type Opacities = {
+	points: Opacity,
+	lines: Opacity,
+	boxplots: Opacity,
+	counts: Opacity,
+	line40: Opacity,
+	means: Opacity,
+}
 
 //
 // SECTION Array
@@ -2099,50 +2114,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	opacities: {
-		points: {
-			titrePlotElements: [],
-			titreCladeAveragePlotElements: [],
-			titreCirculatingAveragePlotElements: [],
-			value: 255,
-			default: 255,
-		},
-		lines: {
-			titrePlotElements: [],
-			titreCladeAveragePlotElements: [],
-			titreCirculatingAveragePlotElements: [],
-			value: 127,
-			default: 127,
-		},
-		boxplots: {
-			titrePlotElements: [],
-			titreCladeAveragePlotElements: [],
-			titreCirculatingAveragePlotElements: [],
-			value: 255,
-			default: 255,
-		},
-		counts: {
-			titrePlotElements: [],
-			titreCladeAveragePlotElements: [],
-			titreCirculatingAveragePlotElements: [],
-			value: 255,
-			default: 255,
-		},
-		line40: {
-			titrePlotElements: [],
-			titreCladeAveragePlotElements: [],
-			titreCirculatingAveragePlotElements: [],
-			value: 255,
-			default: 255,
-		},
-		means: {
-			titrePlotElements: [],
-			titreCladeAveragePlotElements: [],
-			titreCirculatingAveragePlotElements: [],
-			value: 255,
-			default: 255,
-		},
-	},
 	colors: {
 		theme: "dark",
 		preVax: "#308A36",
@@ -2180,8 +2151,7 @@ let state = {
 	fileSelectTextElement: null,
 	scrollbarStyle: null,
 }
-state.colors.thresholdLine =
-	state.colors.axis + colChannel255ToString(state.opacities.line40.value)
+state.colors.thresholdLine = state.colors.axis
 
 const areAllFiltersSet = (filters: Filters) => {
 	let allFiltersSet = true
@@ -2321,7 +2291,7 @@ const createSubsetFilter = (filters: Filters) => {
 const updateTitrePlot = (
 	titres: Titres, rises: Rises,
 	cladeFreqs: CladeFreqs, vaccineViruses: VaccineViruses,
-	filters: Filters,
+	filters: Filters, opacities: Opacities
 ) => {
 	if (areAllFiltersSet(filters)) {
 		const subsetFilter = createSubsetFilter(filters)
@@ -2335,15 +2305,15 @@ const updateTitrePlot = (
 			)
 		}
 
-		for (let varName of Object.keys(state.opacities)) {
-			state.opacities[varName].titrePlotElements = []
+		for (let varName of Object.keys(opacities)) {
+			opacities[varName].titrePlotElements = []
 		}
 
 		state.plotContainer.noSummary.titres = createTitrePlotSvg(
 			dataSubset,
 			cladeFreqs,
 			vaccineViruses,
-			state.opacities,
+			opacities,
 			state.colors,
 			state.defaultPlotSizes
 		)
@@ -2352,7 +2322,7 @@ const updateTitrePlot = (
 			dataRisesSubset,
 			cladeFreqs,
 			vaccineViruses,
-			state.opacities,
+			opacities,
 			state.colors,
 			state.defaultPlotSizes
 		)
@@ -2367,6 +2337,7 @@ const updateTitreCladeAveragePlot = (
 	cladeAverageRises: CladeAverageRises,
 	cladeFreqs: CladeFreqs,
 	filters: Filters,
+	opacities: Opacities,
 ) => {
 	if (areAllFiltersSet(filters)) {
 		const subsetFilter = createSubsetFilter(filters)
@@ -2380,8 +2351,8 @@ const updateTitreCladeAveragePlot = (
 			)
 		}
 
-		for (let varName of Object.keys(state.opacities)) {
-			state.opacities[varName].titreCladeAveragePlotElements = []
+		for (let varName of Object.keys(opacities)) {
+			opacities[varName].titreCladeAveragePlotElements = []
 		}
 
 		let plotSizes = reduceAxisPadBottom(100, state.defaultPlotSizes)
@@ -2391,7 +2362,7 @@ const updateTitreCladeAveragePlot = (
 			dataSubsetCladeAverages,
 			cladeFreqs,
 			vaccineClades,
-			state.opacities,
+			opacities,
 			state.colors,
 			plotSizes
 		)
@@ -2400,7 +2371,7 @@ const updateTitreCladeAveragePlot = (
 			dataSubsetCladeAverageRises,
 			cladeFreqs,
 			vaccineClades,
-			state.opacities,
+			opacities,
 			state.colors,
 			plotSizes
 		)
@@ -2413,7 +2384,7 @@ const updateTitreCladeAveragePlot = (
 const updateTitreCirculatingAveragePlot = (
 	circulatingAverageTitres: CirculatingAverageTitres,
 	circulatingAverageRises: CirculatingAverageRises,
-	filters: Filters,
+	filters: Filters, opacities: Opacities,
 ) => {
 	if (areAllFiltersSet(filters)) {
 		const subsetFilter = createSubsetFilter(filters)
@@ -2427,8 +2398,8 @@ const updateTitreCirculatingAveragePlot = (
 			)
 		}
 
-		for (let varName of Object.keys(state.opacities)) {
-			state.opacities[varName].titreCirculatingAveragePlotElements = []
+		for (let varName of Object.keys(opacities)) {
+			opacities[varName].titreCirculatingAveragePlotElements = []
 		}
 
 		let plotSizes = reduceAxisPadBottom(40, state.defaultPlotSizes)
@@ -2436,7 +2407,7 @@ const updateTitreCirculatingAveragePlot = (
 		state.plotContainer.circulatingAverage.titres =
 			createTitreCirculatingAveragePlotSvg(
 				dataSubsetCirculatingAverages,
-				state.opacities,
+				opacities,
 				state.colors,
 				plotSizes
 			)
@@ -2448,7 +2419,7 @@ const updateTitreCirculatingAveragePlot = (
 		state.plotContainer.circulatingAverage.rises =
 			createRiseCirculatingAveragePlotSvg(
 				dataSubsetCirculatingAverageRises,
-				state.opacities,
+				opacities,
 				state.colors,
 				plotSizes
 			)
@@ -2461,7 +2432,7 @@ const updateTitreCirculatingAveragePlot = (
 
 const updateCirculatingAverageData = (
 	cladeAverageTitres: CladeAverageTitres, cladeFreqs: CladeFreqs,
-	filters: Filters,
+	filters: Filters, opacities: Opacities,
 ) => {
 	let circulatingAverageTitres = []
 	let circulatingAverageRises = []
@@ -2527,13 +2498,15 @@ const updateCirculatingAverageData = (
 			}
 		)
 
-		updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises, filters)
+		updateTitreCirculatingAveragePlot(
+			circulatingAverageTitres, circulatingAverageRises, filters, opacities,
+		)
 	}
 
 	return {titres: circulatingAverageTitres, rises: circulatingAverageRises}
 }
 
-const updateData = (contentsString) => {
+const updateData = (contentsString: string, opacities: Opacities) => {
 	if (contentsString.length > 0) {
 		// NOTE(sen) Main data
 		const data = parseData(contentsString)
@@ -2612,7 +2585,7 @@ const updateData = (contentsString) => {
 					for (let el of state.cladeFreqElements[clade]) {
 						el.innerHTML = clade + " (" + val + "%)"
 					}
-					updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters)
+					updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters, opacities)
 					if (cladeFreqs[clade] === cladeFreqsDefault[clade]) {
 						reset.style.color = "var(--color-border)"
 					} else {
@@ -2720,9 +2693,9 @@ const updateData = (contentsString) => {
 						otherOption.style.background = "inherit"
 					}
 					optionEl.style.background = "var(--color-selected)"
-					updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters)
-					updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters)
-					updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises, filters)
+					updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters, opacities)
+					updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities)
+					updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises, filters, opacities)
 					updateFilterColors(data, filters)
 					if (varName === "subtype") {
 						updateSliderSubtype(filters)
@@ -2802,12 +2775,12 @@ const updateData = (contentsString) => {
 
 		findNonEmptyFilterSubset(data, filters)
 
-		const circulatingAverages = updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters)
+		const circulatingAverages = updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters, opacities)
 		const circulatingAverageTitres = circulatingAverages.titres
 		const circulatingAverageRises = circulatingAverages.rises
 
-		updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters)
-		updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters)
+		updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters, opacities)
+		updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities)
 	}
 }
 
@@ -2868,7 +2841,7 @@ const main = () => {
 		let file = (<HTMLInputElement>event.target).files[0]
 		if (file !== null && file !== undefined) {
 			fileInputLabel.innerHTML = file.name
-			file.text().then(updateData)
+			file.text().then((string) => updateData(string, opacities))
 		}
 	})
 
@@ -2969,17 +2942,62 @@ const main = () => {
 	const opacitiesEl = addDiv(inputContainer)
 	opacitiesEl.style.marginBottom = "20px"
 
-	for (let varName of Object.keys(state.opacities)) {
+	const opacities: Opacities = {
+		points: {
+			titrePlotElements: [],
+			titreCladeAveragePlotElements: [],
+			titreCirculatingAveragePlotElements: [],
+			value: 255,
+			default: 255,
+		},
+		lines: {
+			titrePlotElements: [],
+			titreCladeAveragePlotElements: [],
+			titreCirculatingAveragePlotElements: [],
+			value: 127,
+			default: 127,
+		},
+		boxplots: {
+			titrePlotElements: [],
+			titreCladeAveragePlotElements: [],
+			titreCirculatingAveragePlotElements: [],
+			value: 255,
+			default: 255,
+		},
+		counts: {
+			titrePlotElements: [],
+			titreCladeAveragePlotElements: [],
+			titreCirculatingAveragePlotElements: [],
+			value: 255,
+			default: 255,
+		},
+		line40: {
+			titrePlotElements: [],
+			titreCladeAveragePlotElements: [],
+			titreCirculatingAveragePlotElements: [],
+			value: 255,
+			default: 255,
+		},
+		means: {
+			titrePlotElements: [],
+			titreCladeAveragePlotElements: [],
+			titreCirculatingAveragePlotElements: [],
+			value: 255,
+			default: 255,
+		},
+	}
+
+	for (let varName of Object.keys(opacities)) {
 		const opacityEl = createDiv()
 		opacityEl.textContent = varName.toUpperCase()
 
 		opacityEl.addEventListener("click", (event) => {
 			let targetOpacity = 0
-			if (state.opacities[varName].value === 0) {
-				targetOpacity = state.opacities[varName].default
+			if (opacities[varName].value === 0) {
+				targetOpacity = opacities[varName].default
 			}
 
-			state.opacities[varName].value = targetOpacity
+			opacities[varName].value = targetOpacity
 
 			if (targetOpacity > 0) {
 				(<HTMLElement>event.target).style.background = "var(--color-selected)"
@@ -2994,9 +3012,10 @@ const main = () => {
 			} else if (varName === "means") {
 				attrNames.push("fill")
 			}
-			for (let [name, val] of Object.entries(state.opacities[varName])) {
+
+			for (let [name, val] of Object.entries(opacities[varName])) {
 				if (name.endsWith("Elements")) {
-					for (let element of state.opacities[varName][name]) {
+					for (let element of opacities[varName][name]) {
 						for (let attrName of attrNames) {
 							let currentColFull = element.getAttribute(attrName)
 							let currentColNoAlpha = currentColFull.slice(0, 7)
@@ -3012,7 +3031,7 @@ const main = () => {
 		opacityEl.style.border = "1px solid var(--color-border)"
 		opacityEl.style.textAlign = "center"
 		opacityEl.style.padding = "5px"
-		if (state.opacities[varName].value > 0) {
+		if (opacities[varName].value > 0) {
 			opacityEl.style.background = "var(--color-selected)"
 		}
 		opacityEl.style.fontWeight = "bold"
@@ -3037,7 +3056,7 @@ const main = () => {
 	// NOTE(sen) Dev only for now
 	fetch("/visualizer-data.csv")
 		.then((resp) => resp.text())
-		.then(updateData)
+		.then((string) => updateData(string, opacities))
 		.catch(console.error)
 }
 
