@@ -690,7 +690,8 @@ const createTitrePlotSvg = (
 	vaccineStrains: VaccineViruses,
 	opacities: any,
 	colors: any,
-	sizes: any
+	sizes: any,
+	cladeFreqElements: Record<string, HTMLElement[]>,
 ) => {
 	let plotSvg = createSvgElement()
 
@@ -803,8 +804,7 @@ const createTitrePlotSvg = (
 				)
 
 				plotSvg.appendChild(cladeLabel)
-
-				state.cladeFreqElements[cladeName].push(cladeLabel)
+				cladeFreqElements[cladeName].push(<HTMLElement><unknown>cladeLabel)
 			}
 		}
 
@@ -1015,7 +1015,8 @@ const createRisePlotSvg = (
 	vaccineStrains: VaccineViruses,
 	opacities: any,
 	colors: any,
-	sizes: any
+	sizes: any,
+	cladeFreqElements: Record<string, HTMLElement[]>,
 ) => {
 	let plotSvg = createSvgElement()
 
@@ -1130,7 +1131,7 @@ const createRisePlotSvg = (
 
 				plotSvg.appendChild(cladeLabel)
 
-				state.cladeFreqElements[cladeName].push(cladeLabel)
+				cladeFreqElements[cladeName].push(<HTMLElement><unknown>cladeLabel)
 			}
 		}
 
@@ -1272,7 +1273,8 @@ const createTitreCladeAveragePlotSvg = (
 	vaccineClades: VaccineViruses,
 	opacities: any,
 	colors: any,
-	sizes: any
+	sizes: any,
+	cladeFreqElements: Record<string, HTMLElement[]>,
 ) => {
 	let plotSvg = createSvgElement()
 
@@ -1346,7 +1348,7 @@ const createTitreCladeAveragePlotSvg = (
 				)
 
 				plotSvg.appendChild(label)
-				state.cladeFreqElements[cladeName].push(label)
+				cladeFreqElements[cladeName].push(<HTMLElement><unknown>label)
 			}
 		}
 
@@ -1555,7 +1557,8 @@ const createRiseCladeAveragePlotSvg = (
 	vaccineClades: VaccineViruses,
 	opacities: any,
 	colors: any,
-	sizes: any
+	sizes: any,
+	cladeFreqElements: Record<string, HTMLElement[]>,
 ) => {
 	let plotSvg = createSvgElement()
 
@@ -1630,7 +1633,7 @@ const createRiseCladeAveragePlotSvg = (
 				)
 
 				plotSvg.appendChild(label)
-				state.cladeFreqElements[cladeName].push(label)
+				cladeFreqElements[cladeName].push(<HTMLElement><unknown>label)
 			}
 		}
 
@@ -2140,7 +2143,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	cladeFreqElements: {},
 	filtersContainer: null,
 	opacitiesContainer: null,
 	fileSelectTextElement: null,
@@ -2288,7 +2290,8 @@ const updateTitrePlot = (
 	titres: Titres, rises: Rises,
 	cladeFreqs: CladeFreqs, vaccineViruses: VaccineViruses,
 	filters: Filters, opacities: Opacities, colors: Colors,
-	defaultPlotSizes: PlotSizes, container: PlotContainer
+	defaultPlotSizes: PlotSizes, container: PlotContainer,
+	cladeFreqElements: Record<string, HTMLElement[]>,
 ) => {
 	if (areAllFiltersSet(filters)) {
 		const subsetFilter = createSubsetFilter(filters)
@@ -2308,7 +2311,8 @@ const updateTitrePlot = (
 			vaccineViruses,
 			opacities,
 			colors,
-			defaultPlotSizes
+			defaultPlotSizes,
+			cladeFreqElements,
 		))
 
 		container.rises = addEl(container.element, createRisePlotSvg(
@@ -2317,7 +2321,8 @@ const updateTitrePlot = (
 			vaccineViruses,
 			opacities,
 			colors,
-			defaultPlotSizes
+			defaultPlotSizes,
+			cladeFreqElements,
 		))
 	}
 }
@@ -2331,6 +2336,7 @@ const updateTitreCladeAveragePlot = (
 	colors: Colors,
 	defaultPlotSizes: PlotSizes,
 	container: PlotContainer,
+	cladeFreqElements: Record<string, HTMLElement[]>,
 ) => {
 	if (areAllFiltersSet(filters)) {
 		const subsetFilter = createSubsetFilter(filters)
@@ -2353,7 +2359,8 @@ const updateTitreCladeAveragePlot = (
 			vaccineClades,
 			opacities,
 			colors,
-			plotSizes
+			plotSizes,
+			cladeFreqElements,
 		))
 
 		container.rises = addEl(container.element, createRiseCladeAveragePlotSvg(
@@ -2362,7 +2369,8 @@ const updateTitreCladeAveragePlot = (
 			vaccineClades,
 			opacities,
 			colors,
-			plotSizes
+			plotSizes,
+			cladeFreqElements,
 		))
 	}
 }
@@ -2527,7 +2535,7 @@ const updateData = (
 		// NOTE(sen) Populate clade frequency sliders
 		removeChildren(slidersContainer)
 		const subtypeSlidersContainers: Record<string, HTMLElement> = {}
-		state.cladeFreqElements = {}
+		const cladeFreqElements: Record<string, HTMLElement[]> = {}
 		for (let [subtype, clades] of Object.entries(subtypeClades)) {
 			let subtypeContainer = addDiv(slidersContainer)
 			subtypeContainer.style.marginBottom = "5px"
@@ -2561,7 +2569,7 @@ const updateData = (
 					const val = (<HTMLInputElement>event.target).value
 					cladeFreqs[clade] = parseFloat(val) / 100
 					name.innerHTML = clade + " (" + val + "%)"
-					for (let el of state.cladeFreqElements[clade]) {
+					for (let el of cladeFreqElements[clade]) {
 						el.innerHTML = clade + " (" + val + "%)"
 					}
 					updateCirculatingAverageData(
@@ -2585,7 +2593,7 @@ const updateData = (
 
 				subtypeContainer.appendChild(slider)
 
-				state.cladeFreqElements[clade] = []
+				cladeFreqElements[clade] = []
 			}
 
 			subtypeSlidersContainers[subtype] = subtypeContainer
@@ -2676,11 +2684,11 @@ const updateData = (
 					optionEl.style.background = "var(--color-selected)"
 					updateTitrePlot(
 						data, rises, cladeFreqs, vaccineViruses, filters, opacities, colors, defaultPlotSizes,
-						plotContainers.noSummary,
+						plotContainers.noSummary, cladeFreqElements,
 					)
 					updateTitreCladeAveragePlot(
 						cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors, defaultPlotSizes,
-						plotContainers.cladeAverage,
+						plotContainers.cladeAverage, cladeFreqElements,
 					)
 					updateTitreCirculatingAveragePlot(
 						circulatingAverageTitres, circulatingAverageRises, filters, opacities, colors, defaultPlotSizes,
@@ -2774,11 +2782,11 @@ const updateData = (
 
 		updateTitrePlot(
 			data, rises, cladeFreqs, vaccineViruses, filters, opacities, colors, defaultPlotSizes,
-			plotContainers.noSummary,
+			plotContainers.noSummary, cladeFreqElements,
 		)
 		updateTitreCladeAveragePlot(
 			cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors, defaultPlotSizes,
-			plotContainers.cladeAverage,
+			plotContainers.cladeAverage, cladeFreqElements,
 		)
 	}
 }
