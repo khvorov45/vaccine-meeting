@@ -48,6 +48,8 @@ type PlotSizes = {
 	boxPlotWidth: number,
 	svgTextLineHeightGuess: number,
 }
+type PlotContainer = { element: HTMLElement, titres: HTMLElement, rises: HTMLElement }
+type PlotContainers = { noSummary: PlotContainer, cladeAverage: PlotContainer, circulatingAverage: PlotContainer }
 
 //
 // SECTION Array
@@ -2138,11 +2140,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	plotContainer: {
-		noSummary: { element: null, titres: null, rises: null },
-		cladeAverage: { element: null, titres: null, rises: null },
-		circulatingAverage: { element: null, titres: null, rises: null },
-	},
 	slidersContainer: null,
 	subtypeSlidersContainers: {},
 	cladeFreqElements: {},
@@ -2291,7 +2288,7 @@ const updateTitrePlot = (
 	titres: Titres, rises: Rises,
 	cladeFreqs: CladeFreqs, vaccineViruses: VaccineViruses,
 	filters: Filters, opacities: Opacities, colors: Colors,
-	defaultPlotSizes: PlotSizes,
+	defaultPlotSizes: PlotSizes, container: PlotContainer
 ) => {
 	if (areAllFiltersSet(filters)) {
 		const subsetFilter = createSubsetFilter(filters)
@@ -2299,36 +2296,29 @@ const updateTitrePlot = (
 		let dataSubset = titres.filter(subsetFilter)
 		let dataRisesSubset = rises.filter(subsetFilter)
 
-		while (state.plotContainer.noSummary.element.lastChild) {
-			state.plotContainer.noSummary.element.removeChild(
-				state.plotContainer.noSummary.element.lastChild
-			)
-		}
+		removeChildren(container.element)
 
 		for (let varName of Object.keys(opacities)) {
 			opacities[varName].titrePlotElements = []
 		}
 
-		state.plotContainer.noSummary.titres = createTitrePlotSvg(
+		container.titres = addEl(container.element, createTitrePlotSvg(
 			dataSubset,
 			cladeFreqs,
 			vaccineViruses,
 			opacities,
 			colors,
 			defaultPlotSizes
-		)
+		))
 
-		state.plotContainer.noSummary.rises = createRisePlotSvg(
+		container.rises = addEl(container.element, createRisePlotSvg(
 			dataRisesSubset,
 			cladeFreqs,
 			vaccineViruses,
 			opacities,
 			colors,
 			defaultPlotSizes
-		)
-
-		state.plotContainer.noSummary.element.appendChild(state.plotContainer.noSummary.titres)
-		state.plotContainer.noSummary.element.appendChild(state.plotContainer.noSummary.rises)
+		))
 	}
 }
 
@@ -2340,6 +2330,7 @@ const updateTitreCladeAveragePlot = (
 	opacities: Opacities,
 	colors: Colors,
 	defaultPlotSizes: PlotSizes,
+	container: PlotContainer,
 ) => {
 	if (areAllFiltersSet(filters)) {
 		const subsetFilter = createSubsetFilter(filters)
@@ -2347,11 +2338,7 @@ const updateTitreCladeAveragePlot = (
 		let dataSubsetCladeAverages = cladeAverageTitres.filter(subsetFilter)
 		let dataSubsetCladeAverageRises = cladeAverageRises.filter(subsetFilter)
 
-		while (state.plotContainer.cladeAverage.element.lastChild) {
-			state.plotContainer.cladeAverage.element.removeChild(
-				state.plotContainer.cladeAverage.element.lastChild
-			)
-		}
+		removeChildren(container.element)
 
 		for (let varName of Object.keys(opacities)) {
 			opacities[varName].titreCladeAveragePlotElements = []
@@ -2360,26 +2347,23 @@ const updateTitreCladeAveragePlot = (
 		let plotSizes = reduceAxisPadBottom(100, defaultPlotSizes)
 		let vaccineClades = ["A.5a.2", "3C.2a1b.2a.2", "V1A.3a", "Y3"]
 
-		state.plotContainer.cladeAverage.titres = createTitreCladeAveragePlotSvg(
+		container.titres = addEl(container.element, createTitreCladeAveragePlotSvg(
 			dataSubsetCladeAverages,
 			cladeFreqs,
 			vaccineClades,
 			opacities,
 			colors,
 			plotSizes
-		)
+		))
 
-		state.plotContainer.cladeAverage.rises = createRiseCladeAveragePlotSvg(
+		container.rises = addEl(container.element, createRiseCladeAveragePlotSvg(
 			dataSubsetCladeAverageRises,
 			cladeFreqs,
 			vaccineClades,
 			opacities,
 			colors,
 			plotSizes
-		)
-
-		state.plotContainer.cladeAverage.element.appendChild(state.plotContainer.cladeAverage.titres)
-		state.plotContainer.cladeAverage.element.appendChild(state.plotContainer.cladeAverage.rises)
+		))
 	}
 }
 
@@ -2387,7 +2371,7 @@ const updateTitreCirculatingAveragePlot = (
 	circulatingAverageTitres: CirculatingAverageTitres,
 	circulatingAverageRises: CirculatingAverageRises,
 	filters: Filters, opacities: Opacities, colors: Colors,
-	defaultPlotSizes: PlotSizes,
+	defaultPlotSizes: PlotSizes, container: PlotContainer
 ) => {
 	if (areAllFiltersSet(filters)) {
 		const subsetFilter = createSubsetFilter(filters)
@@ -2395,11 +2379,7 @@ const updateTitreCirculatingAveragePlot = (
 		let dataSubsetCirculatingAverages = circulatingAverageTitres.filter(subsetFilter)
 		let dataSubsetCirculatingAverageRises = circulatingAverageRises.filter(subsetFilter)
 
-		while (state.plotContainer.circulatingAverage.element.lastChild) {
-			state.plotContainer.circulatingAverage.element.removeChild(
-				state.plotContainer.circulatingAverage.element.lastChild
-			)
-		}
+		removeChildren(container.element)
 
 		for (let varName of Object.keys(opacities)) {
 			opacities[varName].titreCirculatingAveragePlotElements = []
@@ -2407,36 +2387,26 @@ const updateTitreCirculatingAveragePlot = (
 
 		let plotSizes = reduceAxisPadBottom(40, defaultPlotSizes)
 
-		state.plotContainer.circulatingAverage.titres =
-			createTitreCirculatingAveragePlotSvg(
-				dataSubsetCirculatingAverages,
-				opacities,
-				colors,
-				plotSizes
-			)
+		container.titres = addEl(container.element, createTitreCirculatingAveragePlotSvg(
+			dataSubsetCirculatingAverages,
+			opacities,
+			colors,
+			plotSizes
+		))
 
-		state.plotContainer.circulatingAverage.element.appendChild(
-			state.plotContainer.circulatingAverage.titres
-		)
-
-		state.plotContainer.circulatingAverage.rises =
-			createRiseCirculatingAveragePlotSvg(
-				dataSubsetCirculatingAverageRises,
-				opacities,
-				colors,
-				plotSizes
-			)
-
-		state.plotContainer.circulatingAverage.element.appendChild(
-			state.plotContainer.circulatingAverage.rises
-		)
+		container.rises = addEl(container.element, createRiseCirculatingAveragePlotSvg(
+			dataSubsetCirculatingAverageRises,
+			opacities,
+			colors,
+			plotSizes
+		))
 	}
 }
 
 const updateCirculatingAverageData = (
 	cladeAverageTitres: CladeAverageTitres, cladeFreqs: CladeFreqs,
 	filters: Filters, opacities: Opacities, colors: Colors,
-	defaultPlotSizes: PlotSizes,
+	defaultPlotSizes: PlotSizes, plotContainer: PlotContainer
 ) => {
 	let circulatingAverageTitres = []
 	let circulatingAverageRises = []
@@ -2504,14 +2474,17 @@ const updateCirculatingAverageData = (
 
 		updateTitreCirculatingAveragePlot(
 			circulatingAverageTitres, circulatingAverageRises, filters, opacities, colors,
-			defaultPlotSizes
+			defaultPlotSizes, plotContainer,
 		)
 	}
 
 	return {titres: circulatingAverageTitres, rises: circulatingAverageRises}
 }
 
-const updateData = (contentsString: string, opacities: Opacities, colors: Colors, defaultPlotSizes: PlotSizes) => {
+const updateData = (
+	contentsString: string, opacities: Opacities, colors: Colors,
+	defaultPlotSizes: PlotSizes, plotContainers: PlotContainers,
+) => {
 	if (contentsString.length > 0) {
 		// NOTE(sen) Main data
 		const data = parseData(contentsString)
@@ -2590,7 +2563,10 @@ const updateData = (contentsString: string, opacities: Opacities, colors: Colors
 					for (let el of state.cladeFreqElements[clade]) {
 						el.innerHTML = clade + " (" + val + "%)"
 					}
-					updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters, opacities, colors, defaultPlotSizes)
+					updateCirculatingAverageData(
+						cladeAverageTitres, cladeFreqs, filters, opacities, colors, defaultPlotSizes,
+						plotContainers.circulatingAverage
+					)
 					if (cladeFreqs[clade] === cladeFreqsDefault[clade]) {
 						reset.style.color = "var(--color-border)"
 					} else {
@@ -2698,9 +2674,18 @@ const updateData = (contentsString: string, opacities: Opacities, colors: Colors
 						otherOption.style.background = "inherit"
 					}
 					optionEl.style.background = "var(--color-selected)"
-					updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters, opacities, colors, defaultPlotSizes)
-					updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors, defaultPlotSizes)
-					updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises, filters, opacities, colors, defaultPlotSizes)
+					updateTitrePlot(
+						data, rises, cladeFreqs, vaccineViruses, filters, opacities, colors, defaultPlotSizes,
+						plotContainers.noSummary,
+					)
+					updateTitreCladeAveragePlot(
+						cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors, defaultPlotSizes,
+						plotContainers.cladeAverage,
+					)
+					updateTitreCirculatingAveragePlot(
+						circulatingAverageTitres, circulatingAverageRises, filters, opacities, colors, defaultPlotSizes,
+						plotContainers.circulatingAverage,
+					)
 					updateFilterColors(data, filters)
 					if (varName === "subtype") {
 						updateSliderSubtype(filters)
@@ -2780,12 +2765,21 @@ const updateData = (contentsString: string, opacities: Opacities, colors: Colors
 
 		findNonEmptyFilterSubset(data, filters)
 
-		const circulatingAverages = updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters, opacities, colors, defaultPlotSizes)
+		const circulatingAverages = updateCirculatingAverageData(
+			cladeAverageTitres, cladeFreqs, filters, opacities, colors, defaultPlotSizes,
+			plotContainers.circulatingAverage
+		)
 		const circulatingAverageTitres = circulatingAverages.titres
 		const circulatingAverageRises = circulatingAverages.rises
 
-		updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters, opacities, colors, defaultPlotSizes)
-		updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors, defaultPlotSizes)
+		updateTitrePlot(
+			data, rises, cladeFreqs, vaccineViruses, filters, opacities, colors, defaultPlotSizes,
+			plotContainers.noSummary,
+		)
+		updateTitreCladeAveragePlot(
+			cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors, defaultPlotSizes,
+			plotContainers.cladeAverage,
+		)
 	}
 }
 
@@ -2820,10 +2814,16 @@ const main = () => {
 		return el
 	}
 
-	for (let subPlotContainer of Object.keys(state.plotContainer)) {
+	const plotContainers: PlotContainers = {
+		noSummary: { element: null, titres: null, rises: null },
+		cladeAverage: { element: null, titres: null, rises: null },
+		circulatingAverage: { element: null, titres: null, rises: null },
+	}
+
+	for (let subPlotContainer of Object.keys(plotContainers)) {
 		if (subPlotContainer !== "element") {
 			let el = addEl(plotContainer, createPlotContainer())
-			state.plotContainer[subPlotContainer].element = el
+			plotContainers[subPlotContainer].element = el
 		}
 	}
 
@@ -2846,7 +2846,9 @@ const main = () => {
 		let file = (<HTMLInputElement>event.target).files[0]
 		if (file !== null && file !== undefined) {
 			fileInputLabel.innerHTML = file.name
-			file.text().then((string) => updateData(string, opacities, colors, defaultPlotSizes))
+			file.text().then((string) => updateData(
+				string, opacities, colors, defaultPlotSizes, plotContainers
+			))
 		}
 	})
 
@@ -2948,9 +2950,9 @@ const main = () => {
 				optionEl.style.background = "var(--color-selected)"
 				plotMode.push(option)
 			}
-			for (let summaryType of Object.keys(state.plotContainer)) {
+			for (let summaryType of Object.keys(plotContainers)) {
 				if (summaryType !== "element") {
-					state.plotContainer[summaryType][option].style.display = targetVisibility
+					plotContainers[summaryType][option].style.display = targetVisibility
 				}
 			}
 		})
@@ -3087,7 +3089,7 @@ const main = () => {
 	// NOTE(sen) Dev only for now
 	fetch("/visualizer-data.csv")
 		.then((resp) => resp.text())
-		.then((string) => updateData(string, opacities, colors, defaultPlotSizes))
+		.then((string) => updateData(string, opacities, colors, defaultPlotSizes, plotContainers))
 		.catch(console.error)
 }
 
