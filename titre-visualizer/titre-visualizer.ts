@@ -7,6 +7,8 @@ type CirculatingAverageRises = any[]
 type VaccineViruses = string[]
 type CladeFreqs = Record<string, number>
 type SubtypeClades = Record<string, string[]>
+type Filter = {elements: HTMLElement[], options: [], selected: string}
+type Filters = {subtype: Filter, serum_source: Filter, cohort: Filter,}
 
 //
 // SECTION Array
@@ -2097,11 +2099,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	filters: {
-		subtype: { elements: [], options: [], selected: null },
-		serum_source: { elements: [], options: [], selected: null },
-		cohort: { elements: [], options: [], selected: null },
-	},
 	opacities: {
 		points: {
 			titrePlotElements: [],
@@ -2186,10 +2183,10 @@ let state = {
 state.colors.thresholdLine =
 	state.colors.axis + colChannel255ToString(state.opacities.line40.value)
 
-const areAllFiltersSet = () => {
+const areAllFiltersSet = (filters: Filters) => {
 	let allFiltersSet = true
-	for (let varName of Object.keys(state.filters)) {
-		if (state.filters[varName].selected === null) {
+	for (let varName of Object.keys(filters)) {
+		if (filters[varName].selected === null) {
 			allFiltersSet = false
 			break
 		}
@@ -2197,9 +2194,9 @@ const areAllFiltersSet = () => {
 	return allFiltersSet
 }
 
-const updateSliderSubtype = () => {
+const updateSliderSubtype = (filters: Filters) => {
 	for (let [subtype, slidersContainer] of Object.entries(state.subtypeSlidersContainers)) {
-		if (subtype === state.filters.subtype.selected) {
+		if (subtype === filters.subtype.selected) {
 			(<HTMLElement>slidersContainer).style.display = "block"
 		} else {
 			(<HTMLElement>slidersContainer).style.display = "none"
@@ -2207,17 +2204,17 @@ const updateSliderSubtype = () => {
 	}
 }
 
-const updateFilterColors = (data: Titres) => {
-	for (let varName of Object.keys(state.filters)) {
-		let otherVarNames = Object.keys(state.filters).filter((key) => key !== varName)
+const updateFilterColors = (data: Titres, filters: Filters) => {
+	for (let varName of Object.keys(filters)) {
+		let otherVarNames = Object.keys(filters).filter((key) => key !== varName)
 
-		for (let [optionIndex, option] of state.filters[varName].options.entries()) {
+		for (let [optionIndex, option] of filters[varName].options.entries()) {
 			let testRows = data.filter((row) => {
 				let result = row[varName] === option
 				if (result) {
 					for (let otherVarName of otherVarNames) {
 						result =
-							row[otherVarName] === state.filters[otherVarName].selected
+							row[otherVarName] === filters[otherVarName].selected
 						if (!result) {
 							break
 						}
@@ -2226,7 +2223,7 @@ const updateFilterColors = (data: Titres) => {
 				return result
 			})
 
-			let element = state.filters[varName].elements[optionIndex]
+			let element = filters[varName].elements[optionIndex]
 
 			if (testRows.length === 0) {
 				element.style.color = "var(--color-error)"
@@ -2237,13 +2234,13 @@ const updateFilterColors = (data: Titres) => {
 	}
 }
 
-const findNonEmptyFilterSubset = (data: Titres) => {
-	if (!areAllFiltersSet()) {
+const findNonEmptyFilterSubset = (data: Titres, filters: Filters) => {
+	if (!areAllFiltersSet(filters)) {
 		let currentSettings = []
-		for (let [filterIndex, varName] of Object.keys(state.filters).entries()) {
+		for (let [filterIndex, varName] of Object.keys(filters).entries()) {
 			currentSettings.push({
 				name: varName,
-				lastIndex: state.filters[varName].options.length - 1,
+				lastIndex: filters[varName].options.length - 1,
 				currentIndex: 0,
 			})
 		}
@@ -2252,14 +2249,12 @@ const findNonEmptyFilterSubset = (data: Titres) => {
 		let currentlyIncrementing = currentSettings.length - 1
 
 		while (currentFilteredDataRows === 0) {
-			for (let [filterIndex, varName] of Object.keys(
-				state.filters
-			).entries()) {
-				state.filters[varName].selected =
-					state.filters[varName].options[
+			for (let [filterIndex, varName] of Object.keys(filters).entries()) {
+				filters[varName].selected =
+					filters[varName].options[
 						currentSettings[filterIndex].currentIndex
 					]
-				for (let [optionIndex, optionEl] of state.filters[
+				for (let [optionIndex, optionEl] of filters[
 					varName
 				].elements.entries()) {
 					if (optionIndex === currentSettings[filterIndex].currentIndex) {
@@ -2272,8 +2267,8 @@ const findNonEmptyFilterSubset = (data: Titres) => {
 
 			let testRows = data.filter((row) => {
 				let result = true
-				for (let varName of Object.keys(state.filters)) {
-					result = row[varName] === state.filters[varName].selected
+				for (let varName of Object.keys(filters)) {
+					result = row[varName] === filters[varName].selected
 					if (!result) {
 						break
 					}
@@ -2305,16 +2300,16 @@ const findNonEmptyFilterSubset = (data: Titres) => {
 			}
 		}
 
-		updateSliderSubtype()
-		updateFilterColors(data)
+		updateSliderSubtype(filters)
+		updateFilterColors(data, filters)
 	}
 }
 
-const createSubsetFilter = () => {
+const createSubsetFilter = (filters: Filters) => {
 	return (row) => {
 		let result = true
-		for (let varName of Object.keys(state.filters)) {
-			result = row[varName] === state.filters[varName].selected
+		for (let varName of Object.keys(filters)) {
+			result = row[varName] === filters[varName].selected
 			if (!result) {
 				break
 			}
@@ -2323,9 +2318,13 @@ const createSubsetFilter = () => {
 	}
 }
 
-const updateTitrePlot = (titres: Titres, rises: Rises, cladeFreqs: CladeFreqs, vaccineViruses: VaccineViruses) => {
-	if (areAllFiltersSet()) {
-		const subsetFilter = createSubsetFilter()
+const updateTitrePlot = (
+	titres: Titres, rises: Rises,
+	cladeFreqs: CladeFreqs, vaccineViruses: VaccineViruses,
+	filters: Filters,
+) => {
+	if (areAllFiltersSet(filters)) {
+		const subsetFilter = createSubsetFilter(filters)
 
 		let dataSubset = titres.filter(subsetFilter)
 		let dataRisesSubset = rises.filter(subsetFilter)
@@ -2367,9 +2366,10 @@ const updateTitreCladeAveragePlot = (
 	cladeAverageTitres: CladeAverageTitres,
 	cladeAverageRises: CladeAverageRises,
 	cladeFreqs: CladeFreqs,
+	filters: Filters,
 ) => {
-	if (areAllFiltersSet()) {
-		const subsetFilter = createSubsetFilter()
+	if (areAllFiltersSet(filters)) {
+		const subsetFilter = createSubsetFilter(filters)
 
 		let dataSubsetCladeAverages = cladeAverageTitres.filter(subsetFilter)
 		let dataSubsetCladeAverageRises = cladeAverageRises.filter(subsetFilter)
@@ -2410,9 +2410,13 @@ const updateTitreCladeAveragePlot = (
 	}
 }
 
-const updateTitreCirculatingAveragePlot = (circulatingAverageTitres: CirculatingAverageTitres, circulatingAverageRises: CirculatingAverageRises) => {
-	if (areAllFiltersSet()) {
-		const subsetFilter = createSubsetFilter()
+const updateTitreCirculatingAveragePlot = (
+	circulatingAverageTitres: CirculatingAverageTitres,
+	circulatingAverageRises: CirculatingAverageRises,
+	filters: Filters,
+) => {
+	if (areAllFiltersSet(filters)) {
+		const subsetFilter = createSubsetFilter(filters)
 
 		let dataSubsetCirculatingAverages = circulatingAverageTitres.filter(subsetFilter)
 		let dataSubsetCirculatingAverageRises = circulatingAverageRises.filter(subsetFilter)
@@ -2455,7 +2459,10 @@ const updateTitreCirculatingAveragePlot = (circulatingAverageTitres: Circulating
 	}
 }
 
-const updateCirculatingAverageData = (cladeAverageTitres: CladeAverageTitres, cladeFreqs: CladeFreqs) => {
+const updateCirculatingAverageData = (
+	cladeAverageTitres: CladeAverageTitres, cladeFreqs: CladeFreqs,
+	filters: Filters,
+) => {
 	let circulatingAverageTitres = []
 	let circulatingAverageRises = []
 
@@ -2520,7 +2527,7 @@ const updateCirculatingAverageData = (cladeAverageTitres: CladeAverageTitres, cl
 			}
 		)
 
-		updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises)
+		updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises, filters)
 	}
 
 	return {titres: circulatingAverageTitres, rises: circulatingAverageRises}
@@ -2605,7 +2612,7 @@ const updateData = (contentsString) => {
 					for (let el of state.cladeFreqElements[clade]) {
 						el.innerHTML = clade + " (" + val + "%)"
 					}
-					updateCirculatingAverageData(cladeAverageTitres, cladeFreqs)
+					updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters)
 					if (cladeFreqs[clade] === cladeFreqsDefault[clade]) {
 						reset.style.color = "var(--color-border)"
 					} else {
@@ -2660,24 +2667,30 @@ const updateData = (contentsString) => {
 			)
 		}
 
+		const filters: Filters = {
+			subtype: { elements: [], options: [], selected: null },
+			serum_source: { elements: [], options: [], selected: null },
+			cohort: { elements: [], options: [], selected: null },
+		}
+
 		// NOTE(sen) Populate filters
-		for (let varName of Object.keys(state.filters)) {
-			state.filters[varName].selected = null
-			state.filters[varName].options = arrUnique(data.map((row) => row[varName]))
+		for (let varName of Object.keys(filters)) {
+			filters[varName].selected = null
+			filters[varName].options = arrUnique(data.map((row) => row[varName]))
 
 			switch (varName) {
 				case "cohort": {
-					state.filters[varName].options = state.filters[varName]
+					filters[varName].options = filters[varName]
 						.options.sort(stringSort)
 					break
 				}
 				case "subtype": {
-					state.filters[varName].options = state.filters[varName]
+					filters[varName].options = filters[varName]
 						.options.sort(desiredOrderSort(["H1", "H3", "BVic"]))
 					break
 				}
 				case "serum_source": {
-					state.filters[varName].options = state.filters[varName]
+					filters[varName].options = filters[varName]
 						.options.sort((a, b) => (a > b ? 1 : a < b ? -1 : 0))
 					break
 				}
@@ -2687,7 +2700,7 @@ const updateData = (contentsString) => {
 		// NOTE(sen) Draw the newly populated filters
 		state.filtersContainer.innerHTML = ""
 
-		for (let varName of Object.keys(state.filters)) {
+		for (let varName of Object.keys(filters)) {
 			let filterEl = document.createElement("div")
 
 			filterEl.style.display = "flex"
@@ -2695,24 +2708,24 @@ const updateData = (contentsString) => {
 			filterEl.style.marginBottom = "10px"
 			filterEl.style.flexGrow = "1"
 
-			state.filters[varName].elements = []
+			filters[varName].elements = []
 
-			for (let option of state.filters[varName].options) {
+			for (let option of filters[varName].options) {
 				let optionEl = document.createElement("div")
 				optionEl.innerHTML = option
 
 				optionEl.addEventListener("click", (event) => {
-					state.filters[varName].selected = option
-					for (let otherOption of state.filters[varName].elements) {
+					filters[varName].selected = option
+					for (let otherOption of filters[varName].elements) {
 						otherOption.style.background = "inherit"
 					}
 					optionEl.style.background = "var(--color-selected)"
-					updateTitrePlot(data, rises, cladeFreqs, vaccineViruses)
-					updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs)
-					updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises)
-					updateFilterColors(data)
+					updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters)
+					updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters)
+					updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises, filters)
+					updateFilterColors(data, filters)
 					if (varName === "subtype") {
-						updateSliderSubtype()
+						updateSliderSubtype(filters)
 					}
 				})
 
@@ -2721,12 +2734,12 @@ const updateData = (contentsString) => {
 				optionEl.style.cursor = "pointer"
 				optionEl.style.textAlign = "center"
 
-				if (option === state.filters[varName].selected) {
+				if (option === filters[varName].selected) {
 					optionEl.style.background = "var(--color-selected)"
 				}
 
 				filterEl.appendChild(optionEl)
-				state.filters[varName].elements.push(optionEl)
+				filters[varName].elements.push(optionEl)
 			}
 
 			state.filtersContainer.appendChild(filterEl)
@@ -2787,14 +2800,14 @@ const updateData = (contentsString) => {
 			)
 		}
 
-		findNonEmptyFilterSubset(data)
+		findNonEmptyFilterSubset(data, filters)
 
-		const circulatingAverages = updateCirculatingAverageData(cladeAverageTitres, cladeFreqs)
+		const circulatingAverages = updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters)
 		const circulatingAverageTitres = circulatingAverages.titres
 		const circulatingAverageRises = circulatingAverages.rises
 
-		updateTitrePlot(data, rises, cladeFreqs, vaccineViruses)
-		updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs)
+		updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters)
+		updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters)
 	}
 }
 
