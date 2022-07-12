@@ -5,6 +5,7 @@ type CladeAverageRises = any[]
 type CirculatingAverageTitres = any[]
 type CirculatingAverageRises = any[]
 type VaccineViruses = string[]
+type CladeFreqs = Record<string, number>
 
 //
 // SECTION Array
@@ -642,11 +643,12 @@ const createScaleCategorical = (count, sizes) => {
 }
 
 const createTitrePlotSvg = (
-	data,
-	vaccineStrains,
-	opacities,
-	colors,
-	sizes
+	data: Titres,
+	cladeFreqs: CladeFreqs,
+	vaccineStrains: VaccineViruses,
+	opacities: any,
+	colors: any,
+	sizes: any
 ) => {
 	let plotSvg = createSvgElement()
 
@@ -748,7 +750,7 @@ const createTitrePlotSvg = (
 				)
 
 				let cladeName = virusClades[virusName]
-				let cladeFreq = Math.round(state.cladeFreqs[cladeName] * 100)
+				let cladeFreq = Math.round(cladeFreqs[cladeName] * 100)
 				let cladeLabel = createXLabel(
 					cladeName + " (" + cladeFreq + "%)",
 					-45,
@@ -966,11 +968,12 @@ const createTitrePlotSvg = (
 }
 
 const createRisePlotSvg = (
-	data,
-	vaccineStrains,
-	opacities,
-	colors,
-	sizes
+	data: Rises,
+	cladeFreqs: CladeFreqs,
+	vaccineStrains: VaccineViruses,
+	opacities: any,
+	colors: any,
+	sizes: any
 ) => {
 	let plotSvg = createSvgElement()
 
@@ -1073,7 +1076,7 @@ const createRisePlotSvg = (
 				)
 
 				let cladeName = virusClades[virusName]
-				let cladeFreq = Math.round(state.cladeFreqs[cladeName] * 100)
+				let cladeFreq = Math.round(cladeFreqs[cladeName] * 100)
 				let cladeLabel = createXLabel(
 					cladeName + " (" + cladeFreq + "%)",
 					-45,
@@ -1222,11 +1225,12 @@ const createRisePlotSvg = (
 }
 
 const createTitreCladeAveragePlotSvg = (
-	data,
-	vaccineClades,
-	opacities,
-	colors,
-	sizes
+	data: CladeAverageTitres,
+	cladeFreqs: CladeFreqs,
+	vaccineClades: VaccineViruses,
+	opacities: any,
+	colors: any,
+	sizes: any
 ) => {
 	let plotSvg = createSvgElement()
 
@@ -1289,7 +1293,7 @@ const createTitreCladeAveragePlotSvg = (
 
 				plotSvg.appendChild(createXTick(xCoord, sizes, colors))
 
-				let cladeFreq = Math.round(state.cladeFreqs[cladeName] * 100)
+				let cladeFreq = Math.round(cladeFreqs[cladeName] * 100)
 				let label = createXLabel(
 					cladeName + " (" + cladeFreq + "%)",
 					-30,
@@ -1504,11 +1508,12 @@ const createTitreCladeAveragePlotSvg = (
 }
 
 const createRiseCladeAveragePlotSvg = (
-	data,
-	vaccineClades,
-	opacities,
-	colors,
-	sizes
+	data: CladeAverageRises,
+	cladeFreqs: CladeFreqs,
+	vaccineClades: VaccineViruses,
+	opacities: any,
+	colors: any,
+	sizes: any
 ) => {
 	let plotSvg = createSvgElement()
 
@@ -1572,7 +1577,7 @@ const createRiseCladeAveragePlotSvg = (
 
 				plotSvg.appendChild(createXTick(xCoord, sizes, colors))
 
-				let cladeFreq = Math.round(state.cladeFreqs[cladeName] * 100)
+				let cladeFreq = Math.round(cladeFreqs[cladeName] * 100)
 				let label = createXLabel(
 					cladeName + " (" + cladeFreq + "%)",
 					-30,
@@ -2093,7 +2098,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	cladeFreqs: {},
 	subtypeClades: {},
 	filters: {
 		subtype: { elements: [], options: [], selected: null },
@@ -2321,7 +2325,7 @@ const createSubsetFilter = () => {
 	}
 }
 
-const updateTitrePlot = (titres: Titres, rises: Rises, vaccineViruses: VaccineViruses) => {
+const updateTitrePlot = (titres: Titres, rises: Rises, cladeFreqs: CladeFreqs, vaccineViruses: VaccineViruses) => {
 	if (areAllFiltersSet()) {
 		const subsetFilter = createSubsetFilter()
 
@@ -2340,6 +2344,7 @@ const updateTitrePlot = (titres: Titres, rises: Rises, vaccineViruses: VaccineVi
 
 		state.plotContainer.noSummary.titres = createTitrePlotSvg(
 			dataSubset,
+			cladeFreqs,
 			vaccineViruses,
 			state.opacities,
 			state.colors,
@@ -2348,22 +2353,23 @@ const updateTitrePlot = (titres: Titres, rises: Rises, vaccineViruses: VaccineVi
 
 		state.plotContainer.noSummary.rises = createRisePlotSvg(
 			dataRisesSubset,
+			cladeFreqs,
 			vaccineViruses,
 			state.opacities,
 			state.colors,
 			state.defaultPlotSizes
 		)
 
-		state.plotContainer.noSummary.element.appendChild(
-			state.plotContainer.noSummary.titres
-		)
-		state.plotContainer.noSummary.element.appendChild(
-			state.plotContainer.noSummary.rises
-		)
+		state.plotContainer.noSummary.element.appendChild(state.plotContainer.noSummary.titres)
+		state.plotContainer.noSummary.element.appendChild(state.plotContainer.noSummary.rises)
 	}
 }
 
-const updateTitreCladeAveragePlot = (cladeAverageTitres: CladeAverageTitres, cladeAverageRises: CladeAverageRises) => {
+const updateTitreCladeAveragePlot = (
+	cladeAverageTitres: CladeAverageTitres,
+	cladeAverageRises: CladeAverageRises,
+	cladeFreqs: CladeFreqs,
+) => {
 	if (areAllFiltersSet()) {
 		const subsetFilter = createSubsetFilter()
 
@@ -2385,6 +2391,7 @@ const updateTitreCladeAveragePlot = (cladeAverageTitres: CladeAverageTitres, cla
 
 		state.plotContainer.cladeAverage.titres = createTitreCladeAveragePlotSvg(
 			dataSubsetCladeAverages,
+			cladeFreqs,
 			vaccineClades,
 			state.opacities,
 			state.colors,
@@ -2393,18 +2400,15 @@ const updateTitreCladeAveragePlot = (cladeAverageTitres: CladeAverageTitres, cla
 
 		state.plotContainer.cladeAverage.rises = createRiseCladeAveragePlotSvg(
 			dataSubsetCladeAverageRises,
+			cladeFreqs,
 			vaccineClades,
 			state.opacities,
 			state.colors,
 			plotSizes
 		)
 
-		state.plotContainer.cladeAverage.element.appendChild(
-			state.plotContainer.cladeAverage.titres
-		)
-		state.plotContainer.cladeAverage.element.appendChild(
-			state.plotContainer.cladeAverage.rises
-		)
+		state.plotContainer.cladeAverage.element.appendChild(state.plotContainer.cladeAverage.titres)
+		state.plotContainer.cladeAverage.element.appendChild(state.plotContainer.cladeAverage.rises)
 	}
 }
 
@@ -2453,7 +2457,7 @@ const updateTitreCirculatingAveragePlot = (circulatingAverageTitres: Circulating
 	}
 }
 
-const updateCirculatingAverageData = (cladeAverageTitres: CladeAverageTitres) => {
+const updateCirculatingAverageData = (cladeAverageTitres: CladeAverageTitres, cladeFreqs: CladeFreqs) => {
 	let circulatingAverageTitres = []
 	let circulatingAverageRises = []
 
@@ -2478,7 +2482,7 @@ const updateCirculatingAverageData = (cladeAverageTitres: CladeAverageTitres) =>
 				let sumLogTitres = 0
 				let sumWeights = 0
 				for (let row of data) {
-					let weight = state.cladeFreqs[row.clade]
+					let weight = cladeFreqs[row.clade]
 					let titre = row.titreCladeAverage
 					if (isGood(weight) && isGood(titre)) {
 						sumLogTitres += weight * Math.log(row.titreCladeAverage)
@@ -2540,12 +2544,12 @@ const updateData = (contentsString) => {
 		}
 
 		// NOTE(sen) Clade frequencies
-		state.cladeFreqs = {}
+		const cladeFreqs: CladeFreqs = {}
 		const cladeFreqsDefault = {}
 		for (let row of data) {
-			if (state.cladeFreqs[row.clade] === undefined) {
-				state.cladeFreqs[row.clade] = Math.round(row.clade_freq * 100) / 100
-				cladeFreqsDefault[row.clade] = state.cladeFreqs[row.clade]
+			if (cladeFreqs[row.clade] === undefined) {
+				cladeFreqs[row.clade] = Math.round(row.clade_freq * 100) / 100
+				cladeFreqsDefault[row.clade] = cladeFreqs[row.clade]
 			}
 		}
 
@@ -2576,7 +2580,7 @@ const updateData = (contentsString) => {
 
 				let name = document.createElement("div")
 				name.innerHTML =
-					clade + " (" + Math.round(state.cladeFreqs[clade] * 100) + "%)"
+					clade + " (" + Math.round(cladeFreqs[clade] * 100) + "%)"
 				name.style.textAlign = "center"
 
 				let reset = document.createElement("div")
@@ -2595,16 +2599,16 @@ const updateData = (contentsString) => {
 				input.setAttribute("type", "range")
 				input.setAttribute("min", "0")
 				input.setAttribute("max", "100")
-				input.value = `${state.cladeFreqs[clade] * 100}`
+				input.value = `${cladeFreqs[clade] * 100}`
 				input.addEventListener("input", (event) => {
 					const val = (<HTMLInputElement>event.target).value
-					state.cladeFreqs[clade] = parseFloat(val) / 100
+					cladeFreqs[clade] = parseFloat(val) / 100
 					name.innerHTML = clade + " (" + val + "%)"
 					for (let el of state.cladeFreqElements[clade]) {
 						el.innerHTML = clade + " (" + val + "%)"
 					}
-					updateCirculatingAverageData(cladeAverageTitres)
-					if (state.cladeFreqs[clade] === cladeFreqsDefault[clade]) {
+					updateCirculatingAverageData(cladeAverageTitres, cladeFreqs)
+					if (cladeFreqs[clade] === cladeFreqsDefault[clade]) {
 						reset.style.color = "var(--color-border)"
 					} else {
 						reset.style.color = "var(--color-text)"
@@ -2705,8 +2709,8 @@ const updateData = (contentsString) => {
 						otherOption.style.background = "inherit"
 					}
 					optionEl.style.background = "var(--color-selected)"
-					updateTitrePlot(data, rises, vaccineViruses)
-					updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises)
+					updateTitrePlot(data, rises, cladeFreqs, vaccineViruses)
+					updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs)
 					updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises)
 					updateFilterColors(data)
 					if (varName === "subtype") {
@@ -2787,12 +2791,12 @@ const updateData = (contentsString) => {
 
 		findNonEmptyFilterSubset(data)
 
-		const circulatingAverages = updateCirculatingAverageData(cladeAverageTitres)
+		const circulatingAverages = updateCirculatingAverageData(cladeAverageTitres, cladeFreqs)
 		const circulatingAverageTitres = circulatingAverages.titres
 		const circulatingAverageRises = circulatingAverages.rises
 
-		updateTitrePlot(data, rises, vaccineViruses)
-		updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises)
+		updateTitrePlot(data, rises, cladeFreqs, vaccineViruses)
+		updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs)
 	}
 }
 
