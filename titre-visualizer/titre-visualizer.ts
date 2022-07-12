@@ -2093,7 +2093,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	dataCirculatingAverageRises: [],
 	plotMode: ["titres", "rises"],
 	plotSumm: ["none", "clade", "circulating"],
 	cladeFreqsDefault: {},
@@ -2412,12 +2411,12 @@ const updateTitreCladeAveragePlot = (cladeAverageTitres: CladeAverageTitres, cla
 	}
 }
 
-const updateTitreCirculatingAveragePlot = (circulatingAverageTitres: CirculatingAverageTitres) => {
+const updateTitreCirculatingAveragePlot = (circulatingAverageTitres: CirculatingAverageTitres, circulatingAverageRises: CirculatingAverageRises) => {
 	if (areAllFiltersSet()) {
 		const subsetFilter = createSubsetFilter()
 
 		let dataSubsetCirculatingAverages = circulatingAverageTitres.filter(subsetFilter)
-		let dataSubsetCirculatingAverageRises = state.dataCirculatingAverageRises.filter(subsetFilter)
+		let dataSubsetCirculatingAverageRises = circulatingAverageRises.filter(subsetFilter)
 
 		while (state.plotContainer.circulatingAverage.element.lastChild) {
 			state.plotContainer.circulatingAverage.element.removeChild(
@@ -2458,8 +2457,8 @@ const updateTitreCirculatingAveragePlot = (circulatingAverageTitres: Circulating
 }
 
 const updateCirculatingAverageData = (cladeAverageTitres: CladeAverageTitres) => {
-	state.dataCirculatingAverageRises = []
 	let circulatingAverageTitres = []
+	let circulatingAverageRises = []
 
 	if (cladeAverageTitres.length > 0) {
 		// NOTE(sen) Titres
@@ -2503,7 +2502,7 @@ const updateCirculatingAverageData = (cladeAverageTitres: CladeAverageTitres) =>
 		)
 		const risesGroupedData = groupByMultiple(circulatingAverageTitres, risesGroupVars)
 
-		state.dataCirculatingAverageRises = summariseGrouped(
+		circulatingAverageRises = summariseGrouped(
 			risesGroupedData,
 			risesGroupVars,
 			(data) => {
@@ -2522,10 +2521,10 @@ const updateCirculatingAverageData = (cladeAverageTitres: CladeAverageTitres) =>
 			}
 		)
 
-		updateTitreCirculatingAveragePlot(circulatingAverageTitres)
+		updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises)
 	}
 
-	return circulatingAverageTitres
+	return {titres: circulatingAverageTitres, rises: circulatingAverageRises}
 }
 
 const updateData = (contentsString) => {
@@ -2711,7 +2710,7 @@ const updateData = (contentsString) => {
 					optionEl.style.background = "var(--color-selected)"
 					updateTitrePlot(data, rises, vaccineViruses)
 					updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises)
-					updateTitreCirculatingAveragePlot(circulatingAverageTitres)
+					updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises)
 					updateFilterColors(data)
 					if (varName === "subtype") {
 						updateSliderSubtype()
@@ -2791,7 +2790,9 @@ const updateData = (contentsString) => {
 
 		findNonEmptyFilterSubset(data)
 
-		const circulatingAverageTitres = updateCirculatingAverageData(cladeAverageTitres)
+		const circulatingAverages = updateCirculatingAverageData(cladeAverageTitres)
+		const circulatingAverageTitres = circulatingAverages.titres
+		const circulatingAverageRises = circulatingAverages.rises
 
 		updateTitrePlot(data, rises, vaccineViruses)
 		updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises)
