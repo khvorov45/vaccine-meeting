@@ -2093,8 +2093,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	plotSumm: ["none", "clade", "circulating"],
-	cladeFreqsDefault: {},
 	cladeFreqs: {},
 	subtypeClades: {},
 	filters: {
@@ -2543,11 +2541,11 @@ const updateData = (contentsString) => {
 
 		// NOTE(sen) Clade frequencies
 		state.cladeFreqs = {}
-		state.cladeFreqsDefault = {}
+		const cladeFreqsDefault = {}
 		for (let row of data) {
 			if (state.cladeFreqs[row.clade] === undefined) {
 				state.cladeFreqs[row.clade] = Math.round(row.clade_freq * 100) / 100
-				state.cladeFreqsDefault[row.clade] = state.cladeFreqs[row.clade]
+				cladeFreqsDefault[row.clade] = state.cladeFreqs[row.clade]
 			}
 		}
 
@@ -2606,7 +2604,7 @@ const updateData = (contentsString) => {
 						el.innerHTML = clade + " (" + val + "%)"
 					}
 					updateCirculatingAverageData(cladeAverageTitres)
-					if (state.cladeFreqs[clade] === state.cladeFreqsDefault[clade]) {
+					if (state.cladeFreqs[clade] === cladeFreqsDefault[clade]) {
 						reset.style.color = "var(--color-border)"
 					} else {
 						reset.style.color = "var(--color-text)"
@@ -2614,7 +2612,7 @@ const updateData = (contentsString) => {
 				})
 
 				reset.addEventListener("click", (event) => {
-					input.value = `${state.cladeFreqsDefault[clade] * 100}`
+					input.value = `${cladeFreqsDefault[clade] * 100}`
 					input.dispatchEvent(new Event("input"))
 				})
 
