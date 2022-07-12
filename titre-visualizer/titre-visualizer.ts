@@ -1,6 +1,8 @@
 type Data = any[]
 type CladeAverageTitres = any[]
 type CladeAverageRises = any[]
+type CirculatingAverageTitres = any[]
+type CirculatingAverageRises = any[]
 type VaccineViruses = string[]
 
 //
@@ -2090,7 +2092,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	dataCirculatingAverageTitres: [],
 	dataRises: [],
 	dataCladeAverageRises: [],
 	dataCirculatingAverageRises: [],
@@ -2413,14 +2414,12 @@ const updateTitreCladeAveragePlot = (cladeAverageTitres: CladeAverageTitres) => 
 	}
 }
 
-const updateTitreCirculatingAveragePlot = () => {
+const updateTitreCirculatingAveragePlot = (circulatingAverageTitres: CirculatingAverageTitres) => {
 	if (areAllFiltersSet()) {
 		const subsetFilter = createSubsetFilter()
 
-		let dataSubsetCirculatingAverages =
-			state.dataCirculatingAverageTitres.filter(subsetFilter)
-		let dataSubsetCirculatingAverageRises =
-			state.dataCirculatingAverageRises.filter(subsetFilter)
+		let dataSubsetCirculatingAverages = circulatingAverageTitres.filter(subsetFilter)
+		let dataSubsetCirculatingAverageRises = state.dataCirculatingAverageRises.filter(subsetFilter)
 
 		while (state.plotContainer.circulatingAverage.element.lastChild) {
 			state.plotContainer.circulatingAverage.element.removeChild(
@@ -2461,80 +2460,74 @@ const updateTitreCirculatingAveragePlot = () => {
 }
 
 const updateCirculatingAverageData = (cladeAverageTitres: CladeAverageTitres) => {
-	state.dataCirculatingAverageTitres = []
 	state.dataCirculatingAverageRises = []
+	let circulatingAverageTitres = []
 
 	if (cladeAverageTitres.length > 0) {
 		// NOTE(sen) Titres
-		{
-			let groupVars = Object.keys(cladeAverageTitres[0]).filter(
-				(key) =>
-					key !== "titreCladeAverage" &&
-					key !== "clade" &&
-					key !== "clade_freq"
-			)
-			let groupedData = groupByMultiple(
-				cladeAverageTitres,
-				groupVars
-			)
 
-			state.dataCirculatingAverageTitres = summariseGrouped(
-				groupedData,
-				groupVars,
-				(data) => {
-					let sumLogTitres = 0
-					let sumWeights = 0
-					for (let row of data) {
-						let weight = state.cladeFreqs[row.clade]
-						let titre = row.titreCladeAverage
-						if (isGood(weight) && isGood(titre)) {
-							sumLogTitres += weight * Math.log(row.titreCladeAverage)
-							sumWeights += weight
-						}
+		const titresGroupVars = Object.keys(cladeAverageTitres[0]).filter(
+			(key) =>
+				key !== "titreCladeAverage" &&
+				key !== "clade" &&
+				key !== "clade_freq"
+		)
+		const titresGroupedData = groupByMultiple(
+			cladeAverageTitres,
+			titresGroupVars
+		)
+
+		circulatingAverageTitres = summariseGrouped(
+			titresGroupedData,
+			titresGroupVars,
+			(data) => {
+				let sumLogTitres = 0
+				let sumWeights = 0
+				for (let row of data) {
+					let weight = state.cladeFreqs[row.clade]
+					let titre = row.titreCladeAverage
+					if (isGood(weight) && isGood(titre)) {
+						sumLogTitres += weight * Math.log(row.titreCladeAverage)
+						sumWeights += weight
 					}
-					let weightedMean = null
-					if (sumWeights !== 0) {
-						weightedMean = Math.exp(sumLogTitres / sumWeights)
-					}
-					return { titreCirculatingAverage: weightedMean }
 				}
-			)
-		}
+				let weightedMean = null
+				if (sumWeights !== 0) {
+					weightedMean = Math.exp(sumLogTitres / sumWeights)
+				}
+				return { titreCirculatingAverage: weightedMean }
+			}
+		)
 
 		// NOTE(sen) Rises
-		{
-			let groupVars = Object.keys(
-				state.dataCirculatingAverageTitres[0]
-			).filter(
-				(key) => key !== "titreCirculatingAverage" && key !== "timepoint"
-			)
-			let groupedData = groupByMultiple(
-				state.dataCirculatingAverageTitres,
-				groupVars
-			)
+		const risesGroupVars = Object.keys(circulatingAverageTitres[0]).filter(
+			(key) => key !== "titreCirculatingAverage" && key !== "timepoint"
+		)
+		const risesGroupedData = groupByMultiple(circulatingAverageTitres, risesGroupVars)
 
-			state.dataCirculatingAverageRises = summariseGrouped(
-				groupedData,
-				groupVars,
-				(data) => {
-					let preVaxArr = data.filter((row) => row.timepoint === "Pre-vax")
-					let postVaxArr = data.filter((row) => row.timepoint === "Post-vax")
+		state.dataCirculatingAverageRises = summariseGrouped(
+			risesGroupedData,
+			risesGroupVars,
+			(data) => {
+				let preVaxArr = data.filter((row) => row.timepoint === "Pre-vax")
+				let postVaxArr = data.filter((row) => row.timepoint === "Post-vax")
 
-					let titreRatio = null
-					if (preVaxArr.length === 1 && postVaxArr.length === 1) {
-						let preVax = preVaxArr[0].titreCirculatingAverage
-						let postVax = postVaxArr[0].titreCirculatingAverage
-						if (isGood(preVax) && isGood(postVax)) {
-							titreRatio = postVax / preVax
-						}
+				let titreRatio = null
+				if (preVaxArr.length === 1 && postVaxArr.length === 1) {
+					let preVax = preVaxArr[0].titreCirculatingAverage
+					let postVax = postVaxArr[0].titreCirculatingAverage
+					if (isGood(preVax) && isGood(postVax)) {
+						titreRatio = postVax / preVax
 					}
-					return { titreCirculatingAverageRatio: titreRatio }
 				}
-			)
-		}
+				return { titreCirculatingAverageRatio: titreRatio }
+			}
+		)
 
-		updateTitreCirculatingAveragePlot()
+		updateTitreCirculatingAveragePlot(circulatingAverageTitres)
 	}
+
+	return circulatingAverageTitres
 }
 
 const updateData = (contentsString) => {
@@ -2720,7 +2713,7 @@ const updateData = (contentsString) => {
 					optionEl.style.background = "var(--color-selected)"
 					updateTitrePlot(data, vaccineViruses)
 					updateTitreCladeAveragePlot(cladeAverageTitres)
-					updateTitreCirculatingAveragePlot()
+					updateTitreCirculatingAveragePlot(circulatingAverageTitres)
 					updateFilterColors(data)
 					if (varName === "subtype") {
 						updateSliderSubtype()
@@ -2800,7 +2793,7 @@ const updateData = (contentsString) => {
 
 		findNonEmptyFilterSubset(data)
 
-		updateCirculatingAverageData(cladeAverageTitres)
+		const circulatingAverageTitres = updateCirculatingAverageData(cladeAverageTitres)
 
 		updateTitrePlot(data, vaccineViruses)
 		updateTitreCladeAveragePlot(cladeAverageTitres)
