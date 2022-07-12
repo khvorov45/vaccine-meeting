@@ -2142,10 +2142,6 @@ const createRiseCirculatingAveragePlotSvg = (
 	return plotSvg
 }
 
-let state = {
-	scrollbarStyle: null,
-}
-
 const areAllFiltersSet = (filters: Filters) => {
 	let allFiltersSet = true
 	for (let varName of Object.keys(filters)) {
