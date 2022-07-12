@@ -2143,7 +2143,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	filtersContainer: null,
 	opacitiesContainer: null,
 	fileSelectTextElement: null,
 	scrollbarStyle: null,
@@ -2492,7 +2491,7 @@ const updateCirculatingAverageData = (
 const updateData = (
 	contentsString: string, opacities: Opacities, colors: Colors,
 	defaultPlotSizes: PlotSizes, plotContainers: PlotContainers,
-	slidersContainer: HTMLElement,
+	slidersContainer: HTMLElement, filtersContainer: HTMLElement,
 ) => {
 	if (contentsString.length > 0) {
 		// NOTE(sen) Main data
@@ -2660,7 +2659,7 @@ const updateData = (
 		}
 
 		// NOTE(sen) Draw the newly populated filters
-		state.filtersContainer.innerHTML = ""
+		removeChildren(filtersContainer)
 
 		for (let varName of Object.keys(filters)) {
 			let filterEl = document.createElement("div")
@@ -2713,7 +2712,7 @@ const updateData = (
 				filters[varName].elements.push(optionEl)
 			}
 
-			state.filtersContainer.appendChild(filterEl)
+			filtersContainer.appendChild(filterEl)
 		}
 
 		// NOTE(sen) Titre rises
@@ -2856,6 +2855,7 @@ const main = () => {
 			fileInputLabel.innerHTML = file.name
 			file.text().then((string) => updateData(
 				string, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer,
+				filtersContainer,
 			))
 		}
 	})
@@ -3077,7 +3077,6 @@ const main = () => {
 
 	state.fileSelectTextElement = fileInputLabel
 	state.opacitiesContainer = opacitiesEl
-	state.filtersContainer = filtersContainer
 
 	const defaultPlotSizes = {
 		plotHeight: 600,
@@ -3096,7 +3095,10 @@ const main = () => {
 	// NOTE(sen) Dev only for now
 	fetch("/visualizer-data.csv")
 		.then((resp) => resp.text())
-		.then((string) => updateData(string, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer))
+		.then((string) => updateData(
+			string, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer,
+			filtersContainer,
+		))
 		.catch(console.error)
 }
 
