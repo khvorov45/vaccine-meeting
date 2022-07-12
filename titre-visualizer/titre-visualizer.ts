@@ -2143,7 +2143,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	fileSelectTextElement: null,
 	scrollbarStyle: null,
 }
 
@@ -3073,8 +3072,6 @@ const main = () => {
 
 	const slidersContainer = addDiv(inputContainer)
 	slidersContainer.style.marginBottom = "5px"
-
-	state.fileSelectTextElement = fileInputLabel
 
 	const defaultPlotSizes = {
 		plotHeight: 600,
