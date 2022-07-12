@@ -2140,7 +2140,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	slidersContainer: null,
 	subtypeSlidersContainers: {},
 	cladeFreqElements: {},
 	filtersContainer: null,
@@ -2484,6 +2483,7 @@ const updateCirculatingAverageData = (
 const updateData = (
 	contentsString: string, opacities: Opacities, colors: Colors,
 	defaultPlotSizes: PlotSizes, plotContainers: PlotContainers,
+	slidersContainer: HTMLElement,
 ) => {
 	if (contentsString.length > 0) {
 		// NOTE(sen) Main data
@@ -2524,11 +2524,11 @@ const updateData = (
 		}
 
 		// NOTE(sen) Populate clade frequency sliders
-		removeChildren(state.slidersContainer)
+		removeChildren(slidersContainer)
 		state.subtypeSlidersContainers = {}
 		state.cladeFreqElements = {}
 		for (let [subtype, clades] of Object.entries(subtypeClades)) {
-			let subtypeContainer = document.createElement("div")
+			let subtypeContainer = addDiv(slidersContainer)
 			subtypeContainer.style.marginBottom = "5px"
 
 			for (let clade of (<string[]>clades)) {
@@ -2587,7 +2587,6 @@ const updateData = (
 				state.cladeFreqElements[clade] = []
 			}
 
-			state.slidersContainer.appendChild(subtypeContainer)
 			state.subtypeSlidersContainers[subtype] = subtypeContainer
 		}
 
@@ -2847,7 +2846,7 @@ const main = () => {
 		if (file !== null && file !== undefined) {
 			fileInputLabel.innerHTML = file.name
 			file.text().then((string) => updateData(
-				string, opacities, colors, defaultPlotSizes, plotContainers
+				string, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer,
 			))
 		}
 	})
@@ -3064,13 +3063,12 @@ const main = () => {
 	filtersContainer.style.flexDirection = "row"
 	filtersContainer.style.flexWrap = "wrap"
 
-	const sliders = addDiv(inputContainer)
-	sliders.style.marginBottom = "5px"
+	const slidersContainer = addDiv(inputContainer)
+	slidersContainer.style.marginBottom = "5px"
 
 	state.fileSelectTextElement = fileInputLabel
 	state.opacitiesContainer = opacitiesEl
 	state.filtersContainer = filtersContainer
-	state.slidersContainer = sliders
 
 	const defaultPlotSizes = {
 		plotHeight: 600,
@@ -3089,7 +3087,7 @@ const main = () => {
 	// NOTE(sen) Dev only for now
 	fetch("/visualizer-data.csv")
 		.then((resp) => resp.text())
-		.then((string) => updateData(string, opacities, colors, defaultPlotSizes, plotContainers))
+		.then((string) => updateData(string, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer))
 		.catch(console.error)
 }
 
