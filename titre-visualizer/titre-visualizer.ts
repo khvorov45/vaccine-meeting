@@ -2093,7 +2093,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	dataCladeAverageRises: [],
 	dataCirculatingAverageRises: [],
 	plotMode: ["titres", "rises"],
 	plotSumm: ["none", "clade", "circulating"],
@@ -2368,13 +2367,12 @@ const updateTitrePlot = (titres: Titres, rises: Rises, vaccineViruses: VaccineVi
 	}
 }
 
-const updateTitreCladeAveragePlot = (cladeAverageTitres: CladeAverageTitres) => {
+const updateTitreCladeAveragePlot = (cladeAverageTitres: CladeAverageTitres, cladeAverageRises: CladeAverageRises) => {
 	if (areAllFiltersSet()) {
 		const subsetFilter = createSubsetFilter()
 
 		let dataSubsetCladeAverages = cladeAverageTitres.filter(subsetFilter)
-		let dataSubsetCladeAverageRises =
-			state.dataCladeAverageRises.filter(subsetFilter)
+		let dataSubsetCladeAverageRises = cladeAverageRises.filter(subsetFilter)
 
 		while (state.plotContainer.cladeAverage.element.lastChild) {
 			state.plotContainer.cladeAverage.element.removeChild(
@@ -2712,7 +2710,7 @@ const updateData = (contentsString) => {
 					}
 					optionEl.style.background = "var(--color-selected)"
 					updateTitrePlot(data, rises, vaccineViruses)
-					updateTitreCladeAveragePlot(cladeAverageTitres)
+					updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises)
 					updateTitreCirculatingAveragePlot(circulatingAverageTitres)
 					updateFilterColors(data)
 					if (varName === "subtype") {
@@ -2761,7 +2759,7 @@ const updateData = (contentsString) => {
 		}
 
 		// NOTE(sen) Clade-average rises
-		state.dataCladeAverageRises = []
+		let cladeAverageRises: CladeAverageRises = []
 		if (cladeAverageTitres.length > 0) {
 			let groupVars = Object.keys(cladeAverageTitres[0]).filter(
 				(key) => key !== "titreCladeAverage" && key !== "timepoint"
@@ -2771,7 +2769,7 @@ const updateData = (contentsString) => {
 				groupVars
 			)
 
-			state.dataCladeAverageRises = summariseGrouped(
+			cladeAverageRises = summariseGrouped(
 				groupedData,
 				groupVars,
 				(data) => {
@@ -2796,7 +2794,7 @@ const updateData = (contentsString) => {
 		const circulatingAverageTitres = updateCirculatingAverageData(cladeAverageTitres)
 
 		updateTitrePlot(data, rises, vaccineViruses)
-		updateTitreCladeAveragePlot(cladeAverageTitres)
+		updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises)
 	}
 }
 
