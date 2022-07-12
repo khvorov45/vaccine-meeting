@@ -35,6 +35,19 @@ type Colors = {
 	thresholdLine: string,
 	grid: string,
 }
+type PlotSizes = {
+	plotHeight: number,
+	widthPerElement: number,
+	axisPadLeft: number,
+	axisPadBottom: number,
+	axisPadTop: number,
+	dataPadX: number,
+	dataPadY: number,
+	tickLength: number,
+	prePostDistance: number,
+	boxPlotWidth: number,
+	svgTextLineHeightGuess: number,
+}
 
 //
 // SECTION Array
@@ -2125,19 +2138,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	defaultPlotSizes: {
-		plotHeight: 600,
-		widthPerElement: 100,
-		axisPadLeft: 120,
-		axisPadBottom: 250,
-		axisPadTop: 20,
-		dataPadX: 50,
-		dataPadY: 10,
-		tickLength: 5,
-		prePostDistance: 40,
-		boxPlotWidth: 15,
-		svgTextLineHeightGuess: 20,
-	},
 	plotContainer: {
 		noSummary: { element: null, titres: null, rises: null },
 		cladeAverage: { element: null, titres: null, rises: null },
@@ -2291,6 +2291,7 @@ const updateTitrePlot = (
 	titres: Titres, rises: Rises,
 	cladeFreqs: CladeFreqs, vaccineViruses: VaccineViruses,
 	filters: Filters, opacities: Opacities, colors: Colors,
+	defaultPlotSizes: PlotSizes,
 ) => {
 	if (areAllFiltersSet(filters)) {
 		const subsetFilter = createSubsetFilter(filters)
@@ -2314,7 +2315,7 @@ const updateTitrePlot = (
 			vaccineViruses,
 			opacities,
 			colors,
-			state.defaultPlotSizes
+			defaultPlotSizes
 		)
 
 		state.plotContainer.noSummary.rises = createRisePlotSvg(
@@ -2323,7 +2324,7 @@ const updateTitrePlot = (
 			vaccineViruses,
 			opacities,
 			colors,
-			state.defaultPlotSizes
+			defaultPlotSizes
 		)
 
 		state.plotContainer.noSummary.element.appendChild(state.plotContainer.noSummary.titres)
@@ -2338,6 +2339,7 @@ const updateTitreCladeAveragePlot = (
 	filters: Filters,
 	opacities: Opacities,
 	colors: Colors,
+	defaultPlotSizes: PlotSizes,
 ) => {
 	if (areAllFiltersSet(filters)) {
 		const subsetFilter = createSubsetFilter(filters)
@@ -2355,7 +2357,7 @@ const updateTitreCladeAveragePlot = (
 			opacities[varName].titreCladeAveragePlotElements = []
 		}
 
-		let plotSizes = reduceAxisPadBottom(100, state.defaultPlotSizes)
+		let plotSizes = reduceAxisPadBottom(100, defaultPlotSizes)
 		let vaccineClades = ["A.5a.2", "3C.2a1b.2a.2", "V1A.3a", "Y3"]
 
 		state.plotContainer.cladeAverage.titres = createTitreCladeAveragePlotSvg(
@@ -2385,6 +2387,7 @@ const updateTitreCirculatingAveragePlot = (
 	circulatingAverageTitres: CirculatingAverageTitres,
 	circulatingAverageRises: CirculatingAverageRises,
 	filters: Filters, opacities: Opacities, colors: Colors,
+	defaultPlotSizes: PlotSizes,
 ) => {
 	if (areAllFiltersSet(filters)) {
 		const subsetFilter = createSubsetFilter(filters)
@@ -2402,7 +2405,7 @@ const updateTitreCirculatingAveragePlot = (
 			opacities[varName].titreCirculatingAveragePlotElements = []
 		}
 
-		let plotSizes = reduceAxisPadBottom(40, state.defaultPlotSizes)
+		let plotSizes = reduceAxisPadBottom(40, defaultPlotSizes)
 
 		state.plotContainer.circulatingAverage.titres =
 			createTitreCirculatingAveragePlotSvg(
@@ -2433,6 +2436,7 @@ const updateTitreCirculatingAveragePlot = (
 const updateCirculatingAverageData = (
 	cladeAverageTitres: CladeAverageTitres, cladeFreqs: CladeFreqs,
 	filters: Filters, opacities: Opacities, colors: Colors,
+	defaultPlotSizes: PlotSizes,
 ) => {
 	let circulatingAverageTitres = []
 	let circulatingAverageRises = []
@@ -2500,13 +2504,14 @@ const updateCirculatingAverageData = (
 
 		updateTitreCirculatingAveragePlot(
 			circulatingAverageTitres, circulatingAverageRises, filters, opacities, colors,
+			defaultPlotSizes
 		)
 	}
 
 	return {titres: circulatingAverageTitres, rises: circulatingAverageRises}
 }
 
-const updateData = (contentsString: string, opacities: Opacities, colors: Colors) => {
+const updateData = (contentsString: string, opacities: Opacities, colors: Colors, defaultPlotSizes: PlotSizes) => {
 	if (contentsString.length > 0) {
 		// NOTE(sen) Main data
 		const data = parseData(contentsString)
@@ -2585,7 +2590,7 @@ const updateData = (contentsString: string, opacities: Opacities, colors: Colors
 					for (let el of state.cladeFreqElements[clade]) {
 						el.innerHTML = clade + " (" + val + "%)"
 					}
-					updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters, opacities, colors)
+					updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters, opacities, colors, defaultPlotSizes)
 					if (cladeFreqs[clade] === cladeFreqsDefault[clade]) {
 						reset.style.color = "var(--color-border)"
 					} else {
@@ -2693,9 +2698,9 @@ const updateData = (contentsString: string, opacities: Opacities, colors: Colors
 						otherOption.style.background = "inherit"
 					}
 					optionEl.style.background = "var(--color-selected)"
-					updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters, opacities, colors)
-					updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors)
-					updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises, filters, opacities, colors)
+					updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters, opacities, colors, defaultPlotSizes)
+					updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors, defaultPlotSizes)
+					updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises, filters, opacities, colors, defaultPlotSizes)
 					updateFilterColors(data, filters)
 					if (varName === "subtype") {
 						updateSliderSubtype(filters)
@@ -2775,12 +2780,12 @@ const updateData = (contentsString: string, opacities: Opacities, colors: Colors
 
 		findNonEmptyFilterSubset(data, filters)
 
-		const circulatingAverages = updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters, opacities, colors)
+		const circulatingAverages = updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters, opacities, colors, defaultPlotSizes)
 		const circulatingAverageTitres = circulatingAverages.titres
 		const circulatingAverageRises = circulatingAverages.rises
 
-		updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters, opacities, colors)
-		updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors)
+		updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters, opacities, colors, defaultPlotSizes)
+		updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors, defaultPlotSizes)
 	}
 }
 
@@ -2841,7 +2846,7 @@ const main = () => {
 		let file = (<HTMLInputElement>event.target).files[0]
 		if (file !== null && file !== undefined) {
 			fileInputLabel.innerHTML = file.name
-			file.text().then((string) => updateData(string, opacities, colors))
+			file.text().then((string) => updateData(string, opacities, colors, defaultPlotSizes))
 		}
 	})
 
@@ -3065,10 +3070,24 @@ const main = () => {
 	state.filtersContainer = filtersContainer
 	state.slidersContainer = sliders
 
+	const defaultPlotSizes = {
+		plotHeight: 600,
+		widthPerElement: 100,
+		axisPadLeft: 120,
+		axisPadBottom: 250,
+		axisPadTop: 20,
+		dataPadX: 50,
+		dataPadY: 10,
+		tickLength: 5,
+		prePostDistance: 40,
+		boxPlotWidth: 15,
+		svgTextLineHeightGuess: 20,
+	}
+
 	// NOTE(sen) Dev only for now
 	fetch("/visualizer-data.csv")
 		.then((resp) => resp.text())
-		.then((string) => updateData(string, opacities, colors))
+		.then((string) => updateData(string, opacities, colors, defaultPlotSizes))
 		.catch(console.error)
 }
 
