@@ -2140,7 +2140,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	subtypeSlidersContainers: {},
 	cladeFreqElements: {},
 	filtersContainer: null,
 	opacitiesContainer: null,
@@ -2159,8 +2158,8 @@ const areAllFiltersSet = (filters: Filters) => {
 	return allFiltersSet
 }
 
-const updateSliderSubtype = (filters: Filters) => {
-	for (let [subtype, slidersContainer] of Object.entries(state.subtypeSlidersContainers)) {
+const updateSliderSubtype = (filters: Filters, subtypeSlidersContainers: Record<string, HTMLElement>) => {
+	for (let [subtype, slidersContainer] of Object.entries(subtypeSlidersContainers)) {
 		if (subtype === filters.subtype.selected) {
 			(<HTMLElement>slidersContainer).style.display = "block"
 		} else {
@@ -2199,7 +2198,9 @@ const updateFilterColors = (data: Titres, filters: Filters) => {
 	}
 }
 
-const findNonEmptyFilterSubset = (data: Titres, filters: Filters) => {
+const findNonEmptyFilterSubset = (
+	data: Titres, filters: Filters, subtypeSlidersContainers: Record<string, HTMLElement>,
+) => {
 	if (!areAllFiltersSet(filters)) {
 		let currentSettings = []
 		for (let [filterIndex, varName] of Object.keys(filters).entries()) {
@@ -2265,7 +2266,7 @@ const findNonEmptyFilterSubset = (data: Titres, filters: Filters) => {
 			}
 		}
 
-		updateSliderSubtype(filters)
+		updateSliderSubtype(filters, subtypeSlidersContainers)
 		updateFilterColors(data, filters)
 	}
 }
@@ -2525,7 +2526,7 @@ const updateData = (
 
 		// NOTE(sen) Populate clade frequency sliders
 		removeChildren(slidersContainer)
-		state.subtypeSlidersContainers = {}
+		const subtypeSlidersContainers: Record<string, HTMLElement> = {}
 		state.cladeFreqElements = {}
 		for (let [subtype, clades] of Object.entries(subtypeClades)) {
 			let subtypeContainer = addDiv(slidersContainer)
@@ -2587,7 +2588,7 @@ const updateData = (
 				state.cladeFreqElements[clade] = []
 			}
 
-			state.subtypeSlidersContainers[subtype] = subtypeContainer
+			subtypeSlidersContainers[subtype] = subtypeContainer
 		}
 
 		// NOTE(sen) Work out clade-average titres
@@ -2687,7 +2688,7 @@ const updateData = (
 					)
 					updateFilterColors(data, filters)
 					if (varName === "subtype") {
-						updateSliderSubtype(filters)
+						updateSliderSubtype(filters, subtypeSlidersContainers)
 					}
 				})
 
@@ -2762,7 +2763,7 @@ const updateData = (
 			)
 		}
 
-		findNonEmptyFilterSubset(data, filters)
+		findNonEmptyFilterSubset(data, filters, subtypeSlidersContainers)
 
 		const circulatingAverages = updateCirculatingAverageData(
 			cladeAverageTitres, cladeFreqs, filters, opacities, colors, defaultPlotSizes,
