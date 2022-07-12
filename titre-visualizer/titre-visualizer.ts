@@ -2170,13 +2170,7 @@ let state = {
 		boxPlotWidth: 15,
 		svgTextLineHeightGuess: 20,
 	},
-	sizes: {
-		inputBar: "200px",
-	},
-	main: document.getElementById("main"),
-	inputContainer: null,
 	plotContainer: {
-		element: null,
 		noSummary: { element: null, titres: null, rises: null },
 		cladeAverage: { element: null, titres: null, rises: null },
 		circulatingAverage: { element: null, titres: null, rises: null },
@@ -3038,8 +3032,6 @@ const main = () => {
 	sliders.style.marginBottom = "5px"
 
 	state.fileSelectTextElement = fileInputLabel
-	state.inputContainer = inputContainer
-	state.plotContainer.element = plotContainer
 	state.opacitiesContainer = opacitiesEl
 	state.filtersContainer = filtersContainer
 	state.slidersContainer = sliders
