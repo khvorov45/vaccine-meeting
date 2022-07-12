@@ -6,6 +6,7 @@ type CirculatingAverageTitres = any[]
 type CirculatingAverageRises = any[]
 type VaccineViruses = string[]
 type CladeFreqs = Record<string, number>
+type SubtypeClades = Record<string, string[]>
 
 //
 // SECTION Array
@@ -62,9 +63,7 @@ const arrSortedAscMax = (sorted) => {
 	return sorted[sorted.length - 1]
 }
 
-const arrUnique = (arr) => {
-	return Array.from(new Set(arr))
-}
+const arrUnique = <T>(arr: T[]) => Array.from(new Set(arr))
 
 //
 // SECTION DOM
@@ -2098,7 +2097,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	subtypeClades: {},
 	filters: {
 		subtype: { elements: [], options: [], selected: null },
 		serum_source: { elements: [], options: [], selected: null },
@@ -2554,7 +2552,7 @@ const updateData = (contentsString) => {
 		}
 
 		// NOTE(sen) Subtype clades
-		state.subtypeClades = {}
+		const subtypeClades: SubtypeClades = {}
 		if (data.length > 0) {
 			let subtypes = arrUnique(data.map((row) => row.subtype)).sort(stringSort)
 			for (let subtype of subtypes) {
@@ -2563,7 +2561,7 @@ const updateData = (contentsString) => {
 						.filter((row) => row.subtype === subtype)
 						.map((row) => row.clade)
 				)
-				state.subtypeClades[(<string>subtype)] = clades.sort(stringSort)
+				subtypeClades[(<string>subtype)] = clades.sort(stringSort)
 			}
 		}
 
@@ -2571,7 +2569,7 @@ const updateData = (contentsString) => {
 		removeChildren(state.slidersContainer)
 		state.subtypeSlidersContainers = {}
 		state.cladeFreqElements = {}
-		for (let [subtype, clades] of Object.entries(state.subtypeClades)) {
+		for (let [subtype, clades] of Object.entries(subtypeClades)) {
 			let subtypeContainer = document.createElement("div")
 			subtypeContainer.style.marginBottom = "5px"
 
