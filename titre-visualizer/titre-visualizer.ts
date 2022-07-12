@@ -1,4 +1,5 @@
 type Data = any[]
+type VaccineViruses = string[]
 
 //
 // SECTION Array
@@ -2087,7 +2088,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	dataVaccineViruses: [],
 	dataCladeAverageTitres: [],
 	dataCirculatingAverageTitres: [],
 	dataRises: [],
@@ -2324,7 +2324,7 @@ const createSubsetFilter = () => {
 	}
 }
 
-const updateTitrePlot = (data: Data) => {
+const updateTitrePlot = (data: Data, vaccineViruses: VaccineViruses) => {
 	if (areAllFiltersSet()) {
 		const subsetFilter = createSubsetFilter()
 
@@ -2340,8 +2340,6 @@ const updateTitrePlot = (data: Data) => {
 		for (let varName of Object.keys(state.opacities)) {
 			state.opacities[varName].titrePlotElements = []
 		}
-
-		let vaccineViruses = state.dataVaccineViruses
 
 		state.plotContainer.noSummary.titres = createTitrePlotSvg(
 			dataSubset,
@@ -2545,10 +2543,11 @@ const updateData = (contentsString) => {
 		const data = parseData(contentsString)
 
 		// NOTE(sen) Vaccine viruses
+		const vaccineViruses: any[] = []
 		for (let row of data) {
 			if (row.vaccine_strain === true) {
-				if (!state.dataVaccineViruses.includes(row.virus)) {
-					state.dataVaccineViruses.push(row.virus)
+				if (!vaccineViruses.includes(row.virus)) {
+					vaccineViruses.push(row.virus)
 				}
 			}
 		}
@@ -2719,7 +2718,7 @@ const updateData = (contentsString) => {
 						otherOption.style.background = "inherit"
 					}
 					optionEl.style.background = "var(--color-selected)"
-					updateTitrePlot(data)
+					updateTitrePlot(data, vaccineViruses)
 					updateTitreCladeAveragePlot()
 					updateTitreCirculatingAveragePlot()
 					updateFilterColors(data)
@@ -2803,7 +2802,7 @@ const updateData = (contentsString) => {
 
 		updateCirculatingAverageData()
 
-		updateTitrePlot(data)
+		updateTitrePlot(data, vaccineViruses)
 		updateTitreCladeAveragePlot()
 	}
 }
