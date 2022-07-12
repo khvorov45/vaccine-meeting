@@ -1,3 +1,5 @@
+type Data = any[]
+
 //
 // SECTION Array
 //
@@ -2085,7 +2087,6 @@ const createRiseCirculatingAveragePlotSvg = (
 }
 
 let state = {
-	data: [],
 	dataVaccineViruses: [],
 	dataCladeAverageTitres: [],
 	dataCirculatingAverageTitres: [],
@@ -2207,16 +2208,12 @@ const updateSliderSubtype = () => {
 	}
 }
 
-const updateFilterColors = () => {
+const updateFilterColors = (data: Data) => {
 	for (let varName of Object.keys(state.filters)) {
-		let otherVarNames = Object.keys(state.filters).filter(
-			(key) => key !== varName
-		)
+		let otherVarNames = Object.keys(state.filters).filter((key) => key !== varName)
 
-		for (let [optionIndex, option] of state.filters[
-			varName
-		].options.entries()) {
-			let testRows = state.data.filter((row) => {
+		for (let [optionIndex, option] of state.filters[varName].options.entries()) {
+			let testRows = data.filter((row) => {
 				let result = row[varName] === option
 				if (result) {
 					for (let otherVarName of otherVarNames) {
@@ -2241,7 +2238,7 @@ const updateFilterColors = () => {
 	}
 }
 
-const findNonEmptyFilterSubset = () => {
+const findNonEmptyFilterSubset = (data: Data) => {
 	if (!areAllFiltersSet()) {
 		let currentSettings = []
 		for (let [filterIndex, varName] of Object.keys(state.filters).entries()) {
@@ -2274,7 +2271,7 @@ const findNonEmptyFilterSubset = () => {
 				}
 			}
 
-			let testRows = state.data.filter((row) => {
+			let testRows = data.filter((row) => {
 				let result = true
 				for (let varName of Object.keys(state.filters)) {
 					result = row[varName] === state.filters[varName].selected
@@ -2310,7 +2307,7 @@ const findNonEmptyFilterSubset = () => {
 		}
 
 		updateSliderSubtype()
-		updateFilterColors()
+		updateFilterColors(data)
 	}
 }
 
@@ -2327,11 +2324,11 @@ const createSubsetFilter = () => {
 	}
 }
 
-const updateTitrePlot = () => {
+const updateTitrePlot = (data: Data) => {
 	if (areAllFiltersSet()) {
 		const subsetFilter = createSubsetFilter()
 
-		let dataSubset = state.data.filter(subsetFilter)
+		let dataSubset = data.filter(subsetFilter)
 		let dataRisesSubset = state.dataRises.filter(subsetFilter)
 
 		while (state.plotContainer.noSummary.element.lastChild) {
@@ -2545,10 +2542,10 @@ const updateCirculatingAverageData = () => {
 const updateData = (contentsString) => {
 	if (contentsString.length > 0) {
 		// NOTE(sen) Main data
-		state.data = parseData(contentsString)
+		const data = parseData(contentsString)
 
 		// NOTE(sen) Vaccine viruses
-		for (let row of state.data) {
+		for (let row of data) {
 			if (row.vaccine_strain === true) {
 				if (!state.dataVaccineViruses.includes(row.virus)) {
 					state.dataVaccineViruses.push(row.virus)
@@ -2559,7 +2556,7 @@ const updateData = (contentsString) => {
 		// NOTE(sen) Clade frequencies
 		state.cladeFreqs = {}
 		state.cladeFreqsDefault = {}
-		for (let row of state.data) {
+		for (let row of data) {
 			if (state.cladeFreqs[row.clade] === undefined) {
 				state.cladeFreqs[row.clade] = Math.round(row.clade_freq * 100) / 100
 				state.cladeFreqsDefault[row.clade] = state.cladeFreqs[row.clade]
@@ -2568,11 +2565,11 @@ const updateData = (contentsString) => {
 
 		// NOTE(sen) Subtype clades
 		state.subtypeClades = {}
-		if (state.data.length > 0) {
-			let subtypes = arrUnique(state.data.map((row) => row.subtype)).sort(stringSort)
+		if (data.length > 0) {
+			let subtypes = arrUnique(data.map((row) => row.subtype)).sort(stringSort)
 			for (let subtype of subtypes) {
 				let clades = arrUnique(
-					state.data
+					data
 						.filter((row) => row.subtype === subtype)
 						.map((row) => row.clade)
 				)
@@ -2647,12 +2644,12 @@ const updateData = (contentsString) => {
 
 		// NOTE(sen) Work out clade-average titres
 		state.dataCladeAverageTitres = []
-		if (state.data.length > 0) {
-			let groupVars = Object.keys(state.data[0]).filter(
+		if (data.length > 0) {
+			let groupVars = Object.keys(data[0]).filter(
 				(key) => key !== "titre" && key !== "virus" && key !== "egg_cell" && key !== "vaccine_strain"
 			)
 			let groupedData = groupByMultiple(
-				state.data.filter((row) => row.clade !== "unassigned"),
+				data.filter((row) => row.clade !== "unassigned"),
 				groupVars
 			)
 
@@ -2678,10 +2675,7 @@ const updateData = (contentsString) => {
 		// NOTE(sen) Populate filters
 		for (let varName of Object.keys(state.filters)) {
 			state.filters[varName].selected = null
-
-			state.filters[varName].options = arrUnique(
-				state.data.map((row) => row[varName])
-			)
+			state.filters[varName].options = arrUnique(data.map((row) => row[varName]))
 
 			switch (varName) {
 				case "cohort": {
@@ -2725,10 +2719,10 @@ const updateData = (contentsString) => {
 						otherOption.style.background = "inherit"
 					}
 					optionEl.style.background = "var(--color-selected)"
-					updateTitrePlot()
+					updateTitrePlot(data)
 					updateTitreCladeAveragePlot()
 					updateTitreCirculatingAveragePlot()
-					updateFilterColors()
+					updateFilterColors(data)
 					if (varName === "subtype") {
 						updateSliderSubtype()
 					}
@@ -2752,11 +2746,11 @@ const updateData = (contentsString) => {
 
 		// NOTE(sen) Titre rises
 		state.dataRises = []
-		if (state.data.length > 0) {
-			let groupVars = Object.keys(state.data[0]).filter(
+		if (data.length > 0) {
+			let groupVars = Object.keys(data[0]).filter(
 				(key) => key !== "titre" && key !== "timepoint"
 			)
-			let groupedData = groupByMultiple(state.data, groupVars)
+			let groupedData = groupByMultiple(data, groupVars)
 
 			state.dataRises = summariseGrouped(groupedData, groupVars, (data) => {
 				let preVaxArr = data.filter((row) => row.timepoint === "Pre-vax")
@@ -2805,11 +2799,11 @@ const updateData = (contentsString) => {
 			)
 		}
 
-		findNonEmptyFilterSubset()
+		findNonEmptyFilterSubset(data)
 
 		updateCirculatingAverageData()
 
-		updateTitrePlot()
+		updateTitrePlot(data)
 		updateTitreCladeAveragePlot()
 	}
 }
