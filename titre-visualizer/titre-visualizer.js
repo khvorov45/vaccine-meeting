@@ -1737,7 +1737,7 @@ const updateData = (contentsString, opacities, colors, defaultPlotSizes, plotCon
         updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors, defaultPlotSizes, plotContainers.cladeAverage, cladeFreqElements);
     }
 };
-const main = () => {
+const main = async () => {
     const mainEl = document.getElementById("main");
     const inputBarSize = 200;
     const inputContainer = addDiv(mainEl);
@@ -2019,10 +2019,15 @@ const main = () => {
         svgTextLineHeightGuess: 20,
     };
     // NOTE(sen) Dev only for now
-    fetch("/vis2022.csv")
-        .then((resp) => resp.text())
-        .then((string) => updateData(string, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer, filtersContainer))
-        .catch(console.error);
+    let fetchString = "";
+    try {
+        const resp = await fetch("/vis2022e.csv");
+        if (resp.ok) {
+            fetchString = await resp.text();
+        }
+    }
+    catch (e) { }
+    updateData(fetchString, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer, filtersContainer);
 };
 main();
 export {};

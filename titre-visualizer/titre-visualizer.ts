@@ -2789,7 +2789,7 @@ const updateData = (
 	}
 }
 
-const main = () => {
+const main = async () => {
 	const mainEl = document.getElementById("main")!
 
 	const inputBarSize = 200
@@ -3108,13 +3108,18 @@ const main = () => {
 	}
 
 	// NOTE(sen) Dev only for now
-	fetch("/vis2022.csv")
-		.then((resp) => resp.text())
-		.then((string) => updateData(
-			string, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer,
-			filtersContainer,
-		))
-		.catch(console.error)
+	let fetchString = ""
+	try {
+		const resp = await fetch("/vis2022e.csv")
+		if (resp.ok) {
+			fetchString = await resp.text()
+		}
+	} catch (e) {}
+
+	updateData(
+		fetchString, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer,
+		filtersContainer,
+	)
 }
 
 main()
