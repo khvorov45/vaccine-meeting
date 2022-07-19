@@ -49,22 +49,27 @@ vis2022 <- nh_titres %>%
 		timepoint = recode(timepoint, "prevax" = "Pre-vax", "postvax" = "Post-vax"),
 		egg_cell = if_else(passage == "Egg", "Egg", "Cell"),
 		clade_freq = 0.5,
-		vaccine_strain = FALSE,
-		virus = paste0(strain, if_else(egg_cell == "egg", "e", "")),
+		virus = paste0(strain, if_else(egg_cell == "Egg", "e", "")) %>% 
+			tolower() %>% 
+			tools::toTitleCase() %>% 
+			str_replace("^a/", "A/") %>%
+			str_replace("^b/", "B/"),
 		serum_id = paste(testing_lab, cohort, serum_lab, vaccine, pid, sep = "__")
 	) %>%
 	select(
 		serum_id, cohort, virus, clade, titre, subtype = type, timepoint,
-		egg_cell, serum_source = serum_lab, vaccine = vaccine, testing_lab, clade_freq, vaccine_strain
-	) 
-	# %>%
-	# group_by(cohort, serum_source, testing_lab, vaccine) %>%
-	# mutate(serum_id = paste0(cur_group_id(), row_number())) %>%
-	# ungroup()
+		egg_cell, serum_source = serum_lab, vaccine = vaccine, testing_lab, clade_freq,
+	) %>%
+	mutate(
+		vaccine_strain = virus %in% c(
+			"A/Darwin/6/2021e",
+			"A/Victoria/2570/2019e",
+			"B/Washington/02/2019e",
+			"B/Phuket/3073/2013e"
+	    ),
+	)
 
 quick_summary(vis2022)
-vis2022 %>% filter(serum_id == first(serum_id)) %>% quick_summary()
-vis2022 %>% filter(serum_id == first(serum_id)) %>% write_csv("temp.csv")
 
 write_csv(vis2022, "data2022/vis2022.csv")
 write_csv(vis2022, "titre-visualizer/vis2022.csv")
