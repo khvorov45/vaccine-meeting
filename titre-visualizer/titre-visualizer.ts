@@ -2609,9 +2609,7 @@ const updateData = (
 				(data) => {
 					let dataSubsetNoEggs = data
 					if (dataSubsetNoEggs.length > 1) {
-						dataSubsetNoEggs = dataSubsetNoEggs.filter(
-							(row) => row.egg_cell === "Cell"
-						)
+						dataSubsetNoEggs = dataSubsetNoEggs.filter((row) => row.egg_cell === "Cell")
 					}
 					let logtitres = dataSubsetNoEggs
 						.filter(row => isGood(row.titre))
@@ -3084,7 +3082,7 @@ const main = () => {
 	}
 
 	// NOTE(sen) Dev only for now
-	fetch("/visualizer-data.csv")
+	fetch("/vis2022.csv")
 		.then((resp) => resp.text())
 		.then((string) => updateData(
 			string, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer,
