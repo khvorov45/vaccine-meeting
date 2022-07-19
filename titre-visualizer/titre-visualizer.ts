@@ -986,6 +986,13 @@ const createTitrePlotSvg = (
 
 					// NOTE(sen) GMTs
 					let gmtStats = calcMeanStats(titres)
+
+					if (virusName === "A/Victoria/2570/2019e" && timepoint === "Post-vax") {
+						const yCoord = scaleLogtitre(gmtStats.mean)
+						const line = createLine(labFirstX - sizes.widthPerElement / 2, labLastX + sizes.widthPerElement / 2, yCoord, yCoord, colors.vaccinePostVax)
+						addEl(plotSvg, <HTMLElement><unknown>line)
+					}
+
 					if (gmtStats !== null) {
 						let gmtErrorBar = createErrorBar(
 							scaleLogtitre(gmtStats.low),

@@ -49,16 +49,16 @@ vis2022 <- nh_titres %>%
 		timepoint = recode(timepoint, "prevax" = "Pre-vax", "postvax" = "Post-vax"),
 		egg_cell = if_else(passage == "Egg", "Egg", "Cell"),
 		clade_freq = 0.5,
-		virus = paste0(strain, if_else(egg_cell == "Egg", "e", "")) %>% 
-			tolower() %>% 
-			tools::toTitleCase() %>% 
+		virus = paste0(strain, if_else(egg_cell == "Egg", "e", "")) %>%
+			tolower() %>%
+			tools::toTitleCase() %>%
 			str_replace("^a/", "A/") %>%
 			str_replace("^b/", "B/"),
 		serum_id = paste(testing_lab, cohort, serum_lab, vaccine, pid, sep = "__")
 	) %>%
 	select(
 		serum_id, cohort, virus, clade, titre, subtype = type, timepoint,
-		egg_cell, serum_source = serum_lab, vaccine = vaccine, testing_lab, clade_freq,
+		egg_cell, serum_source = location, vaccine = vaccine, testing_lab, clade_freq,
 	) %>%
 	mutate(
 		vaccine_strain = virus %in% c(
