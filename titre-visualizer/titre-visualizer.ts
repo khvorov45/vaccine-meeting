@@ -3037,9 +3037,6 @@ const main = async () => {
 	modeSwitch.style.flexDirection = "row"
 	modeSwitch.style.marginBottom = "20px"
 
-	const opacitiesContainer = addDiv(inputContainer)
-	opacitiesContainer.style.marginBottom = "20px"
-
 	const opacities: Opacities = {
 		points: {
 			titrePlotElements: [],
@@ -3085,58 +3082,39 @@ const main = async () => {
 		},
 	}
 
-	for (let varName of Object.keys(opacities)) {
-		const opacityEl = createDiv()
-		opacityEl.textContent = varName.toUpperCase()
+	const opacitiesSwitch = addEl(inputContainer, createSwitch(
+		Object.keys(opacities), Object.keys(opacities),
+		(opacitiesSel) => {
+			for (let opacity of Object.keys(opacities)) {
+				let targetOpacity = 0
+				if (opacitiesSel.includes(opacity)) {
+					targetOpacity = opacities[opacity].default
+				}
+				const alpha = colChannel255ToString(targetOpacity)
 
-		opacityEl.addEventListener("click", (event) => {
-			let targetOpacity = 0
-			if (opacities[varName].value === 0) {
-				targetOpacity = opacities[varName].default
-			}
+				let attrNames = ["stroke"]
+				if (opacity === "counts" || opacity === "points") {
+					attrNames = ["fill"]
+				} else if (opacity === "means") {
+					attrNames.push("fill")
+				}
 
-			opacities[varName].value = targetOpacity
-
-			if (targetOpacity > 0) {
-				(<HTMLElement>event.target).style.background = "var(--color-selected)"
-			} else {
-				(<HTMLElement>event.target).style.background = "inherit"
-			}
-
-			let alpha = colChannel255ToString(targetOpacity)
-			let attrNames = ["stroke"]
-			if (varName === "counts" || varName === "points") {
-				attrNames = ["fill"]
-			} else if (varName === "means") {
-				attrNames.push("fill")
-			}
-
-			for (let [name, val] of Object.entries(opacities[varName])) {
-				if (name.endsWith("Elements")) {
-					for (let element of opacities[varName][name]) {
+				let allElementArrays = ["titrePlotElements", "titreCladeAveragePlotElements", "titreCirculatingAveragePlotElements"]
+				for (let elementArray of allElementArrays) {
+					for (let el of opacities[opacity][elementArray]) {
 						for (let attrName of attrNames) {
-							let currentColFull = element.getAttribute(attrName)
+							let currentColFull = el.getAttribute(attrName)
 							let currentColNoAlpha = currentColFull.slice(0, 7)
 							let newCol = currentColNoAlpha + alpha
-							element.setAttributeNS(null, attrName, newCol)
+							el.setAttributeNS(null, attrName, newCol)
 						}
 					}
 				}
 			}
-		})
-
-		opacityEl.style.cursor = "pointer"
-		opacityEl.style.border = "1px solid var(--color-border)"
-		opacityEl.style.textAlign = "center"
-		opacityEl.style.padding = "5px"
-		if (opacities[varName].value > 0) {
-			opacityEl.style.background = "var(--color-selected)"
-		}
-		opacityEl.style.fontWeight = "bold"
-		opacityEl.style.letterSpacing = "2px"
-
-		opacitiesContainer.appendChild(opacityEl)
-	}
+		},
+		switchOptionStyleAllCaps
+	))
+	opacitiesSwitch.style.marginBottom = "20px"
 
 	const filtersContainer = addDiv(inputContainer)
 	filtersContainer.style.display = "flex"
