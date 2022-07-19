@@ -1784,18 +1784,20 @@ const main = () => {
     fileInputLabel.style.textAlign = "center";
     fileInputLabel.style.width = "100%";
     fileInputLabel.style.height = "100%";
-    fileInputLabel.style.lineHeight = "100px";
+    fileInputLabel.style.lineHeight = "50px";
     fileInputLabel.style.fontWeight = "bold";
     fileInputLabel.style.letterSpacing = "2px";
-    const fileInput = addEl(fileInputContainer, createEl("input"));
-    fileInput.setAttribute("type", "file");
-    fileInput.addEventListener("change", (event) => {
+    const fileInputHandler = (event) => {
+        fileInputWholePage.style.visibility = "hidden";
         let file = event.target.files[0];
         if (file !== null && file !== undefined) {
             fileInputLabel.innerHTML = file.name;
             file.text().then((string) => updateData(string, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer, filtersContainer));
         }
-    });
+    };
+    const fileInput = addEl(fileInputContainer, createEl("input"));
+    fileInput.setAttribute("type", "file");
+    fileInput.addEventListener("change", fileInputHandler);
     fileInput.style.opacity = "0";
     fileInput.style.cursor = "pointer";
     fileInput.style.width = "100%";
@@ -1807,6 +1809,20 @@ const main = () => {
     fileInputContainer.style.flexShrink = "0";
     fileInputContainer.style.boxSizing = "border-box";
     fileInputContainer.style.marginBottom = "20px";
+    const fileInputWholePage = addEl(mainEl, createEl("input"));
+    fileInputWholePage.type = "file";
+    fileInputWholePage.addEventListener("change", fileInputHandler);
+    fileInputWholePage.style.position = "fixed";
+    fileInputWholePage.style.top = "0";
+    fileInputWholePage.style.left = "0";
+    fileInputWholePage.style.width = "100%";
+    fileInputWholePage.style.height = "100%";
+    fileInputWholePage.style.opacity = "0.5";
+    fileInputWholePage.style.visibility = "hidden";
+    fileInputWholePage.style.zIndex = "999";
+    fileInputWholePage.style.background = "gray";
+    window.addEventListener("dragenter", () => fileInputWholePage.style.visibility = "visible");
+    fileInputWholePage.addEventListener("dragleave", () => fileInputWholePage.style.visibility = "hidden");
     const colors = {
         theme: "dark",
         preVax: "#308A36",
