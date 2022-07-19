@@ -1,12 +1,15 @@
+const THEMES_ = ["dark", "light"];
+const THEMES = THEMES_;
+const PLOT_MODES_ = ["titres", "rises"];
+const PLOT_MODES = PLOT_MODES_;
+const SUMMARY_TYPES_ = ["noSummary", "cladeAverage", "circulatingAverage"];
+const SUMMARY_TYPES = SUMMARY_TYPES_;
 //
 // SECTION Array
 //
-const arrAsc = (arr) => {
-    return arr.sort((a, b) => a - b);
-};
-const arrSum = (arr) => {
-    return arr.reduce((a, b) => a + b, 0);
-};
+const arrAsc = (arr) => arr.sort((a, b) => a - b);
+const arrSum = (arr) => arr.reduce((a, b) => a + b, 0);
+const arrMean = (arr) => arrSum(arr) / arr.length;
 const arrCumSum = (arr) => {
     let result = [];
     let current = 0;
@@ -15,9 +18,6 @@ const arrCumSum = (arr) => {
         result.push(current);
     }
     return result;
-};
-const arrMean = (arr) => {
-    return arrSum(arr) / arr.length;
 };
 const arrSd = (arr) => {
     const mu = arrMean(arr);
@@ -34,16 +34,22 @@ const arrSortedAscQuantile = (sorted, q) => {
     }
     return result;
 };
-const arrQuantile = (arr, q) => {
-    return arrSortedAscQuantile(arrAsc(arr), q);
-};
-const arrSortedAscMin = (sorted) => {
-    return sorted[0];
-};
-const arrSortedAscMax = (sorted) => {
-    return sorted[sorted.length - 1];
-};
+const arrQuantile = (arr, q) => arrSortedAscQuantile(arrAsc(arr), q);
+const arrSortedAscMin = (sorted) => sorted[0];
+const arrSortedAscMax = (sorted) => sorted[sorted.length - 1];
 const arrUnique = (arr) => Array.from(new Set(arr));
+const arrRemoveIndex = (arr, index) => arr.splice(index, 1);
+const arrLinSearch = (arr, item) => {
+    let result = -1;
+    for (let index = 0; index < arr.length; index += 1) {
+        let elem = arr[index];
+        if (elem === item) {
+            result = index;
+            break;
+        }
+    }
+    return result;
+};
 //
 // SECTION DOM
 //
@@ -55,6 +61,80 @@ const addDiv = (parent) => addEl(parent, createDiv());
 const removeChildren = (el) => { while (el.lastChild) {
     el.removeChild(el.lastChild);
 } };
+const switchOptionStyleAllCaps = (optEl, optVal) => {
+    optEl.style.flexGrow = "1";
+    optEl.style.fontWeight = "bold";
+    optEl.style.letterSpacing = "2px";
+    optEl.style.border = "1px solid var(--color-border)";
+    optEl.textContent = optVal.toUpperCase();
+};
+const createSwitch = (init, opts, onUpdate, optElementStyle, forOpt) => {
+    let multiple = Array.isArray(init);
+    if (multiple) {
+        init = Array.from(init);
+    }
+    const switchElement = createDiv();
+    let currentSel = init;
+    const isSelected = (opt) => {
+        let result = (!multiple && opt === currentSel) ||
+            (multiple && arrLinSearch(currentSel, opt) !== -1);
+        return result;
+    };
+    for (let opt of opts) {
+        let optElement = addDiv(switchElement);
+        optElement.style.paddingTop = "5px";
+        optElement.style.paddingBottom = "5px";
+        optElement.style.cursor = "pointer";
+        optElement.style.textAlign = "center";
+        optElement.textContent = `${opt}`;
+        optElementStyle === null || optElementStyle === void 0 ? void 0 : optElementStyle(optElement, opt);
+        let normalCol = "var(--color-background)";
+        let hoverCol = "var(--color-background2)";
+        let selectedCol = "var(--color-selected)";
+        if (isSelected(opt)) {
+            optElement.style.backgroundColor = selectedCol;
+        }
+        else {
+            optElement.style.backgroundColor = normalCol;
+        }
+        optElement.addEventListener("mouseover", (event) => {
+            if (!isSelected(opt)) {
+                optElement.style.backgroundColor = hoverCol;
+            }
+        });
+        optElement.addEventListener("mouseout", (event) => {
+            if (!isSelected(opt)) {
+                optElement.style.backgroundColor = normalCol;
+            }
+        });
+        optElement.addEventListener("click", async (event) => {
+            if (!multiple && opt !== currentSel) {
+                for (let child of switchElement.childNodes) {
+                    child.style.backgroundColor = normalCol;
+                }
+                optElement.style.backgroundColor = selectedCol;
+                currentSel = opt;
+                onUpdate(opt);
+            }
+            else if (multiple) {
+                let optIndex = arrLinSearch(currentSel, opt);
+                if (optIndex !== -1) {
+                    optElement.style.backgroundColor = normalCol;
+                    arrRemoveIndex(currentSel, optIndex);
+                }
+                else {
+                    optElement.style.backgroundColor = selectedCol;
+                    currentSel.push(opt);
+                }
+                onUpdate(currentSel);
+            }
+        });
+        if (forOpt !== undefined) {
+            forOpt(opt, optElement, (newSel) => { currentSel = newSel; });
+        }
+    }
+    return switchElement;
+};
 //
 // SECTION ?
 //
@@ -1776,6 +1856,13 @@ const main = async () => {
         }
     }
     const fileInputContainer = addDiv(inputContainer);
+    fileInputContainer.style.border = "1px dashed var(--color-fileSelectBorder)";
+    fileInputContainer.style.width = "100%";
+    fileInputContainer.style.height = "50px";
+    fileInputContainer.style.position = "relative";
+    fileInputContainer.style.flexShrink = "0";
+    fileInputContainer.style.boxSizing = "border-box";
+    fileInputContainer.style.marginBottom = "20px";
     const fileInputLabel = addDiv(fileInputContainer);
     fileInputLabel.innerHTML = "SELECT FILE";
     fileInputLabel.style.position = "absolute";
@@ -1784,7 +1871,7 @@ const main = async () => {
     fileInputLabel.style.textAlign = "center";
     fileInputLabel.style.width = "100%";
     fileInputLabel.style.height = "100%";
-    fileInputLabel.style.lineHeight = "50px";
+    fileInputLabel.style.lineHeight = fileInputContainer.style.height;
     fileInputLabel.style.fontWeight = "bold";
     fileInputLabel.style.letterSpacing = "2px";
     const fileInputHandler = (event) => {
@@ -1796,19 +1883,12 @@ const main = async () => {
         }
     };
     const fileInput = addEl(fileInputContainer, createEl("input"));
-    fileInput.setAttribute("type", "file");
+    fileInput.type = "file";
     fileInput.addEventListener("change", fileInputHandler);
     fileInput.style.opacity = "0";
     fileInput.style.cursor = "pointer";
     fileInput.style.width = "100%";
     fileInput.style.height = "100%";
-    fileInputContainer.style.border = "1px dashed var(--color-fileSelectBorder)";
-    fileInputContainer.style.width = "100%";
-    fileInputContainer.style.height = fileInputLabel.style.lineHeight;
-    fileInputContainer.style.position = "relative";
-    fileInputContainer.style.flexShrink = "0";
-    fileInputContainer.style.boxSizing = "border-box";
-    fileInputContainer.style.marginBottom = "20px";
     const fileInputWholePage = addEl(mainEl, createEl("input"));
     fileInputWholePage.type = "file";
     fileInputWholePage.addEventListener("change", fileInputHandler);
@@ -1834,78 +1914,27 @@ const main = async () => {
         thresholdLine: "#aaaaaa",
         grid: "#99999944",
     };
-    const themeSwitch = addDiv(inputContainer);
+    const themeSwitch = addEl(inputContainer, createSwitch("dark", THEMES, (opt) => {
+        colors.theme = opt;
+        document.documentElement.setAttribute("theme", opt);
+    }, switchOptionStyleAllCaps));
     themeSwitch.style.display = "flex";
     themeSwitch.style.flexDirection = "row";
     themeSwitch.style.marginBottom = "20px";
-    themeSwitch.style.cursor = "pointer";
-    const themeOptions = ["dark", "light"];
-    const optionEls = [];
-    for (let option of themeOptions) {
-        const optionEl = addDiv(themeSwitch);
-        optionEl.textContent = option.toUpperCase();
-        optionEl.style.padding = "5px";
-        optionEl.style.border = "1px solid var(--color-border)";
-        optionEl.style.flexGrow = "1";
-        optionEl.style.textAlign = "center";
-        optionEl.style.fontWeight = "bold";
-        optionEl.style.letterSpacing = "2px";
-        if (option === colors.theme) {
-            optionEl.style.background = "var(--color-selected)";
+    const modeSwitch = addEl(inputContainer, createSwitch(PLOT_MODES, PLOT_MODES, (plotModes) => {
+        for (let summaryType of SUMMARY_TYPES) {
+            for (let plotMode of PLOT_MODES) {
+                let targetVisibility = "none";
+                if (plotModes.includes(plotMode)) {
+                    targetVisibility = "block";
+                }
+                plotContainers[summaryType][plotMode].style.display = targetVisibility;
+            }
         }
-        optionEls.push(optionEl);
-    }
-    themeSwitch.addEventListener("click", (event) => {
-        let targetTheme = "dark";
-        let selectionTarget = 0;
-        let inheritTarget = 1;
-        if (colors.theme === "dark") {
-            targetTheme = "light";
-            selectionTarget = 1;
-            inheritTarget = 0;
-        }
-        colors.theme = targetTheme;
-        document.documentElement.setAttribute("theme", targetTheme);
-        optionEls[selectionTarget].style.background = "var(--color-selected)";
-        optionEls[inheritTarget].style.background = "inherit";
-    });
-    const modeSwitch = addDiv(inputContainer);
+    }, switchOptionStyleAllCaps));
     modeSwitch.style.display = "flex";
     modeSwitch.style.flexDirection = "row";
     modeSwitch.style.marginBottom = "20px";
-    modeSwitch.style.cursor = "pointer";
-    let plotMode = ["titres", "rises"];
-    const modeOptions = ["titres", "rises"];
-    for (let option of modeOptions) {
-        const optionEl = addDiv(modeSwitch);
-        optionEl.textContent = option.toUpperCase();
-        optionEl.style.padding = "5px";
-        optionEl.style.border = "1px solid var(--color-border)";
-        optionEl.style.flexGrow = "1";
-        optionEl.style.textAlign = "center";
-        optionEl.style.fontWeight = "bold";
-        optionEl.style.letterSpacing = "2px";
-        if (plotMode.includes(option)) {
-            optionEl.style.background = "var(--color-selected)";
-        }
-        optionEl.addEventListener("click", (event) => {
-            let targetVisibility = "block";
-            if (plotMode.includes(option)) {
-                optionEl.style.background = "inherit";
-                plotMode = plotMode.filter((op) => op !== option);
-                targetVisibility = "none";
-            }
-            else {
-                optionEl.style.background = "var(--color-selected)";
-                plotMode.push(option);
-            }
-            for (let summaryType of Object.keys(plotContainers)) {
-                if (summaryType !== "element") {
-                    plotContainers[summaryType][option].style.display = targetVisibility;
-                }
-            }
-        });
-    }
     const opacitiesContainer = addDiv(inputContainer);
     opacitiesContainer.style.marginBottom = "20px";
     const opacities = {
@@ -2021,7 +2050,7 @@ const main = async () => {
     // NOTE(sen) Dev only for now
     let fetchString = "";
     try {
-        const resp = await fetch("/vis2022e.csv");
+        const resp = await fetch("/vis2022.csv");
         if (resp.ok) {
             fetchString = await resp.text();
         }

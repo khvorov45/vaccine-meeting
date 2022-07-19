@@ -9,6 +9,7 @@ type CladeFreqs = Record<string, number>
 type SubtypeClades = Record<string, string[]>
 type Filter = {elements: HTMLElement[], options: [], selected: string}
 type Filters = {subtype: Filter, serum_source: Filter, cohort: Filter,}
+
 type Opacity = {
 	titrePlotElements: HTMLElement[],
 	titreCladeAveragePlotElements: HTMLElement[],
@@ -16,6 +17,7 @@ type Opacity = {
 	value: number,
 	default: number,
 }
+
 type Opacities = {
 	points: Opacity,
 	lines: Opacity,
@@ -24,6 +26,7 @@ type Opacities = {
 	line40: Opacity,
 	means: Opacity,
 }
+
 type Colors = {
 	theme: string,
 	preVax: string,
@@ -35,6 +38,7 @@ type Colors = {
 	thresholdLine: string,
 	grid: string,
 }
+
 type PlotSizes = {
 	plotHeight: number,
 	widthPerElement: number,
@@ -48,20 +52,29 @@ type PlotSizes = {
 	boxPlotWidth: number,
 	svgTextLineHeightGuess: number,
 }
+
 type PlotContainer = { element: HTMLElement, titres: HTMLElement, rises: HTMLElement }
 type PlotContainers = { noSummary: PlotContainer, cladeAverage: PlotContainer, circulatingAverage: PlotContainer }
+
+const THEMES_ = ["dark", "light"] as const
+const THEMES = THEMES_ as unknown as string[]
+type Theme = (typeof THEMES_)[number]
+
+const PLOT_MODES_ = ["titres", "rises"] as const
+const PLOT_MODES = PLOT_MODES_ as unknown as string[]
+type PlotMode = (typeof PLOT_MODES_)[number]
+
+const SUMMARY_TYPES_ = ["noSummary", "cladeAverage", "circulatingAverage"] as const
+const SUMMARY_TYPES = SUMMARY_TYPES_ as unknown as string[]
+type SummaryType = (typeof SUMMARY_TYPES_)[number]
 
 //
 // SECTION Array
 //
 
-const arrAsc = (arr) => {
-	return arr.sort((a, b) => a - b)
-}
-
-const arrSum = (arr) => {
-	return arr.reduce((a, b) => a + b, 0)
-}
+const arrAsc = (arr) => arr.sort((a, b) => a - b)
+const arrSum = (arr) => arr.reduce((a, b) => a + b, 0)
+const arrMean = (arr) => arrSum(arr) / arr.length
 
 const arrCumSum = (arr) => {
 	let result = []
@@ -71,10 +84,6 @@ const arrCumSum = (arr) => {
 		result.push(current)
 	}
 	return result
-}
-
-const arrMean = (arr) => {
-	return arrSum(arr) / arr.length
 }
 
 const arrSd = (arr) => {
@@ -94,19 +103,23 @@ const arrSortedAscQuantile = (sorted, q) => {
 	return result
 }
 
-const arrQuantile = (arr, q) => {
-	return arrSortedAscQuantile(arrAsc(arr), q)
-}
-
-const arrSortedAscMin = (sorted) => {
-	return sorted[0]
-}
-
-const arrSortedAscMax = (sorted) => {
-	return sorted[sorted.length - 1]
-}
-
+const arrQuantile = (arr, q) => arrSortedAscQuantile(arrAsc(arr), q)
+const arrSortedAscMin = (sorted) => sorted[0]
+const arrSortedAscMax = (sorted) => sorted[sorted.length - 1]
 const arrUnique = <T>(arr: T[]) => Array.from(new Set(arr))
+const arrRemoveIndex = (arr: any[], index: number) => arr.splice(index, 1)
+
+const arrLinSearch = <T>(arr: T[], item: T) => {
+	let result = -1
+	for (let index = 0; index < arr.length; index += 1) {
+		let elem = arr[index]
+		if (elem === item) {
+			result = index
+			break
+		}
+	}
+	return result
+}
 
 //
 // SECTION DOM
@@ -118,6 +131,97 @@ const createDiv = () => createEl("div")
 const addEl = (parent: HTMLElement, child: HTMLElement) => {parent.appendChild(child); return child}
 const addDiv = (parent: HTMLElement) => addEl(parent, createDiv())
 const removeChildren = (el: HTMLElement) => {while (el.lastChild) {el.removeChild(el.lastChild)}}
+
+const switchOptionStyleAllCaps = (optEl: HTMLElement, optVal: string) => {
+	optEl.style.flexGrow = "1"
+	optEl.style.fontWeight = "bold"
+	optEl.style.letterSpacing = "2px"
+	optEl.style.border = "1px solid var(--color-border)"
+	optEl.textContent = optVal.toUpperCase()
+}
+
+const createSwitch = <SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]>(
+	init: OptType, opts: SingleOpt[], onUpdate: (opt: OptType) => void,
+	optElementStyle?: (optEl: HTMLElement, optVal: SingleOpt) => void,
+	forOpt?: (opt: SingleOpt, optElement: HTMLElement, updateSelected: (newSel: OptType) => void) => void,
+) => {
+	let multiple = Array.isArray(init)
+	if (multiple) {
+		init = <OptType>Array.from(<any[]>init)
+	}
+
+	const switchElement = createDiv()
+	let currentSel = init
+	const isSelected = (opt: SingleOpt) => {
+		let result = (!multiple && opt === currentSel) ||
+			(multiple && arrLinSearch(<SingleOpt[]>currentSel, opt) !== -1)
+		return result
+	}
+
+	for (let opt of opts) {
+		let optElement = addDiv(switchElement)
+		optElement.style.paddingTop = "5px"
+		optElement.style.paddingBottom = "5px"
+		optElement.style.cursor = "pointer"
+		optElement.style.textAlign = "center"
+
+		optElement.textContent = `${opt}`
+
+		optElementStyle?.(optElement, opt)
+
+		let normalCol = "var(--color-background)"
+		let hoverCol = "var(--color-background2)"
+		let selectedCol = "var(--color-selected)"
+
+		if (isSelected(opt)) {
+			optElement.style.backgroundColor = selectedCol
+		} else {
+			optElement.style.backgroundColor = normalCol
+		}
+
+		optElement.addEventListener("mouseover", (event) => {
+			if (!isSelected(opt)) {
+				optElement.style.backgroundColor = hoverCol
+			}
+		})
+		optElement.addEventListener("mouseout", (event) => {
+			if (!isSelected(opt)) {
+				optElement.style.backgroundColor = normalCol
+			}
+		})
+
+		optElement.addEventListener("click", async (event) => {
+			if (!multiple && opt !== currentSel) {
+
+				for (let child of switchElement.childNodes) {
+					(<HTMLElement>child).style.backgroundColor = normalCol
+				}
+				optElement.style.backgroundColor = selectedCol
+				currentSel = <OptType>opt
+				onUpdate(<OptType>opt)
+
+			} else if (multiple) {
+
+				let optIndex = arrLinSearch(<SingleOpt[]>currentSel, opt)
+				if (optIndex !== -1) {
+					optElement.style.backgroundColor = normalCol
+					arrRemoveIndex(<SingleOpt[]>currentSel, optIndex)
+				} else {
+					optElement.style.backgroundColor = selectedCol;
+					(<SingleOpt[]>currentSel).push(opt)
+				}
+				onUpdate(currentSel)
+
+			}
+		})
+
+		if (forOpt !== undefined) {
+			forOpt(opt, optElement, (newSel: OptType) => { currentSel = newSel })
+		}
+	}
+
+	return switchElement
+}
 
 //
 // SECTION ?
@@ -2834,6 +2938,14 @@ const main = async () => {
 	}
 
 	const fileInputContainer = addDiv(inputContainer)
+	fileInputContainer.style.border = "1px dashed var(--color-fileSelectBorder)"
+	fileInputContainer.style.width = "100%"
+	fileInputContainer.style.height = "50px"
+	fileInputContainer.style.position = "relative"
+	fileInputContainer.style.flexShrink = "0"
+	fileInputContainer.style.boxSizing = "border-box"
+	fileInputContainer.style.marginBottom = "20px"
+
 	const fileInputLabel = addDiv(fileInputContainer)
 	fileInputLabel.innerHTML = "SELECT FILE"
 	fileInputLabel.style.position = "absolute"
@@ -2842,7 +2954,7 @@ const main = async () => {
 	fileInputLabel.style.textAlign = "center"
 	fileInputLabel.style.width = "100%"
 	fileInputLabel.style.height = "100%"
-	fileInputLabel.style.lineHeight = "50px"
+	fileInputLabel.style.lineHeight = fileInputContainer.style.height
 	fileInputLabel.style.fontWeight = "bold"
 	fileInputLabel.style.letterSpacing = "2px"
 
@@ -2858,22 +2970,13 @@ const main = async () => {
 		}
 	}
 
-	const fileInput = addEl(fileInputContainer, createEl("input"))
-	fileInput.setAttribute("type", "file")
+	const fileInput = <HTMLInputElement>addEl(fileInputContainer, createEl("input"))
+	fileInput.type = "file"
 	fileInput.addEventListener("change", fileInputHandler)
-
 	fileInput.style.opacity = "0"
 	fileInput.style.cursor = "pointer"
 	fileInput.style.width = "100%"
 	fileInput.style.height = "100%"
-
-	fileInputContainer.style.border = "1px dashed var(--color-fileSelectBorder)"
-	fileInputContainer.style.width = "100%"
-	fileInputContainer.style.height = fileInputLabel.style.lineHeight
-	fileInputContainer.style.position = "relative"
-	fileInputContainer.style.flexShrink = "0"
-	fileInputContainer.style.boxSizing = "border-box"
-	fileInputContainer.style.marginBottom = "20px"
 
 	const fileInputWholePage = <HTMLInputElement>addEl(mainEl, createEl("input"))
 	fileInputWholePage.type = "file"
@@ -2903,86 +3006,36 @@ const main = async () => {
 		grid: "#99999944",
 	}
 
-	const themeSwitch = addDiv(inputContainer)
+	const themeSwitch = addEl(inputContainer, createSwitch(
+		<Theme>"dark", <Theme[]>THEMES,
+		(opt) => {
+			colors.theme = opt
+			document.documentElement.setAttribute("theme", opt)
+		},
+		switchOptionStyleAllCaps,
+	))
 	themeSwitch.style.display = "flex"
 	themeSwitch.style.flexDirection = "row"
 	themeSwitch.style.marginBottom = "20px"
-	themeSwitch.style.cursor = "pointer"
 
-	const themeOptions = ["dark", "light"]
-	const optionEls = []
-	for (let option of themeOptions) {
-		const optionEl = addDiv(themeSwitch)
-		optionEl.textContent = option.toUpperCase()
-		optionEl.style.padding = "5px"
-		optionEl.style.border = "1px solid var(--color-border)"
-		optionEl.style.flexGrow = "1"
-		optionEl.style.textAlign = "center"
-		optionEl.style.fontWeight = "bold"
-		optionEl.style.letterSpacing = "2px"
-
-		if (option === colors.theme) {
-			optionEl.style.background = "var(--color-selected)"
-		}
-
-		optionEls.push(optionEl)
-	}
-
-	themeSwitch.addEventListener("click", (event) => {
-		let targetTheme = "dark"
-		let selectionTarget = 0
-		let inheritTarget = 1
-		if (colors.theme === "dark") {
-			targetTheme = "light"
-			selectionTarget = 1
-			inheritTarget = 0
-		}
-		colors.theme = targetTheme
-		document.documentElement.setAttribute("theme", targetTheme)
-		optionEls[selectionTarget].style.background = "var(--color-selected)"
-		optionEls[inheritTarget].style.background = "inherit"
-	})
-
-
-	const modeSwitch = addDiv(inputContainer)
+	const modeSwitch = addEl(inputContainer, createSwitch(
+		<PlotMode[]>PLOT_MODES, <PlotMode[]>PLOT_MODES,
+		(plotModes) => {
+			for (let summaryType of <SummaryType[]>SUMMARY_TYPES) {
+				for (let plotMode of <PlotMode[]>PLOT_MODES) {
+					let targetVisibility = "none"
+					if (plotModes.includes(plotMode)) {
+						targetVisibility = "block"
+					}
+					plotContainers[summaryType][plotMode].style.display = targetVisibility
+				}
+			}
+		},
+		switchOptionStyleAllCaps,
+	))
 	modeSwitch.style.display = "flex"
 	modeSwitch.style.flexDirection = "row"
 	modeSwitch.style.marginBottom = "20px"
-	modeSwitch.style.cursor = "pointer"
-
-	let plotMode = ["titres", "rises"]
-	const modeOptions = ["titres", "rises"]
-	for (let option of modeOptions) {
-		const optionEl = addDiv(modeSwitch)
-		optionEl.textContent = option.toUpperCase()
-		optionEl.style.padding = "5px"
-		optionEl.style.border = "1px solid var(--color-border)"
-		optionEl.style.flexGrow = "1"
-		optionEl.style.textAlign = "center"
-		optionEl.style.fontWeight = "bold"
-		optionEl.style.letterSpacing = "2px"
-
-		if (plotMode.includes(option)) {
-			optionEl.style.background = "var(--color-selected)"
-		}
-
-		optionEl.addEventListener("click", (event) => {
-			let targetVisibility = "block"
-			if (plotMode.includes(option)) {
-				optionEl.style.background = "inherit"
-				plotMode = plotMode.filter((op) => op !== option)
-				targetVisibility = "none"
-			} else {
-				optionEl.style.background = "var(--color-selected)"
-				plotMode.push(option)
-			}
-			for (let summaryType of Object.keys(plotContainers)) {
-				if (summaryType !== "element") {
-					plotContainers[summaryType][option].style.display = targetVisibility
-				}
-			}
-		})
-	}
 
 	const opacitiesContainer = addDiv(inputContainer)
 	opacitiesContainer.style.marginBottom = "20px"
@@ -3110,7 +3163,7 @@ const main = async () => {
 	// NOTE(sen) Dev only for now
 	let fetchString = ""
 	try {
-		const resp = await fetch("/vis2022e.csv")
+		const resp = await fetch("/vis2022.csv")
 		if (resp.ok) {
 			fetchString = await resp.text()
 		}
