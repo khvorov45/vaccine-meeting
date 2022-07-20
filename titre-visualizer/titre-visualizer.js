@@ -4,6 +4,8 @@ const PLOT_MODES_ = ["titres", "rises"];
 const PLOT_MODES = PLOT_MODES_;
 const SUMMARY_TYPES_ = ["noSummary", "cladeAverage", "circulatingAverage"];
 const SUMMARY_TYPES = SUMMARY_TYPES_;
+const OPACITY_KINDS_ = ["points", "lines", "boxplots", "counts", "line40", "means"];
+const OPACITY_KINDS = OPACITY_KINDS_;
 //
 // SECTION Array
 //
@@ -662,7 +664,7 @@ const createTitrePlotSvg = (data, cladeFreqs, vaccineStrains, opacities, colors,
         // NOTE(sen) Line at 40
         let line40 = createDashedHLine(scaleTitre(40), plotWidth, sizes, colors.thresholdLine);
         plotSvg.appendChild(line40);
-        opacities.line40.titrePlotElements.push(line40);
+        opacities.line40.elements.noSummary.push(line40);
         // NOTE(sen) The rest of the plot
         for (let [labIndex, virusNames] of labViruses.entries()) {
             let labData = data.filter((row) => row.testing_lab == labs[labIndex]);
@@ -711,7 +713,7 @@ const createTitrePlotSvg = (data, cladeFreqs, vaccineStrains, opacities, colors,
                             }
                             let point = createPoint(xCoord, yCoord, col + colChannel255ToString(opacities.points.value));
                             plotSvg.appendChild(point);
-                            opacities.points.titrePlotElements.push(point);
+                            opacities.points.elements.noSummary.push(point);
                             coords = { x: xCoord, y: yCoord };
                         }
                         return coords;
@@ -728,7 +730,7 @@ const createTitrePlotSvg = (data, cladeFreqs, vaccineStrains, opacities, colors,
                     if (p1 != null && p2 != null) {
                         let line = createLine(p1.x, p2.x, p1.y, p2.y, thisPreVaxCol + colChannel255ToString(opacities.lines.value));
                         plotSvg.appendChild(line);
-                        opacities.lines.titrePlotElements.push(line);
+                        opacities.lines.elements.noSummary.push(line);
                     }
                 }
                 // NOTE(sen) Point counts and boxplots
@@ -748,7 +750,7 @@ const createTitrePlotSvg = (data, cladeFreqs, vaccineStrains, opacities, colors,
                     let yCoord = sizes.axisPadTop + 2;
                     let count = createCount(countValue, xCoord, yCoord, col + colChannel255ToString(opacities.counts.value));
                     plotSvg.appendChild(count);
-                    opacities.counts.titrePlotElements.push(count);
+                    opacities.counts.elements.noSummary.push(count);
                     // NOTE(sen) Boxplots
                     titres = titres
                         .filter((row) => isGood(row.titre))
@@ -757,7 +759,7 @@ const createTitrePlotSvg = (data, cladeFreqs, vaccineStrains, opacities, colors,
                     if (boxplotStats !== null) {
                         let boxplot = createBoxplotElement(scaleLogtitre(boxplotStats.bottom), scaleLogtitre(boxplotStats.q25), scaleLogtitre(boxplotStats.median), scaleLogtitre(boxplotStats.q75), scaleLogtitre(boxplotStats.top), sizes.boxPlotWidth, xCoord, col + colChannel255ToString(opacities.boxplots.value));
                         plotSvg.appendChild(boxplot);
-                        opacities.boxplots.titrePlotElements.push(boxplot);
+                        opacities.boxplots.elements.noSummary.push(boxplot);
                     }
                     // NOTE(sen) GMTs
                     let gmtStats = calcMeanStats(titres);
@@ -769,7 +771,7 @@ const createTitrePlotSvg = (data, cladeFreqs, vaccineStrains, opacities, colors,
                     if (gmtStats !== null) {
                         let gmtErrorBar = createErrorBar(scaleLogtitre(gmtStats.low), scaleLogtitre(gmtStats.mean), scaleLogtitre(gmtStats.high), xCoord, colChangeSaturation(col + colChannel255ToString(opacities.means.value), 2));
                         plotSvg.appendChild(gmtErrorBar);
-                        opacities.means.titrePlotElements.push(gmtErrorBar);
+                        opacities.means.elements.noSummary.push(gmtErrorBar);
                     }
                 } // NOTE(sen) for (timepoint)
             } // NOTE(sen) for (virus)
@@ -862,7 +864,7 @@ const createRisePlotSvg = (data, cladeFreqs, vaccineStrains, opacities, colors, 
         // NOTE(sen) Line at 4
         let line4 = createDashedHLine(scaleRise(4), plotWidth, sizes, colors.thresholdLine);
         plotSvg.appendChild(line4);
-        opacities.line40.titrePlotElements.push(line4);
+        opacities.line40.elements.noSummary.push(line4);
         // NOTE(sen) The rest of the plot
         for (let [labIndex, virusNames] of labViruses.entries()) {
             let labData = data.filter((row) => row.testing_lab == labs[labIndex]);
@@ -894,14 +896,14 @@ const createRisePlotSvg = (data, cladeFreqs, vaccineStrains, opacities, colors, 
                         let yCoord = scaleLogrise(Math.log(rise) + Math.random() * 0.1);
                         let point = createPoint(xCoord, yCoord, thisCol + colChannel255ToString(opacities.points.value));
                         plotSvg.appendChild(point);
-                        opacities.points.titrePlotElements.push(point);
+                        opacities.points.elements.noSummary.push(point);
                     }
                 }
                 // NOTE(sen) Counts
                 let yCoord = sizes.axisPadTop + 2;
                 let count = createCount(points, xCoord, yCoord, thisCol + colChannel255ToString(opacities.counts.value));
                 plotSvg.appendChild(count);
-                opacities.counts.titrePlotElements.push(count);
+                opacities.counts.elements.noSummary.push(count);
                 // NOTE(sen) Boxplots
                 let rises = virusData
                     .filter((row) => isGood(row.titreRatio))
@@ -910,14 +912,14 @@ const createRisePlotSvg = (data, cladeFreqs, vaccineStrains, opacities, colors, 
                 if (boxplotStats !== null) {
                     let boxplot = createBoxplotElement(scaleLogrise(boxplotStats.bottom), scaleLogrise(boxplotStats.q25), scaleLogrise(boxplotStats.median), scaleLogrise(boxplotStats.q75), scaleLogrise(boxplotStats.top), sizes.boxPlotWidth, xCoord, thisCol + colChannel255ToString(opacities.boxplots.value));
                     plotSvg.appendChild(boxplot);
-                    opacities.boxplots.titrePlotElements.push(boxplot);
+                    opacities.boxplots.elements.noSummary.push(boxplot);
                 }
                 // NOTE(sen) GMRs
                 let gmrStats = calcMeanStats(rises);
                 if (gmrStats !== null) {
                     let gmrErrorBar = createErrorBar(scaleLogrise(gmrStats.low), scaleLogrise(gmrStats.mean), scaleLogrise(gmrStats.high), xCoord, colChangeSaturation(thisCol + colChannel255ToString(opacities.means.value), 2));
                     plotSvg.appendChild(gmrErrorBar);
-                    opacities.means.titrePlotElements.push(gmrErrorBar);
+                    opacities.means.elements.noSummary.push(gmrErrorBar);
                 }
             } // NOTE(sen) for (virus)
         } // NOTE(sen) for (lab)
@@ -974,7 +976,7 @@ const createTitreCladeAveragePlotSvg = (data, cladeFreqs, vaccineClades, opaciti
         // NOTE(sen) Line at 40
         let line40 = createDashedHLine(scaleTitre(40), plotWidth, sizes, colors.thresholdLine);
         plotSvg.appendChild(line40);
-        opacities.line40.titreCladeAveragePlotElements.push(line40);
+        opacities.line40.elements.cladeAverage.push(line40);
         // NOTE(sen) The rest of the plot
         for (let [labIndex, cladeNames] of labClades.entries()) {
             let labData = data.filter((row) => row.testing_lab == labs[labIndex]);
@@ -1023,7 +1025,7 @@ const createTitreCladeAveragePlotSvg = (data, cladeFreqs, vaccineClades, opaciti
                             }
                             let point = createPoint(xCoord, yCoord, col + colChannel255ToString(opacities.points.value));
                             plotSvg.appendChild(point);
-                            opacities.points.titreCladeAveragePlotElements.push(point);
+                            opacities.points.elements.cladeAverage.push(point);
                             coords = { x: xCoord, y: yCoord };
                         }
                         return coords;
@@ -1040,7 +1042,7 @@ const createTitreCladeAveragePlotSvg = (data, cladeFreqs, vaccineClades, opaciti
                     if (p1 != null && p2 != null) {
                         let line = createLine(p1.x, p2.x, p1.y, p2.y, thisPreVaxCol + colChannel255ToString(opacities.lines.value));
                         plotSvg.appendChild(line);
-                        opacities.lines.titreCladeAveragePlotElements.push(line);
+                        opacities.lines.elements.cladeAverage.push(line);
                     }
                 } // NOTE(sen) for serum id
                 // NOTE(sen) Point counts and boxplots
@@ -1060,7 +1062,7 @@ const createTitreCladeAveragePlotSvg = (data, cladeFreqs, vaccineClades, opaciti
                     let yCoord = sizes.axisPadTop + 2;
                     let count = createCount(countValue, xCoord, yCoord, col + colChannel255ToString(opacities.counts.value));
                     plotSvg.appendChild(count);
-                    opacities.counts.titreCladeAveragePlotElements.push(count);
+                    opacities.counts.elements.cladeAverage.push(count);
                     // NOTE(sen) Boxplots
                     titres = titres
                         .filter((row) => isGood(row.titreCladeAverage))
@@ -1069,14 +1071,14 @@ const createTitreCladeAveragePlotSvg = (data, cladeFreqs, vaccineClades, opaciti
                     if (boxplotStats !== null) {
                         let boxplot = createBoxplotElement(scaleLogtitre(boxplotStats.bottom), scaleLogtitre(boxplotStats.q25), scaleLogtitre(boxplotStats.median), scaleLogtitre(boxplotStats.q75), scaleLogtitre(boxplotStats.top), sizes.boxPlotWidth, xCoord, col + colChannel255ToString(opacities.boxplots.value));
                         plotSvg.appendChild(boxplot);
-                        opacities.boxplots.titreCladeAveragePlotElements.push(boxplot);
+                        opacities.boxplots.elements.cladeAverage.push(boxplot);
                     }
                     // NOTE(sen) GMTs
                     let gmtStats = calcMeanStats(titres);
                     if (gmtStats !== null) {
                         let gmtErrorBar = createErrorBar(scaleLogtitre(gmtStats.low), scaleLogtitre(gmtStats.mean), scaleLogtitre(gmtStats.high), xCoord, colChangeSaturation(col + colChannel255ToString(opacities.means.value), 2));
                         plotSvg.appendChild(gmtErrorBar);
-                        opacities.means.titreCladeAveragePlotElements.push(gmtErrorBar);
+                        opacities.means.elements.cladeAverage.push(gmtErrorBar);
                     }
                 } // NOTE(sen) for timepoint
             } // NOTE(sen) for clade
@@ -1134,7 +1136,7 @@ const createRiseCladeAveragePlotSvg = (data, cladeFreqs, vaccineClades, opacitie
         // NOTE(sen) Line at 4
         let line4 = createDashedHLine(scaleRise(4), plotWidth, sizes, colors.thresholdLine);
         plotSvg.appendChild(line4);
-        opacities.line40.titreCladeAveragePlotElements.push(line4);
+        opacities.line40.elements.cladeAverage.push(line4);
         // NOTE(sen) The rest of the plot
         for (let [labIndex, cladeNames] of labClades.entries()) {
             let labData = data.filter((row) => row.testing_lab == labs[labIndex]);
@@ -1166,14 +1168,14 @@ const createRiseCladeAveragePlotSvg = (data, cladeFreqs, vaccineClades, opacitie
                         let yCoord = scaleRise(rise);
                         let point = createPoint(xCoord, yCoord, thisCol + colChannel255ToString(opacities.points.value));
                         plotSvg.appendChild(point);
-                        opacities.points.titreCladeAveragePlotElements.push(point);
+                        opacities.points.elements.cladeAverage.push(point);
                     }
                 }
                 // NOTE(sen) Counts
                 let yCoord = sizes.axisPadTop + 2;
                 let count = createCount(points, xCoord, yCoord, thisCol + colChannel255ToString(opacities.counts.value));
                 plotSvg.appendChild(count);
-                opacities.counts.titreCladeAveragePlotElements.push(count);
+                opacities.counts.elements.cladeAverage.push(count);
                 // NOTE(sen) Boxplots
                 cladeData = cladeData
                     .filter((row) => isGood(row.titreCladeAverageRatio))
@@ -1182,14 +1184,14 @@ const createRiseCladeAveragePlotSvg = (data, cladeFreqs, vaccineClades, opacitie
                 if (boxplotStats !== null) {
                     let boxplot = createBoxplotElement(scaleLogrise(boxplotStats.bottom), scaleLogrise(boxplotStats.q25), scaleLogrise(boxplotStats.median), scaleLogrise(boxplotStats.q75), scaleLogrise(boxplotStats.top), sizes.boxPlotWidth, xCoord, thisCol + colChannel255ToString(opacities.boxplots.value));
                     plotSvg.appendChild(boxplot);
-                    opacities.boxplots.titreCladeAveragePlotElements.push(boxplot);
+                    opacities.boxplots.elements.cladeAverage.push(boxplot);
                 }
                 // NOTE(sen) GMRs
                 let gmrStats = calcMeanStats(cladeData);
                 if (gmrStats !== null) {
                     let gmrErrorBar = createErrorBar(scaleLogrise(gmrStats.low), scaleLogrise(gmrStats.mean), scaleLogrise(gmrStats.high), xCoord, colChangeSaturation(thisCol + colChannel255ToString(opacities.means.value), 2));
                     plotSvg.appendChild(gmrErrorBar);
-                    opacities.means.titreCladeAveragePlotElements.push(gmrErrorBar);
+                    opacities.means.elements.cladeAverage.push(gmrErrorBar);
                 }
             } // NOTE(sen) for clade
         } // NOTE(sen) for lab
@@ -1233,7 +1235,7 @@ const createTitreCirculatingAveragePlotSvg = (data, opacities, colors, sizes) =>
         // NOTE(sen) Line at 40
         let line40 = createDashedHLine(scaleTitre(40), plotWidth, sizes, colors.thresholdLine);
         plotSvg.appendChild(line40);
-        opacities.line40.titreCirculatingAveragePlotElements.push(line40);
+        opacities.line40.elements.circulatingAverage.push(line40);
         // NOTE(sen) The rest of the plot
         for (let [labIndex, labName] of labs.entries()) {
             let labData = data.filter((row) => row.testing_lab == labName);
@@ -1261,7 +1263,7 @@ const createTitreCirculatingAveragePlotSvg = (data, opacities, colors, sizes) =>
                         }
                         let point = createPoint(xCoord, yCoord, col + colChannel255ToString(opacities.points.value));
                         plotSvg.appendChild(point);
-                        opacities.points.titreCirculatingAveragePlotElements.push(point);
+                        opacities.points.elements.circulatingAverage.push(point);
                         coords = { x: xCoord, y: yCoord };
                     }
                     return coords;
@@ -1278,7 +1280,7 @@ const createTitreCirculatingAveragePlotSvg = (data, opacities, colors, sizes) =>
                 if (p1 != null && p2 != null) {
                     let line = createLine(p1.x, p2.x, p1.y, p2.y, colors.preVax + colChannel255ToString(opacities.lines.value));
                     plotSvg.appendChild(line);
-                    opacities.lines.titreCirculatingAveragePlotElements.push(line);
+                    opacities.lines.elements.circulatingAverage.push(line);
                 }
             } // NOTE(sen) for serum id
             // NOTE(sen) Point counts and boxplots
@@ -1297,7 +1299,7 @@ const createTitreCirculatingAveragePlotSvg = (data, opacities, colors, sizes) =>
                 let yCoord = sizes.axisPadTop + 2;
                 let count = createCount(countValue, xCoord, yCoord, col + colChannel255ToString(opacities.counts.value));
                 plotSvg.appendChild(count);
-                opacities.counts.titreCirculatingAveragePlotElements.push(count);
+                opacities.counts.elements.circulatingAverage.push(count);
                 // NOTE(sen) Boxplots
                 titres = titres
                     .filter((row) => isGood(row.titreCirculatingAverage))
@@ -1306,14 +1308,14 @@ const createTitreCirculatingAveragePlotSvg = (data, opacities, colors, sizes) =>
                 if (boxplotStats !== null) {
                     let boxplot = createBoxplotElement(scaleLogtitre(boxplotStats.bottom), scaleLogtitre(boxplotStats.q25), scaleLogtitre(boxplotStats.median), scaleLogtitre(boxplotStats.q75), scaleLogtitre(boxplotStats.top), sizes.boxPlotWidth, xCoord, col + colChannel255ToString(opacities.boxplots.value));
                     plotSvg.appendChild(boxplot);
-                    opacities.boxplots.titreCirculatingAveragePlotElements.push(boxplot);
+                    opacities.boxplots.elements.circulatingAverage.push(boxplot);
                 }
                 // NOTE(sen) GMTs
                 let gmtStats = calcMeanStats(titres);
                 if (gmtStats !== null) {
                     let gmtErrorBar = createErrorBar(scaleLogtitre(gmtStats.low), scaleLogtitre(gmtStats.mean), scaleLogtitre(gmtStats.high), xCoord, colChangeSaturation(col + colChannel255ToString(opacities.means.value), 2));
                     plotSvg.appendChild(gmtErrorBar);
-                    opacities.means.titreCirculatingAveragePlotElements.push(gmtErrorBar);
+                    opacities.means.elements.circulatingAverage.push(gmtErrorBar);
                 }
             } // NOTE(sen) for timepoint
         } // NOTE(sen) for lab
@@ -1357,7 +1359,7 @@ const createRiseCirculatingAveragePlotSvg = (data, opacities, colors, sizes) => 
         // NOTE(sen) Line at 4
         let line4 = createDashedHLine(scaleRise(4), plotWidth, sizes, colors.thresholdLine);
         plotSvg.appendChild(line4);
-        opacities.line40.titreCirculatingAveragePlotElements.push(line4);
+        opacities.line40.elements.circulatingAverage.push(line4);
         let col = colors.preVax;
         // NOTE(sen) The rest of the plot
         for (let [labIndex, labName] of labs.entries()) {
@@ -1371,14 +1373,14 @@ const createRiseCirculatingAveragePlotSvg = (data, opacities, colors, sizes) => 
                     let yCoord = scaleRise(rise);
                     let point = createPoint(xCoord, yCoord, col + colChannel255ToString(opacities.points.value));
                     plotSvg.appendChild(point);
-                    opacities.points.titreCirculatingAveragePlotElements.push(point);
+                    opacities.points.elements.circulatingAverage.push(point);
                 }
             }
             // NOTE(sen) Counts
             let yCoord = sizes.axisPadTop + 2;
             let count = createCount(points, xCoord, yCoord, col + colChannel255ToString(opacities.counts.value));
             plotSvg.appendChild(count);
-            opacities.counts.titreCirculatingAveragePlotElements.push(count);
+            opacities.counts.elements.circulatingAverage.push(count);
             // NOTE(sen) Boxplots
             labData = labData
                 .filter((row) => isGood(row.titreCirculatingAverageRatio))
@@ -1387,14 +1389,14 @@ const createRiseCirculatingAveragePlotSvg = (data, opacities, colors, sizes) => 
             if (boxplotStats !== null) {
                 let boxplot = createBoxplotElement(scaleLogrise(boxplotStats.bottom), scaleLogrise(boxplotStats.q25), scaleLogrise(boxplotStats.median), scaleLogrise(boxplotStats.q75), scaleLogrise(boxplotStats.top), sizes.boxPlotWidth, xCoord, col + colChannel255ToString(opacities.boxplots.value));
                 plotSvg.appendChild(boxplot);
-                opacities.boxplots.titreCirculatingAveragePlotElements.push(boxplot);
+                opacities.boxplots.elements.circulatingAverage.push(boxplot);
             }
             // NOTE(sen) GMRs
             let gmrStats = calcMeanStats(labData);
             if (gmrStats !== null) {
                 let gmrErrorBar = createErrorBar(scaleLogrise(gmrStats.low), scaleLogrise(gmrStats.mean), scaleLogrise(gmrStats.high), xCoord, colChangeSaturation(col + colChannel255ToString(opacities.means.value), 2));
                 plotSvg.appendChild(gmrErrorBar);
-                opacities.means.titreCirculatingAveragePlotElements.push(gmrErrorBar);
+                opacities.means.elements.circulatingAverage.push(gmrErrorBar);
             }
         } // NOTE(sen) for lab
     } // NOTE(sen) if data
@@ -1837,23 +1839,17 @@ const main = async () => {
     plotContainer.style.height = "calc(100vh - 0px)";
     plotContainer.style.overflowY = "scroll";
     plotContainer.style.overflowX = "hidden";
-    const createPlotContainer = () => {
-        let el = createDiv();
-        el.style.flexShrink = "0";
-        el.style.overflowX = "scroll";
-        el.style.overflowY = "hidden";
-        return el;
-    };
     const plotContainers = {
         noSummary: { element: null, titres: null, rises: null },
         cladeAverage: { element: null, titres: null, rises: null },
         circulatingAverage: { element: null, titres: null, rises: null },
     };
-    for (let subPlotContainer of Object.keys(plotContainers)) {
-        if (subPlotContainer !== "element") {
-            let el = addEl(plotContainer, createPlotContainer());
-            plotContainers[subPlotContainer].element = el;
-        }
+    for (let summaryType of SUMMARY_TYPES) {
+        const el = addDiv(plotContainer);
+        el.style.flexShrink = "0";
+        el.style.overflowX = "scroll";
+        el.style.overflowY = "hidden";
+        plotContainers[summaryType].element = el;
     }
     const fileInputContainer = addDiv(inputContainer);
     fileInputContainer.style.border = "1px dashed var(--color-fileSelectBorder)";
@@ -1937,65 +1933,46 @@ const main = async () => {
     modeSwitch.style.marginBottom = "20px";
     const opacities = {
         points: {
-            titrePlotElements: [],
-            titreCladeAveragePlotElements: [],
-            titreCirculatingAveragePlotElements: [],
-            value: 255,
-            default: 255,
+            elements: { noSummary: [], cladeAverage: [], circulatingAverage: [] },
+            value: 255, default: 255,
         },
         lines: {
-            titrePlotElements: [],
-            titreCladeAveragePlotElements: [],
-            titreCirculatingAveragePlotElements: [],
-            value: 127,
-            default: 127,
+            elements: { noSummary: [], cladeAverage: [], circulatingAverage: [] },
+            value: 127, default: 127,
         },
         boxplots: {
-            titrePlotElements: [],
-            titreCladeAveragePlotElements: [],
-            titreCirculatingAveragePlotElements: [],
-            value: 255,
-            default: 255,
+            elements: { noSummary: [], cladeAverage: [], circulatingAverage: [] },
+            value: 255, default: 255,
         },
         counts: {
-            titrePlotElements: [],
-            titreCladeAveragePlotElements: [],
-            titreCirculatingAveragePlotElements: [],
-            value: 255,
-            default: 255,
+            elements: { noSummary: [], cladeAverage: [], circulatingAverage: [] },
+            value: 255, default: 255,
         },
         line40: {
-            titrePlotElements: [],
-            titreCladeAveragePlotElements: [],
-            titreCirculatingAveragePlotElements: [],
-            value: 255,
-            default: 255,
+            elements: { noSummary: [], cladeAverage: [], circulatingAverage: [] },
+            value: 255, default: 255,
         },
         means: {
-            titrePlotElements: [],
-            titreCladeAveragePlotElements: [],
-            titreCirculatingAveragePlotElements: [],
-            value: 255,
-            default: 255,
+            elements: { noSummary: [], cladeAverage: [], circulatingAverage: [] },
+            value: 255, default: 255,
         },
     };
-    const opacitiesSwitch = addEl(inputContainer, createSwitch(Object.keys(opacities), Object.keys(opacities), (opacitiesSel) => {
-        for (let opacity of Object.keys(opacities)) {
+    const opacitiesSwitch = addEl(inputContainer, createSwitch(OPACITY_KINDS, OPACITY_KINDS, (opacitiesSel) => {
+        for (let opacityKind of OPACITY_KINDS) {
             let targetOpacity = 0;
-            if (opacitiesSel.includes(opacity)) {
-                targetOpacity = opacities[opacity].default;
+            if (opacitiesSel.includes(opacityKind)) {
+                targetOpacity = opacities[opacityKind].default;
             }
             const alpha = colChannel255ToString(targetOpacity);
             let attrNames = ["stroke"];
-            if (opacity === "counts" || opacity === "points") {
+            if (opacityKind === "counts" || opacityKind === "points") {
                 attrNames = ["fill"];
             }
-            else if (opacity === "means") {
+            else if (opacityKind === "means") {
                 attrNames.push("fill");
             }
-            let allElementArrays = ["titrePlotElements", "titreCladeAveragePlotElements", "titreCirculatingAveragePlotElements"];
-            for (let elementArray of allElementArrays) {
-                for (let el of opacities[opacity][elementArray]) {
+            for (let summaryType of SUMMARY_TYPES) {
+                for (let el of opacities[opacityKind].elements[summaryType]) {
                     for (let attrName of attrNames) {
                         let currentColFull = el.getAttribute(attrName);
                         let currentColNoAlpha = currentColFull.slice(0, 7);

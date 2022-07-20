@@ -10,23 +10,6 @@ type SubtypeClades = Record<string, string[]>
 type Filter = {elements: HTMLElement[], options: [], selected: string}
 type Filters = {subtype: Filter, serum_source: Filter, cohort: Filter,}
 
-type Opacity = {
-	titrePlotElements: HTMLElement[],
-	titreCladeAveragePlotElements: HTMLElement[],
-	titreCirculatingAveragePlotElements: HTMLElement[],
-	value: number,
-	default: number,
-}
-
-type Opacities = {
-	points: Opacity,
-	lines: Opacity,
-	boxplots: Opacity,
-	counts: Opacity,
-	line40: Opacity,
-	means: Opacity,
-}
-
 type Colors = {
 	theme: string,
 	preVax: string,
@@ -67,6 +50,18 @@ type PlotMode = (typeof PLOT_MODES_)[number]
 const SUMMARY_TYPES_ = ["noSummary", "cladeAverage", "circulatingAverage"] as const
 const SUMMARY_TYPES = SUMMARY_TYPES_ as unknown as string[]
 type SummaryType = (typeof SUMMARY_TYPES_)[number]
+
+const OPACITY_KINDS_ = ["points", "lines", "boxplots", "counts", "line40", "means"] as const
+const OPACITY_KINDS = OPACITY_KINDS_ as unknown as string[]
+type OpacityKind = (typeof OPACITY_KINDS_)[number]
+
+type Opacity = {
+	elements: Record<SummaryType, HTMLElement[]>,
+	value: number,
+	default: number,
+}
+
+type Opacities = Record<OpacityKind, Opacity>
 
 //
 // SECTION Array
@@ -924,7 +919,7 @@ const createTitrePlotSvg = (
 			colors.thresholdLine
 		)
 		plotSvg.appendChild(line40)
-		opacities.line40.titrePlotElements.push(line40)
+		opacities.line40.elements.noSummary.push(line40)
 
 		// NOTE(sen) The rest of the plot
 		for (let [labIndex, virusNames] of labViruses.entries()) {
@@ -1009,7 +1004,7 @@ const createTitrePlotSvg = (
 								col + colChannel255ToString(opacities.points.value)
 							)
 							plotSvg.appendChild(point)
-							opacities.points.titrePlotElements.push(point)
+							opacities.points.elements.noSummary.push(point)
 							coords = { x: xCoord, y: yCoord }
 						}
 
@@ -1035,7 +1030,7 @@ const createTitrePlotSvg = (
 							thisPreVaxCol + colChannel255ToString(opacities.lines.value)
 						)
 						plotSvg.appendChild(line)
-						opacities.lines.titrePlotElements.push(line)
+						opacities.lines.elements.noSummary.push(line)
 					}
 				}
 
@@ -1063,7 +1058,7 @@ const createTitrePlotSvg = (
 						col + colChannel255ToString(opacities.counts.value)
 					)
 					plotSvg.appendChild(count)
-					opacities.counts.titrePlotElements.push(count)
+					opacities.counts.elements.noSummary.push(count)
 
 					// NOTE(sen) Boxplots
 					titres = titres
@@ -1085,7 +1080,7 @@ const createTitrePlotSvg = (
 						)
 
 						plotSvg.appendChild(boxplot)
-						opacities.boxplots.titrePlotElements.push(boxplot)
+						opacities.boxplots.elements.noSummary.push(boxplot)
 					}
 
 					// NOTE(sen) GMTs
@@ -1110,7 +1105,7 @@ const createTitrePlotSvg = (
 						)
 
 						plotSvg.appendChild(gmtErrorBar)
-						opacities.means.titrePlotElements.push(gmtErrorBar)
+						opacities.means.elements.noSummary.push(gmtErrorBar)
 					}
 				} // NOTE(sen) for (timepoint)
 			} // NOTE(sen) for (virus)
@@ -1258,7 +1253,7 @@ const createRisePlotSvg = (
 			colors.thresholdLine
 		)
 		plotSvg.appendChild(line4)
-		opacities.line40.titrePlotElements.push(line4)
+		opacities.line40.elements.noSummary.push(line4)
 
 		// NOTE(sen) The rest of the plot
 		for (let [labIndex, virusNames] of labViruses.entries()) {
@@ -1316,7 +1311,7 @@ const createRisePlotSvg = (
 							thisCol + colChannel255ToString(opacities.points.value)
 						)
 						plotSvg.appendChild(point)
-						opacities.points.titrePlotElements.push(point)
+						opacities.points.elements.noSummary.push(point)
 					}
 				}
 
@@ -1329,7 +1324,7 @@ const createRisePlotSvg = (
 					thisCol + colChannel255ToString(opacities.counts.value)
 				)
 				plotSvg.appendChild(count)
-				opacities.counts.titrePlotElements.push(count)
+				opacities.counts.elements.noSummary.push(count)
 
 				// NOTE(sen) Boxplots
 				let rises = virusData
@@ -1351,7 +1346,7 @@ const createRisePlotSvg = (
 					)
 
 					plotSvg.appendChild(boxplot)
-					opacities.boxplots.titrePlotElements.push(boxplot)
+					opacities.boxplots.elements.noSummary.push(boxplot)
 				}
 
 				// NOTE(sen) GMRs
@@ -1369,7 +1364,7 @@ const createRisePlotSvg = (
 					)
 
 					plotSvg.appendChild(gmrErrorBar)
-					opacities.means.titrePlotElements.push(gmrErrorBar)
+					opacities.means.elements.noSummary.push(gmrErrorBar)
 				}
 			} // NOTE(sen) for (virus)
 		} // NOTE(sen) for (lab)
@@ -1475,7 +1470,7 @@ const createTitreCladeAveragePlotSvg = (
 			colors.thresholdLine
 		)
 		plotSvg.appendChild(line40)
-		opacities.line40.titreCladeAveragePlotElements.push(line40)
+		opacities.line40.elements.cladeAverage.push(line40)
 
 		// NOTE(sen) The rest of the plot
 		for (let [labIndex, cladeNames] of labClades.entries()) {
@@ -1558,7 +1553,7 @@ const createTitreCladeAveragePlotSvg = (
 								col + colChannel255ToString(opacities.points.value)
 							)
 							plotSvg.appendChild(point)
-							opacities.points.titreCladeAveragePlotElements.push(point)
+							opacities.points.elements.cladeAverage.push(point)
 							coords = { x: xCoord, y: yCoord }
 						}
 
@@ -1584,7 +1579,7 @@ const createTitreCladeAveragePlotSvg = (
 							thisPreVaxCol + colChannel255ToString(opacities.lines.value)
 						)
 						plotSvg.appendChild(line)
-						opacities.lines.titreCladeAveragePlotElements.push(line)
+						opacities.lines.elements.cladeAverage.push(line)
 					}
 				} // NOTE(sen) for serum id
 
@@ -1612,7 +1607,7 @@ const createTitreCladeAveragePlotSvg = (
 						col + colChannel255ToString(opacities.counts.value)
 					)
 					plotSvg.appendChild(count)
-					opacities.counts.titreCladeAveragePlotElements.push(count)
+					opacities.counts.elements.cladeAverage.push(count)
 
 					// NOTE(sen) Boxplots
 					titres = titres
@@ -1634,7 +1629,7 @@ const createTitreCladeAveragePlotSvg = (
 						)
 
 						plotSvg.appendChild(boxplot)
-						opacities.boxplots.titreCladeAveragePlotElements.push(boxplot)
+						opacities.boxplots.elements.cladeAverage.push(boxplot)
 					}
 
 					// NOTE(sen) GMTs
@@ -1652,7 +1647,7 @@ const createTitreCladeAveragePlotSvg = (
 						)
 
 						plotSvg.appendChild(gmtErrorBar)
-						opacities.means.titreCladeAveragePlotElements.push(gmtErrorBar)
+						opacities.means.elements.cladeAverage.push(gmtErrorBar)
 					}
 				} // NOTE(sen) for timepoint
 			} // NOTE(sen) for clade
@@ -1760,7 +1755,7 @@ const createRiseCladeAveragePlotSvg = (
 			colors.thresholdLine
 		)
 		plotSvg.appendChild(line4)
-		opacities.line40.titreCladeAveragePlotElements.push(line4)
+		opacities.line40.elements.cladeAverage.push(line4)
 
 		// NOTE(sen) The rest of the plot
 		for (let [labIndex, cladeNames] of labClades.entries()) {
@@ -1818,7 +1813,7 @@ const createRiseCladeAveragePlotSvg = (
 							thisCol + colChannel255ToString(opacities.points.value)
 						)
 						plotSvg.appendChild(point)
-						opacities.points.titreCladeAveragePlotElements.push(point)
+						opacities.points.elements.cladeAverage.push(point)
 					}
 				}
 
@@ -1831,7 +1826,7 @@ const createRiseCladeAveragePlotSvg = (
 					thisCol + colChannel255ToString(opacities.counts.value)
 				)
 				plotSvg.appendChild(count)
-				opacities.counts.titreCladeAveragePlotElements.push(count)
+				opacities.counts.elements.cladeAverage.push(count)
 
 				// NOTE(sen) Boxplots
 				cladeData = cladeData
@@ -1853,7 +1848,7 @@ const createRiseCladeAveragePlotSvg = (
 					)
 
 					plotSvg.appendChild(boxplot)
-					opacities.boxplots.titreCladeAveragePlotElements.push(boxplot)
+					opacities.boxplots.elements.cladeAverage.push(boxplot)
 				}
 
 				// NOTE(sen) GMRs
@@ -1871,7 +1866,7 @@ const createRiseCladeAveragePlotSvg = (
 					)
 
 					plotSvg.appendChild(gmrErrorBar)
-					opacities.means.titreCladeAveragePlotElements.push(gmrErrorBar)
+					opacities.means.elements.cladeAverage.push(gmrErrorBar)
 				}
 			} // NOTE(sen) for clade
 		} // NOTE(sen) for lab
@@ -1948,7 +1943,7 @@ const createTitreCirculatingAveragePlotSvg = (
 			colors.thresholdLine
 		)
 		plotSvg.appendChild(line40)
-		opacities.line40.titreCirculatingAveragePlotElements.push(line40)
+		opacities.line40.elements.circulatingAverage.push(line40)
 
 		// NOTE(sen) The rest of the plot
 		for (let [labIndex, labName] of labs.entries()) {
@@ -1993,7 +1988,7 @@ const createTitreCirculatingAveragePlotSvg = (
 							col + colChannel255ToString(opacities.points.value)
 						)
 						plotSvg.appendChild(point)
-						opacities.points.titreCirculatingAveragePlotElements.push(point)
+						opacities.points.elements.circulatingAverage.push(point)
 						coords = { x: xCoord, y: yCoord }
 					}
 
@@ -2019,7 +2014,7 @@ const createTitreCirculatingAveragePlotSvg = (
 						colors.preVax + colChannel255ToString(opacities.lines.value)
 					)
 					plotSvg.appendChild(line)
-					opacities.lines.titreCirculatingAveragePlotElements.push(line)
+					opacities.lines.elements.circulatingAverage.push(line)
 				}
 			} // NOTE(sen) for serum id
 
@@ -2046,7 +2041,7 @@ const createTitreCirculatingAveragePlotSvg = (
 					col + colChannel255ToString(opacities.counts.value)
 				)
 				plotSvg.appendChild(count)
-				opacities.counts.titreCirculatingAveragePlotElements.push(count)
+				opacities.counts.elements.circulatingAverage.push(count)
 
 				// NOTE(sen) Boxplots
 				titres = titres
@@ -2068,7 +2063,7 @@ const createTitreCirculatingAveragePlotSvg = (
 					)
 
 					plotSvg.appendChild(boxplot)
-					opacities.boxplots.titreCirculatingAveragePlotElements.push(boxplot)
+					opacities.boxplots.elements.circulatingAverage.push(boxplot)
 				}
 
 				// NOTE(sen) GMTs
@@ -2086,7 +2081,7 @@ const createTitreCirculatingAveragePlotSvg = (
 					)
 
 					plotSvg.appendChild(gmtErrorBar)
-					opacities.means.titreCirculatingAveragePlotElements.push(
+					opacities.means.elements.circulatingAverage.push(
 						gmtErrorBar
 					)
 				}
@@ -2166,7 +2161,7 @@ const createRiseCirculatingAveragePlotSvg = (
 			colors.thresholdLine
 		)
 		plotSvg.appendChild(line4)
-		opacities.line40.titreCirculatingAveragePlotElements.push(line4)
+		opacities.line40.elements.circulatingAverage.push(line4)
 
 		let col = colors.preVax
 
@@ -2192,7 +2187,7 @@ const createRiseCirculatingAveragePlotSvg = (
 						col + colChannel255ToString(opacities.points.value)
 					)
 					plotSvg.appendChild(point)
-					opacities.points.titreCirculatingAveragePlotElements.push(point)
+					opacities.points.elements.circulatingAverage.push(point)
 				}
 			}
 
@@ -2205,7 +2200,7 @@ const createRiseCirculatingAveragePlotSvg = (
 				col + colChannel255ToString(opacities.counts.value)
 			)
 			plotSvg.appendChild(count)
-			opacities.counts.titreCirculatingAveragePlotElements.push(count)
+			opacities.counts.elements.circulatingAverage.push(count)
 
 			// NOTE(sen) Boxplots
 			labData = labData
@@ -2227,7 +2222,7 @@ const createRiseCirculatingAveragePlotSvg = (
 				)
 
 				plotSvg.appendChild(boxplot)
-				opacities.boxplots.titreCirculatingAveragePlotElements.push(boxplot)
+				opacities.boxplots.elements.circulatingAverage.push(boxplot)
 			}
 
 			// NOTE(sen) GMRs
@@ -2245,7 +2240,7 @@ const createRiseCirculatingAveragePlotSvg = (
 				)
 
 				plotSvg.appendChild(gmrErrorBar)
-				opacities.means.titreCirculatingAveragePlotElements.push(gmrErrorBar)
+				opacities.means.elements.circulatingAverage.push(gmrErrorBar)
 			}
 		} // NOTE(sen) for lab
 	} // NOTE(sen) if data
@@ -2916,25 +2911,18 @@ const main = async () => {
 	plotContainer.style.overflowY = "scroll"
 	plotContainer.style.overflowX = "hidden"
 
-	const createPlotContainer = () => {
-		let el = createDiv()
-		el.style.flexShrink = "0"
-		el.style.overflowX = "scroll"
-		el.style.overflowY = "hidden"
-		return el
-	}
-
 	const plotContainers: PlotContainers = {
 		noSummary: { element: null, titres: null, rises: null },
 		cladeAverage: { element: null, titres: null, rises: null },
 		circulatingAverage: { element: null, titres: null, rises: null },
 	}
 
-	for (let subPlotContainer of Object.keys(plotContainers)) {
-		if (subPlotContainer !== "element") {
-			let el = addEl(plotContainer, createPlotContainer())
-			plotContainers[subPlotContainer].element = el
-		}
+	for (let summaryType of SUMMARY_TYPES) {
+		const el = addDiv(plotContainer)
+		el.style.flexShrink = "0"
+		el.style.overflowX = "scroll"
+		el.style.overflowY = "hidden"
+		plotContainers[summaryType].element = el
 	}
 
 	const fileInputContainer = addDiv(inputContainer)
@@ -3039,69 +3027,50 @@ const main = async () => {
 
 	const opacities: Opacities = {
 		points: {
-			titrePlotElements: [],
-			titreCladeAveragePlotElements: [],
-			titreCirculatingAveragePlotElements: [],
-			value: 255,
-			default: 255,
+			elements: {noSummary: [], cladeAverage: [], circulatingAverage: []},
+			value: 255, default: 255,
 		},
 		lines: {
-			titrePlotElements: [],
-			titreCladeAveragePlotElements: [],
-			titreCirculatingAveragePlotElements: [],
-			value: 127,
-			default: 127,
+			elements: {noSummary: [], cladeAverage: [], circulatingAverage: []},
+			value: 127, default: 127,
 		},
 		boxplots: {
-			titrePlotElements: [],
-			titreCladeAveragePlotElements: [],
-			titreCirculatingAveragePlotElements: [],
-			value: 255,
-			default: 255,
+			elements: {noSummary: [], cladeAverage: [], circulatingAverage: []},
+			value: 255, default: 255,
 		},
 		counts: {
-			titrePlotElements: [],
-			titreCladeAveragePlotElements: [],
-			titreCirculatingAveragePlotElements: [],
-			value: 255,
-			default: 255,
+			elements: {noSummary: [], cladeAverage: [], circulatingAverage: []},
+			value: 255, default: 255,
 		},
 		line40: {
-			titrePlotElements: [],
-			titreCladeAveragePlotElements: [],
-			titreCirculatingAveragePlotElements: [],
-			value: 255,
-			default: 255,
+			elements: {noSummary: [], cladeAverage: [], circulatingAverage: []},
+			value: 255, default: 255,
 		},
 		means: {
-			titrePlotElements: [],
-			titreCladeAveragePlotElements: [],
-			titreCirculatingAveragePlotElements: [],
-			value: 255,
-			default: 255,
+			elements: {noSummary: [], cladeAverage: [], circulatingAverage: []},
+			value: 255, default: 255,
 		},
 	}
 
 	const opacitiesSwitch = addEl(inputContainer, createSwitch(
-		Object.keys(opacities), Object.keys(opacities),
+		<OpacityKind[]>OPACITY_KINDS, <OpacityKind[]>OPACITY_KINDS,
 		(opacitiesSel) => {
-			for (let opacity of Object.keys(opacities)) {
+			for (let opacityKind of <OpacityKind[]>OPACITY_KINDS) {
 				let targetOpacity = 0
-				if (opacitiesSel.includes(opacity)) {
-					targetOpacity = opacities[opacity].default
+				if (opacitiesSel.includes(opacityKind)) {
+					targetOpacity = opacities[opacityKind].default
 				}
 				const alpha = colChannel255ToString(targetOpacity)
 
 				let attrNames = ["stroke"]
-				if (opacity === "counts" || opacity === "points") {
+				if (opacityKind === "counts" || opacityKind === "points") {
 					attrNames = ["fill"]
-				} else if (opacity === "means") {
+				} else if (opacityKind === "means") {
 					attrNames.push("fill")
 				}
 
-				let allElementArrays = ["titrePlotElements", "titreCladeAveragePlotElements", "titreCirculatingAveragePlotElements"]
-				for (let elementArray of allElementArrays) {
-					for (let el of opacities[opacity][elementArray]) {
+				for (let summaryType of SUMMARY_TYPES) {
+					for (let el of opacities[opacityKind].elements[summaryType]) {
 						for (let attrName of attrNames) {
 							let currentColFull = el.getAttribute(attrName)
 							let currentColNoAlpha = currentColFull.slice(0, 7)
