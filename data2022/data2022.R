@@ -54,7 +54,7 @@ vis2022 <- nh_titres %>%
 			tools::toTitleCase() %>%
 			str_replace("^a/", "A/") %>%
 			str_replace("^b/", "B/"),
-		serum_id = paste(testing_lab, cohort, serum_lab, vaccine, pid, sep = "__")
+		serum_id = paste(testing_lab, cohort, location, vaccine, pid, sep = "__")
 	) %>%
 	select(
 		serum_id, cohort, virus, clade, titre, subtype = type, timepoint,
@@ -69,7 +69,60 @@ vis2022 <- nh_titres %>%
 	    ),
 	)
 
+# NOTE(sen) Should be one row per id, virus, timpepoint
+vis2022 %>%
+	group_by(serum_id, virus, timepoint) %>%
+	filter(n() > 1)
+
 quick_summary(vis2022)
 
 write_csv(vis2022, "data2022/vis2022.csv")
 write_csv(vis2022, "titre-visualizer/vis2022.csv")
+
+summarise_logmean <- function(vec) {
+	vec <- na.omit(vec)
+	log_vec <- log(vec)
+	mean_log_vec <- mean(log_vec)
+	sd_log_vec <- sd(log_vec)
+	se_mean_log_vec <- sd_log_vec / sqrt(length(vec))
+	tdf <- length(vec) - 1
+	quant <- qt(0.95, tdf)
+	quant <- qnorm(0.95, 0, 1)
+	mean_log_vec_low <- mean_log_vec - quant * se_mean_log_vec
+	mean_log_vec_high <- mean_log_vec + quant * se_mean_log_vec
+	tibble(
+		mean = exp(mean_log_vec), low = exp(mean_log_vec_low), high = exp(mean_log_vec_high),
+		logmean = mean_log_vec, se_logmean = se_mean_log_vec,
+		pt = 1 - pt((mean_log_vec - log(0.5)) / se_mean_log_vec, tdf),
+		pn = 1 - pnorm((mean_log_vec - log(0.5)) / se_mean_log_vec, 0, 1)
+	)
+}
+
+nh_titres %>%
+	filter(cohort == "Adult", location == "UK", vaccine == "IIV4", testing_lab == "CDC") %>%
+	group_by(cohort, location, vaccine, testing_lab, pid) %>%
+	mutate(ratio_to_ref = postvax / postvax[antigen == "A/VICTORIA/2570/2019 Egg"]) %>%
+	group_by(cohort, location, vaccine, testing_lab, antigen) %>%
+	summarise(.groups = "drop", summarise_logmean(ratio_to_ref)) %>%
+	print(n = 100)
+
+nh_titres %>%
+	filter(cohort == "Adult", location == "Japan", vaccine == "IIV4") %>%
+	select(-prevax, -strain, -type, -test, -passage) %>%
+	group_by(cohort, location, vaccine, testing_lab, antigen) %>%
+	summarise(.groups = "drop", summarise_logmean(postvax)) %>%
+	group_by(cohort, location, vaccine, testing_lab) %>%
+	mutate(
+		logdiff = logmean - logmean[antigen == "A/VICTORIA/2570/2019 Egg"],
+		logdiff_se = se_logmean + se_logmean[antigen == "A/VICTORIA/2570/2019 Egg"],
+		logdiff_low = logdiff - 1.644854 * se_logmean,
+		logdiff_high = logdiff + 1.644854 * se_logmean,
+		ratio_to_ref = exp(logdiff),
+		ratio_to_ref_low = exp(logdiff_low),
+		ratio_to_ref_high = exp(logdiff_high),
+		p = 1 - pnorm((logdiff - log(0.5)) / logdiff_se, 0, 1)
+	) %>%
+	select(-contains("log")) %>%
+	print(n = 100)
+
+
