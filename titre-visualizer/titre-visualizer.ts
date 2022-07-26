@@ -333,8 +333,9 @@ const switchOptionStyleAllCaps = (optEl: HTMLElement, optVal: string) => {
 
 const createSwitch = <SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]>(
 	init: OptType, opts: SingleOpt[], onUpdate: (opt: OptType) => void,
+	name?: string,
 	optElementStyle?: (optEl: HTMLElement, optVal: SingleOpt) => void,
-	forOpt?: (opt: SingleOpt, optElement: HTMLElement, updateSelected: (newSel: OptType) => void) => void,
+	optContainerStyle?: (container: HTMLElement) => void,
 ) => {
 	let multiple = Array.isArray(init)
 	if (multiple) {
@@ -349,8 +350,39 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 		return result
 	}
 
+	const optContainer = createDiv()
+	optContainerStyle?.(optContainer)
+
+	let optContainerDisplayed = name === undefined
+	let optContainerOldDisplay = optContainer.style.display
+	if (!optContainerDisplayed) {
+		optContainer.style.display = "none"
+	}
+
+	if (name !== undefined) {
+		const label = addDiv(switchElement)
+		label.textContent = name!.toUpperCase() + " ▼"
+		label.style.fontWeight = "bold"
+		label.style.letterSpacing = "2px"
+		label.style.cursor = "pointer"
+
+		label.addEventListener("click", (event) => {
+			if (optContainerDisplayed) {
+				optContainerOldDisplay = optContainer.style.display
+				optContainer.style.display = "none"
+				label!.textContent = name!.toUpperCase() + " ▼"
+			} else {
+				optContainer.style.display = optContainerOldDisplay
+				label!.textContent = name!.toUpperCase() + " ▲"
+			}
+			optContainerDisplayed = !optContainerDisplayed
+		})
+	}
+
+	addEl(switchElement, optContainer)
+
 	for (let opt of opts) {
-		let optElement = addDiv(switchElement)
+		let optElement = addDiv(optContainer)
 		optElement.style.paddingTop = "5px"
 		optElement.style.paddingBottom = "5px"
 		optElement.style.cursor = "pointer"
@@ -384,7 +416,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 		optElement.addEventListener("click", async (event) => {
 			if (!multiple && opt !== currentSel) {
 
-				for (let child of switchElement.childNodes) {
+				for (let child of optContainer.childNodes) {
 					(<HTMLElement>child).style.backgroundColor = normalCol
 				}
 				optElement.style.backgroundColor = selectedCol
@@ -405,10 +437,6 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 
 			}
 		})
-
-		if (forOpt !== undefined) {
-			forOpt(opt, optElement, (newSel: OptType) => { currentSel = newSel })
-		}
 	}
 
 	return switchElement
@@ -1198,11 +1226,14 @@ const main = async () => {
 			plotSettings.theme = opt
 			regenPlot()
 		},
+		undefined,
 		switchOptionStyleAllCaps,
+		(container) => {
+			container.style.display = "flex"
+			container.style.flexDirection = "row"
+			container.style.marginBottom = "20px"
+		}
 	))
-	themeSwitch.style.display = "flex"
-	themeSwitch.style.flexDirection = "row"
-	themeSwitch.style.marginBottom = "20px"
 
 	if (false) {
 		const modeSwitch = addEl(inputContainer, createSwitch(
@@ -1210,6 +1241,7 @@ const main = async () => {
 			(plotModes) => {
 				// TODO(sen) Actually implement this
 			},
+			undefined,
 			switchOptionStyleAllCaps,
 		))
 		modeSwitch.style.display = "flex"
@@ -1225,6 +1257,7 @@ const main = async () => {
 			}
 			regenPlot()
 		},
+		"Elements",
 		switchOptionStyleAllCaps
 	))
 	opacitiesSwitch.style.marginBottom = "20px"
