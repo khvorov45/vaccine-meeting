@@ -540,6 +540,7 @@ type Plot = {
 	metrics: Rect,
 	totalWidth: number,
 	totalHeight: number,
+	axisColor: string,
 }
 
 type PlotSpec = {
@@ -559,6 +560,7 @@ type PlotSpec = {
 	xFacetVals: (string | number)[],
 	xLabel: string,
 	yLabel: string,
+	theme: Theme,
 }
 
 const beginPlot = (spec: PlotSpec) => {
@@ -622,7 +624,7 @@ const beginPlot = (spec: PlotSpec) => {
 	}
 
 	const axisThiccness = 1
-	const axisCol = "#bfbdb6"
+	const axisCol = spec.theme === "dark" ? "#bfbdb6" : "#262524"
 
 	// NOTE(sen) Axis lines
 
@@ -714,7 +716,7 @@ const beginPlot = (spec: PlotSpec) => {
 	}
 
 	// NOTE(sen) Facet labels and separators
-	const facetSepColor = "#555555"
+	const facetSepColor = axisCol + colChannel255ToString(0.4 * 255)
 	const facetSepThiccness = 1
 	for (let xFacetIndex = 0; xFacetIndex < spec.xFacetVals.length; xFacetIndex++) {
 		const xFacetVal = spec.xFacetVals[xFacetIndex]
@@ -740,6 +742,7 @@ const beginPlot = (spec: PlotSpec) => {
 		metrics: plotMetrics,
 		totalWidth: totalWidth,
 		totalHeight: totalHeight,
+		axisColor: axisCol,
 	}
 
 	return result
@@ -837,6 +840,7 @@ type PlotSettings = {
 	xFacetBy: string,
 	xAxis: string,
 	refTitre: number,
+	theme: Theme,
 }
 
 const createPlot = (
@@ -898,12 +902,13 @@ const createPlot = (
 		xFacetVals: xFacetVals,
 		xLabel: "",
 		yLabel: "Titre",
+		theme: settings.theme,
 	})
 
 	// NOTE(sen) Ref line
 	{
 		const yCoord = plot.scaleYToPx(settings.refTitre)
-		const color = "#aaaaaaaa"
+		const color = plot.axisColor
 		const thickness = 1
 		drawLine(plot.renderer, plot.spec.padAxis.l, yCoord, plot.totalWidth - plot.spec.padAxis.r, yCoord, color, color, thickness, [])
 	}
@@ -971,7 +976,7 @@ const createPlot = (
 				}
 			}
 
-			const altColor = "#000000"
+			const altColor = settings.theme === "dark" ? "#000000" : "#ffffff"
 
 			// NOTE(sen) Boxplots
 			{
@@ -1037,19 +1042,6 @@ const parseData = (input: string, varNames: DataVarNames): Data => {
 	return result
 }
 
-const onNewDataString = (contentsString: string, plotParent: HTMLElement) => {
-	if (contentsString.length > 0) {
-		const dataVarNames: DataVarNames = {pid: "serum_id", timepoint: "timepoint", titre: "titre"}
-		const data = parseData(contentsString, dataVarNames)
-
-		removeChildren(plotParent)
-		const plotSettings: PlotSettings = {xFacetBy: "testing_lab", xAxis: "virus", refTitre: 40}
-		const timepointLabels: TimpointLabels = {pre: "Pre-vax", post: "Post-vax"}
-		const plot = createPlot(data, plotSettings, dataVarNames, timepointLabels)
-		addEl(plotParent, plot.canvas)
-	}
-}
-
 const main = async () => {
 	const mainEl = document.getElementById("main")!
 
@@ -1099,12 +1091,32 @@ const main = async () => {
 	fileInputLabel.style.fontWeight = "bold"
 	fileInputLabel.style.letterSpacing = "2px"
 
+	let data: Data = []
+	const plotSettings: PlotSettings = {xFacetBy: "testing_lab", xAxis: "virus", refTitre: 40, theme: "light"}
+	const dataVarNames: DataVarNames = {pid: "serum_id", timepoint: "timepoint", titre: "titre"}
+	const timepointLabels: TimpointLabels = {pre: "Pre-vax", post: "Post-vax"}
+
+	document.documentElement.setAttribute("theme", plotSettings.theme)
+
+	const regenPlot = () => {
+		removeChildren(plotParent)
+		const plot = createPlot(data, plotSettings, dataVarNames, timepointLabels)
+		addEl(plotParent, plot.canvas)
+	}
+
+	const onNewDataString = (contentsString: string) => {
+		if (contentsString.length > 0) {
+			data = parseData(contentsString, dataVarNames)
+			regenPlot()
+		}
+	}
+
 	const fileInputHandler = (event: Event) => {
 		fileInputWholePage.style.visibility = "hidden"
 		let file = (<HTMLInputElement>event.target).files?.[0]
 		if (file !== null && file !== undefined) {
 			fileInputLabel.innerHTML = file.name
-			file.text().then((string) => onNewDataString(string, plotParent))
+			file.text().then((string) => onNewDataString(string))
 		}
 	}
 
@@ -1133,10 +1145,11 @@ const main = async () => {
 	fileInputWholePage.addEventListener("dragleave", () => fileInputWholePage.style.visibility = "hidden")
 
 	const themeSwitch = addEl(inputContainer, createSwitch(
-		<Theme>"dark", <Theme[]>THEMES,
+		plotSettings.theme, <Theme[]>THEMES,
 		(opt) => {
 			document.documentElement.setAttribute("theme", opt)
-			// TODO(sen) Actually implement this
+			plotSettings.theme = opt
+			regenPlot()
 		},
 		switchOptionStyleAllCaps,
 	))
@@ -1189,7 +1202,7 @@ const main = async () => {
 		}
 	} catch (e) {}
 
-	onNewDataString(fetchString, plotParent)
+	onNewDataString(fetchString)
 }
 
 main()
