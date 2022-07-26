@@ -1092,7 +1092,7 @@ const main = async () => {
 	fileInputLabel.style.letterSpacing = "2px"
 
 	let data: Data = []
-	const plotSettings: PlotSettings = {xFacetBy: "testing_lab", xAxis: "virus", refTitre: 40, theme: "light"}
+	const plotSettings: PlotSettings = {xFacetBy: "testing_lab", xAxis: "virus", refTitre: 40, theme: "dark"}
 	const dataVarNames: DataVarNames = {pid: "serum_id", timepoint: "timepoint", titre: "titre"}
 	const timepointLabels: TimpointLabels = {pre: "Pre-vax", post: "Post-vax"}
 
@@ -1157,16 +1157,18 @@ const main = async () => {
 	themeSwitch.style.flexDirection = "row"
 	themeSwitch.style.marginBottom = "20px"
 
-	const modeSwitch = addEl(inputContainer, createSwitch(
-		<PlotMode[]>PLOT_MODES, <PlotMode[]>PLOT_MODES,
-		(plotModes) => {
-			// TODO(sen) Actually implement this
-		},
-		switchOptionStyleAllCaps,
-	))
-	modeSwitch.style.display = "flex"
-	modeSwitch.style.flexDirection = "row"
-	modeSwitch.style.marginBottom = "20px"
+	if (false) {
+		const modeSwitch = addEl(inputContainer, createSwitch(
+			<PlotMode[]>PLOT_MODES, <PlotMode[]>PLOT_MODES,
+			(plotModes) => {
+				// TODO(sen) Actually implement this
+			},
+			switchOptionStyleAllCaps,
+		))
+		modeSwitch.style.display = "flex"
+		modeSwitch.style.flexDirection = "row"
+		modeSwitch.style.marginBottom = "20px"
+	}
 
 	const opacities: Opacities = {
 		points: true,
