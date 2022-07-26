@@ -51,11 +51,11 @@ const SUMMARY_TYPES_ = ["noSummary", "cladeAverage", "circulatingAverage"] as co
 const SUMMARY_TYPES = SUMMARY_TYPES_ as unknown as string[]
 type SummaryType = (typeof SUMMARY_TYPES_)[number]
 
-const OPACITY_KINDS_ = ["points", "lines", "boxplots", "counts", "line40", "means"] as const
-const OPACITY_KINDS = OPACITY_KINDS_ as unknown as string[]
-type OpacityKind = (typeof OPACITY_KINDS_)[number]
+const PLOT_ELEMENTS_ = ["points", "lines", "boxplots", "counts", "refLine", "means"] as const
+const PLOT_ELEMENTS = PLOT_ELEMENTS_ as unknown as string[]
+type PlotElement = (typeof PLOT_ELEMENTS_)[number]
 
-type Opacities = Record<OpacityKind, boolean>
+type PlotElements = Record<PlotElement, boolean>
 type Data = Record<string, string | number>[]
 
 //
@@ -757,6 +757,8 @@ const addBoxplot = (
 	altColor: string,
 	meanColor: string,
 	lineThiccness: number,
+	boxes: boolean,
+	means: boolean,
 ) => {
 
 	totalBoxWidth = Math.max(totalBoxWidth, 0)
@@ -768,61 +770,65 @@ const addBoxplot = (
 	const boxCenter = xCoord - boxWidth / 2
 
 	let boxplotBody = {l: boxLeft, b: stats.q75, r: boxRight, t: stats.q25}
-	drawRectOutline(plot.renderer, boxplotBody, color, lineThiccness)
-	drawRectOutline(plot.renderer, rectShrink(boxplotBody, lineThiccness), altColor, lineThiccness)
 
-	drawDoubleLine(
-		plot.renderer,
-		xCoord,
-		stats.q75,
-		xCoord,
-		stats.max,
-		color,
-		altColor,
-		lineThiccness,
-		[],
-		true,
-	)
+	if (boxes) {
+		drawRectOutline(plot.renderer, boxplotBody, color, lineThiccness)
+		drawRectOutline(plot.renderer, rectShrink(boxplotBody, lineThiccness), altColor, lineThiccness)
 
-	drawDoubleLine(
-		plot.renderer,
-		xCoord,
-		stats.min,
-		xCoord,
-		stats.q25,
-		color,
-		altColor,
-		lineThiccness,
-		[],
-		true,
-	)
+		drawDoubleLine(
+			plot.renderer,
+			xCoord,
+			stats.q75,
+			xCoord,
+			stats.max,
+			color,
+			altColor,
+			lineThiccness,
+			[],
+			true,
+		)
 
-	// NOTE(sen) Median
-	drawDoubleLine(
-		plot.renderer,
-		boxLeft - medianChonkiness,
-		stats.median,
-		boxRight,
-		stats.median,
-		color,
-		altColor,
-		lineThiccness,
-		[]
-	)
+		drawDoubleLine(
+			plot.renderer,
+			xCoord,
+			stats.min,
+			xCoord,
+			stats.q25,
+			color,
+			altColor,
+			lineThiccness,
+			[],
+			true,
+		)
 
-	// NOTE(sen) Mean
-	drawDoubleLine(
-		plot.renderer,
-		boxCenter,
-		stats.mean + stats.meanSe * 1.96,
-		boxCenter,
-		stats.mean - stats.meanSe * 1.96,
-		meanColor,
-		altColor,
-		lineThiccness,
-		[]
-	)
-	drawCircle(plot.renderer, boxCenter, stats.mean, 5, meanColor, altColor)
+		// NOTE(sen) Median
+		drawDoubleLine(
+			plot.renderer,
+			boxLeft - medianChonkiness,
+			stats.median,
+			boxRight,
+			stats.median,
+			color,
+			altColor,
+			lineThiccness,
+			[]
+		)
+	}
+
+	if (means) {
+		drawDoubleLine(
+			plot.renderer,
+			boxCenter,
+			stats.mean + stats.meanSe * 1.96,
+			boxCenter,
+			stats.mean - stats.meanSe * 1.96,
+			meanColor,
+			altColor,
+			lineThiccness,
+			[]
+		)
+		drawCircle(plot.renderer, boxCenter, stats.mean, 5, meanColor, altColor)
+	}
 }
 
 type DataVarNames = {
@@ -841,6 +847,7 @@ type PlotSettings = {
 	xAxis: string,
 	refTitre: number,
 	theme: Theme,
+	elements: PlotElements,
 }
 
 const createPlot = (
@@ -905,8 +912,7 @@ const createPlot = (
 		theme: settings.theme,
 	})
 
-	// NOTE(sen) Ref line
-	{
+	if (settings.elements.refLine) {
 		const yCoord = plot.scaleYToPx(settings.refTitre)
 		const color = plot.axisColor
 		const thickness = 1
@@ -965,13 +971,13 @@ const createPlot = (
 				const pointSize = 2
 				const lineSize = 1
 
-				if (preYCoord !== null) {
+				if (preYCoord !== null && settings.elements.points) {
 					drawCircle(plot.renderer, preXCoord, preYCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
 				}
-				if (postYCoord !== null) {
+				if (postYCoord !== null && settings.elements.points) {
 					drawCircle(plot.renderer, postXCoord, postYCoord, pointSize, postColorWithAlpha, postColorWithAlpha)
 				}
-				if (preYCoord !== null && postYCoord !== null) {
+				if (preYCoord !== null && postYCoord !== null && settings.elements.lines) {
 					drawLine(plot.renderer, preXCoord, preYCoord, postXCoord, postYCoord, preColorWithAlpha, postColorWithAlpha, lineSize, [])
 				}
 			}
@@ -979,22 +985,30 @@ const createPlot = (
 			const altColor = settings.theme === "dark" ? "#000000" : "#ffffff"
 
 			// NOTE(sen) Boxplots
-			{
+			if (settings.elements.boxplots || settings.elements.means) {
 				const preStats = getBoxplotStats(preData.map(row => plot.scaleYToPx(row[dataVarNames.titre] as number)))
 				const postStats = getBoxplotStats(postData.map(row => plot.scaleYToPx(row[dataVarNames.titre] as number)))
 
 				const boxWidth = leftRightStep
 				const boxLineThiccness = 2
 				if (preStats !== null) {
-					addBoxplot(plot, preStats, stripXCoord - leftRightStep, boxWidth, preColor, altColor, preColor, boxLineThiccness)
+					addBoxplot(
+						plot, preStats, stripXCoord - leftRightStep, boxWidth,
+						preColor, altColor, preColor, boxLineThiccness,
+						settings.elements.boxplots, settings.elements.means,
+					)
 				}
 				if (postStats !== null) {
-					addBoxplot(plot, postStats, stripXCoord + leftRightStep, boxWidth, postColor, altColor, postColor, boxLineThiccness)
+					addBoxplot(
+						plot, postStats, stripXCoord + leftRightStep, boxWidth,
+						postColor, altColor, postColor, boxLineThiccness,
+						settings.elements.boxplots, settings.elements.means,
+					)
 				}
 			}
 
 			// NOTE(sen) Counts
-			{
+			if (settings.elements.counts) {
 				const yCoord = plot.scaleYToPx(plot.spec.yTicks[plot.spec.yTicks.length - 1])
 				drawText(
 					plot.renderer, `${preCount}`,
@@ -1092,7 +1106,17 @@ const main = async () => {
 	fileInputLabel.style.letterSpacing = "2px"
 
 	let data: Data = []
-	const plotSettings: PlotSettings = {xFacetBy: "testing_lab", xAxis: "virus", refTitre: 40, theme: "dark"}
+	const plotSettings: PlotSettings = {
+		xFacetBy: "testing_lab", xAxis: "virus", refTitre: 40, theme: "dark",
+		elements: {
+			points: true,
+			lines: true,
+			boxplots: true,
+			counts: true,
+			refLine: true,
+			means: true,
+		},
+	}
 	const dataVarNames: DataVarNames = {pid: "serum_id", timepoint: "timepoint", titre: "titre"}
 	const timepointLabels: TimpointLabels = {pre: "Pre-vax", post: "Post-vax"}
 
@@ -1170,26 +1194,13 @@ const main = async () => {
 		modeSwitch.style.marginBottom = "20px"
 	}
 
-	const opacities: Opacities = {
-		points: true,
-		lines: true,
-		boxplots: true,
-		counts: true,
-		line40: true,
-		means: true,
-	}
-
 	const opacitiesSwitch = addEl(inputContainer, createSwitch(
-		<OpacityKind[]>OPACITY_KINDS, <OpacityKind[]>OPACITY_KINDS,
+		<PlotElement[]>PLOT_ELEMENTS, <PlotElement[]>PLOT_ELEMENTS,
 		(opacitiesSel) => {
-			for (let opacityKind of <OpacityKind[]>OPACITY_KINDS) {
-				let elementPresent = false
-				if (opacitiesSel.includes(opacityKind)) {
-					elementPresent = true
-				}
-
-				// TODO(sen) Actually implement this
+			for (let opacityKind of <PlotElement[]>PLOT_ELEMENTS) {
+				plotSettings.elements[opacityKind] = opacitiesSel.includes(opacityKind)
 			}
+			regenPlot()
 		},
 		switchOptionStyleAllCaps
 	))
