@@ -7,7 +7,7 @@ const SUMMARY_TYPES = SUMMARY_TYPES_;
 const OPACITY_KINDS_ = ["points", "lines", "boxplots", "counts", "line40", "means"];
 const OPACITY_KINDS = OPACITY_KINDS_;
 //
-// SECTION Array
+// SECTION Math
 //
 const arrAsc = (arr) => arr.sort((a, b) => a - b);
 const arrSum = (arr) => arr.reduce((a, b) => a + b, 0);
@@ -51,6 +51,132 @@ const arrLinSearch = (arr, item) => {
         }
     }
     return result;
+};
+const beginNestedArrIter = (nestedArr) => {
+    let arrIndices = [];
+    for (let arrIndex = 0; arrIndex < nestedArr.length; arrIndex += 1) {
+        arrIndices.push(0);
+    }
+    return {
+        arrIndices: arrIndices,
+        done: false,
+        nestedArr: nestedArr,
+    };
+};
+const getCurrentNestedArrValues = (iter) => {
+    let facets = [];
+    for (let facetSetIndex = 0; facetSetIndex < iter.nestedArr.length; facetSetIndex += 1) {
+        const setValueIndex = iter.arrIndices[facetSetIndex];
+        facets.push(iter.nestedArr[facetSetIndex][setValueIndex]);
+    }
+    return facets;
+};
+const nextNestedArrIter = (iter) => {
+    let nestedArrCurrentSetIndex = iter.arrIndices.length - 1;
+    while (true) {
+        if (nestedArrCurrentSetIndex == -1) {
+            iter.done = true;
+            break;
+        }
+        if (iter.arrIndices[nestedArrCurrentSetIndex] >= iter.nestedArr[nestedArrCurrentSetIndex].length - 1) {
+            iter.arrIndices[nestedArrCurrentSetIndex] = 0;
+            nestedArrCurrentSetIndex -= 1;
+        }
+        else {
+            iter.arrIndices[nestedArrCurrentSetIndex] += 1;
+            break;
+        }
+    }
+};
+const expandGrid = (input) => {
+    const result = [];
+    for (const nestedArrIter = beginNestedArrIter(input); !nestedArrIter.done; nextNestedArrIter(nestedArrIter)) {
+        let nestedArrs = getCurrentNestedArrValues(nestedArrIter);
+        result.push(nestedArrs);
+    }
+    return result;
+};
+const randUnif = (from, to) => {
+    let rand01 = Math.random();
+    let range = (to - from);
+    let randRange = rand01 * range;
+    let result = from + randRange;
+    return result;
+};
+const randNorm = (mean, sd) => {
+    let u1 = 0;
+    let u2 = 0;
+    while (u1 === 0) {
+        u1 = Math.random();
+    }
+    while (u2 === 0) {
+        u2 = Math.random();
+    }
+    let randNorm01 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+    let result = randNorm01 * sd + mean;
+    return result;
+};
+const toRadians = (val) => val / 360 * 2 * Math.PI;
+const rectShrink = (rect, amount) => {
+    return { l: rect.l + amount, r: rect.r - amount, t: rect.t + amount, b: rect.b - amount };
+};
+const scale = (value, valueMin, valueMax, scaleMin, scaleMax) => {
+    let result = scaleMin;
+    let scaleRange = scaleMax - scaleMin;
+    if (scaleRange !== 0) {
+        result = scaleRange / 2 + scaleMin;
+        let valueRange = valueMax - valueMin;
+        if (valueRange !== 0) {
+            let value0 = value - valueMin;
+            let valueNorm = value0 / valueRange;
+            let valueScale0 = valueNorm * scaleRange;
+            result = valueScale0 + scaleMin;
+        }
+    }
+    return result;
+};
+const getBoxplotStats = (arr) => {
+    let result = null;
+    if (arr.length > 0) {
+        let arrSorted = arr.sort((x1, x2) => x1 - x2);
+        let q25 = arrSortedAscQuantile(arrSorted, 0.25);
+        let q75 = arrSortedAscQuantile(arrSorted, 0.75);
+        result = {
+            min: arrSorted[0],
+            max: arrSorted[arrSorted.length - 1],
+            median: arrSortedAscQuantile(arrSorted, 0.5),
+            q25: q25,
+            q75: q75,
+            iqr: q75 - q25,
+            mean: arrMean(arrSorted),
+            meanSe: arrSd(arrSorted) / Math.sqrt(arr.length),
+        };
+    }
+    return result;
+};
+const numberSort = (x, y) => (x - y);
+const generalSort = (x, y) => (x > y ? 1 : x < y ? -1 : 0);
+const desiredOrderSort = (ord) => {
+    return (a, b) => {
+        let result = 0;
+        let ai = ord.indexOf(a);
+        let bi = ord.indexOf(b);
+        if (ai !== -1 || bi !== -1) {
+            if (ai === -1) {
+                result = 1;
+            }
+            else if (bi === -1) {
+                result = -1;
+            }
+            else if (ai > bi) {
+                result = 1;
+            }
+            else if (ai < bi) {
+                result = -1;
+            }
+        }
+        return result;
+    };
 };
 //
 // SECTION DOM
@@ -137,135 +263,6 @@ const createSwitch = (init, opts, onUpdate, optElementStyle, forOpt) => {
     }
     return switchElement;
 };
-//
-// SECTION ?
-//
-const groupByOne = (rows, key) => {
-    let result = {};
-    for (let row of rows) {
-        if (result[row[key]] === undefined) {
-            result[row[key]] = [];
-        }
-        result[row[key]].push(row);
-    }
-    return result;
-};
-const groupByMultiple = (rows, keys) => {
-    let result = {};
-    for (let row of rows) {
-        let current = result;
-        for (let [keyIndex, key] of keys.entries()) {
-            if (current[row[key]] === undefined) {
-                if (keyIndex === keys.length - 1) {
-                    current[row[key]] = [];
-                }
-                else {
-                    current[row[key]] = {};
-                }
-            }
-            if (keyIndex === keys.length - 1) {
-                current[row[key]].push(row);
-            }
-            current = current[row[key]];
-        }
-    }
-    return result;
-};
-const summariseGrouped = (data, groupVars, func) => {
-    const calcRow = (data, currentRow) => {
-        let result = [];
-        if (Array.isArray(data)) {
-            if (data.length > 0) {
-                let summarized = func(data);
-                result = [Object.assign(Object.assign({}, currentRow), summarized)];
-            }
-        }
-        else {
-            let currentVarname = groupVars[Object.keys(currentRow).length];
-            for (let key of Object.keys(data)) {
-                currentRow[currentVarname] = key;
-                let row = calcRow(data[key], Object.assign({}, currentRow));
-                if (row.length > 0) {
-                    result = result.concat(row);
-                }
-            }
-        }
-        return result;
-    };
-    return calcRow(data, {});
-};
-const stringSort = (s1, s2) => (s1 > s2 ? 1 : s1 < s2 ? -1 : 0);
-const desiredOrderSort = (ord) => {
-    return (a, b) => {
-        let result = 0;
-        let ai = ord.indexOf(a);
-        let bi = ord.indexOf(b);
-        if (ai !== -1 || bi !== -1) {
-            if (ai === -1) {
-                result = 1;
-            }
-            else if (bi === -1) {
-                result = -1;
-            }
-            else if (ai > bi) {
-                result = 1;
-            }
-            else if (ai < bi) {
-                result = -1;
-            }
-        }
-        return result;
-    };
-};
-const scale = (value, valueMin, valueMax, scaleMin, scaleMax) => {
-    let result = scaleMin;
-    let scaleRange = scaleMax - scaleMin;
-    if (scaleRange !== 0) {
-        result = scaleRange / 2 + scaleMin;
-        let valueRange = valueMax - valueMin;
-        if (valueRange !== 0) {
-            let value0 = value - valueMin;
-            let valueNorm = value0 / valueRange;
-            let valueScale0 = valueNorm * scaleRange;
-            result = valueScale0 + scaleMin;
-        }
-    }
-    return result;
-};
-const parseData = (input) => {
-    let result = [];
-    if (input.length > 0) {
-        let lines = input.split(/\r?\n/).filter((line) => line !== "");
-        let linesSplit = lines.map((line) => line.split(","));
-        let names = linesSplit[0];
-        if (linesSplit.length > 1) {
-            for (let values of linesSplit.slice(1)) {
-                let row = {};
-                for (let [index, name] of names.entries()) {
-                    let value = values[index];
-                    if (name === "titre" || name === "clade_freq") {
-                        value = parseFloat(value);
-                    }
-                    else if (name === "vaccine_strain") {
-                        value = value === "TRUE";
-                    }
-                    else if (name === "cohort") {
-                        value = value.toLowerCase();
-                    }
-                    row[name] = value;
-                }
-                result.push(row);
-            }
-        }
-    }
-    return result;
-};
-const reduceAxisPadBottom = (newValue, oldSizes) => {
-    let sizes = Object.assign({}, oldSizes);
-    sizes.plotHeight -= sizes.axisPadBottom - newValue;
-    sizes.axisPadBottom = newValue;
-    return sizes;
-};
 const colChannel255ToString = (channel) => {
     return channel.toString(16).padStart(2, "0");
 };
@@ -286,1537 +283,390 @@ const colChangeSaturation = (col, satDelta) => {
     let blueNew = colChannel255ToString(blue);
     return "#" + redNew + greenNew + blueNew + alpha;
 };
-const createTitreAxisElement = (colors, plotWidth, sizes, scaleTitre, title, rise) => {
-    let titreAxis = document.createElementNS(XMLNS, "g");
-    // NOTE(sen) Title
-    let yTitle = document.createElementNS(XMLNS, "text");
-    yTitle.setAttributeNS(null, "x", "0");
-    yTitle.setAttributeNS(null, "y", "0");
-    yTitle.setAttributeNS(null, "fill", colors.text);
-    yTitle.setAttributeNS(null, "transform", `translate(${0}, ${(sizes.plotHeight - sizes.axisPadBottom) / 2}) rotate(-90)`);
-    yTitle.setAttributeNS(null, "dominant-baseline", "hanging");
-    yTitle.setAttributeNS(null, "text-anchor", "middle");
-    yTitle.innerHTML = title;
-    titreAxis.appendChild(yTitle);
-    // NOTE(sen) Line
-    let yLine = document.createElementNS(XMLNS, "line");
-    yLine.setAttributeNS(null, "x1", sizes.axisPadLeft);
-    yLine.setAttributeNS(null, "x2", sizes.axisPadLeft);
-    yLine.setAttributeNS(null, "y1", `${sizes.plotHeight - sizes.axisPadBottom}`);
-    yLine.setAttributeNS(null, "y2", sizes.axisPadTop);
-    yLine.setAttributeNS(null, "stroke", colors.axis);
-    titreAxis.appendChild(yLine);
-    let yLine2 = document.createElementNS(XMLNS, "line");
-    yLine2.setAttributeNS(null, "x1", plotWidth);
-    yLine2.setAttributeNS(null, "x2", plotWidth);
-    yLine2.setAttributeNS(null, "y1", `${sizes.plotHeight - sizes.axisPadBottom}`);
-    yLine2.setAttributeNS(null, "y2", sizes.axisPadTop);
-    yLine2.setAttributeNS(null, "stroke", colors.axis);
-    titreAxis.appendChild(yLine2);
-    // NOTE(sen) Ticks and numbers
-    let yTicks = [5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120, 10240];
-    if (rise) {
-        yTicks = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512];
-    }
-    for (let yTick of yTicks) {
-        let yCoord = scaleTitre(yTick);
-        let tick = document.createElementNS(XMLNS, "line");
-        tick.setAttributeNS(null, "x1", `${sizes.axisPadLeft - sizes.tickLength - 1}`);
-        tick.setAttributeNS(null, "x2", `${sizes.axisPadLeft - 1}`);
-        tick.setAttributeNS(null, "y1", yCoord);
-        tick.setAttributeNS(null, "y2", yCoord);
-        tick.setAttributeNS(null, "stroke", colors.axis);
-        titreAxis.appendChild(tick);
-        let gridline = document.createElementNS(XMLNS, "line");
-        gridline.setAttributeNS(null, "x1", sizes.axisPadLeft + 1);
-        gridline.setAttributeNS(null, "x2", plotWidth);
-        gridline.setAttributeNS(null, "y1", yCoord);
-        gridline.setAttributeNS(null, "y2", yCoord);
-        gridline.setAttributeNS(null, "stroke", colors.grid);
-        titreAxis.appendChild(gridline);
-        let number = document.createElementNS(XMLNS, "text");
-        number.setAttributeNS(null, "x", `${sizes.axisPadLeft - sizes.tickLength * 1.5}`);
-        number.setAttributeNS(null, "y", yCoord);
-        number.setAttributeNS(null, "fill", colors.text);
-        number.setAttributeNS(null, "dominant-baseline", "middle");
-        number.setAttributeNS(null, "text-anchor", "end");
-        number.innerHTML = yTick.toFixed();
-        titreAxis.appendChild(number);
-    }
-    return titreAxis;
-};
-const createXAxisBottomLine = (plotWidth, sizes, colors) => {
-    let xLine = document.createElementNS(XMLNS, "line");
-    xLine.setAttributeNS(null, "x1", sizes.axisPadLeft);
-    xLine.setAttributeNS(null, "x2", plotWidth);
-    xLine.setAttributeNS(null, "y1", `${sizes.plotHeight - sizes.axisPadBottom}`);
-    xLine.setAttributeNS(null, "y2", `${sizes.plotHeight - sizes.axisPadBottom}`);
-    xLine.setAttributeNS(null, "stroke", colors.axis);
-    return xLine;
-};
-const createXAxisTopLine = (plotWidth, sizes, colors) => {
-    let xLine2 = document.createElementNS(XMLNS, "line");
-    xLine2.setAttributeNS(null, "x1", sizes.axisPadLeft);
-    xLine2.setAttributeNS(null, "x2", plotWidth);
-    xLine2.setAttributeNS(null, "y1", sizes.axisPadTop);
-    xLine2.setAttributeNS(null, "y2", sizes.axisPadTop);
-    xLine2.setAttributeNS(null, "stroke", colors.axis);
-    return xLine2;
-};
-const createXTick = (xCoord, sizes, colors) => {
-    let tick = document.createElementNS(XMLNS, "line");
-    tick.setAttributeNS(null, "x1", xCoord);
-    tick.setAttributeNS(null, "x2", xCoord);
-    tick.setAttributeNS(null, "y1", `${sizes.plotHeight - sizes.axisPadBottom + 1}`);
-    tick.setAttributeNS(null, "y2", sizes.plotHeight - sizes.axisPadBottom + 1 + sizes.tickLength);
-    tick.setAttributeNS(null, "stroke", colors.axis);
-    return tick;
-};
-const createXLabel = (label, angle, textAnchor, xCoord, sizes, colors) => {
-    let yCoord = sizes.plotHeight - sizes.axisPadBottom + sizes.tickLength * 2;
-    let element = document.createElementNS(XMLNS, "text");
-    element.setAttributeNS(null, "x", "0");
-    element.setAttributeNS(null, "y", "0");
-    element.setAttributeNS(null, "fill", colors.text);
-    element.setAttributeNS(null, "dominant-baseline", "hanging");
-    element.setAttributeNS(null, "text-anchor", textAnchor);
-    element.setAttributeNS(null, "text-wrap", "wrap");
-    element.setAttributeNS(null, "transform", `translate(${xCoord}, ${yCoord}) rotate(${angle})`);
-    element.innerHTML = label;
-    return element;
-};
-const createDashedHLine = (yCoord, plotWidth, sizes, color) => {
-    let el = document.createElementNS(XMLNS, "line");
-    el.setAttributeNS(null, "x1", sizes.axisPadLeft);
-    el.setAttributeNS(null, "x2", plotWidth);
-    el.setAttributeNS(null, "y1", yCoord);
-    el.setAttributeNS(null, "y2", yCoord);
-    el.setAttributeNS(null, "stroke", color);
-    el.setAttributeNS(null, "stroke-dasharray", "5,5");
-    return el;
-};
-const createVLine = (xCoord, col, sizes) => {
-    let el = document.createElementNS(XMLNS, "line");
-    el.setAttributeNS(null, "x1", xCoord);
-    el.setAttributeNS(null, "x2", xCoord);
-    el.setAttributeNS(null, "y1", sizes.axisPadTop);
-    el.setAttributeNS(null, "y2", `${sizes.plotHeight - sizes.axisPadBottom}`);
-    el.setAttributeNS(null, "stroke", col);
-    return el;
-};
-const createPoint = (xCoord, yCoord, col) => {
-    let point = document.createElementNS(XMLNS, "circle");
-    point.setAttributeNS(null, "cx", xCoord);
-    point.setAttributeNS(null, "cy", yCoord);
-    point.setAttributeNS(null, "r", "2");
-    point.setAttributeNS(null, "fill", col);
-    return point;
-};
-const createFacetLabel = (xCoord, col, label, sizes) => {
-    let el = document.createElementNS(XMLNS, "text");
-    el.setAttributeNS(null, "x", xCoord);
-    el.setAttributeNS(null, "y", `${sizes.axisPadTop - sizes.tickLength}`);
-    el.setAttributeNS(null, "fill", col);
-    el.setAttributeNS(null, "text-anchor", "middle");
-    el.innerHTML = label;
-    return el;
-};
-const createLine = (x1, x2, y1, y2, col) => {
-    let line = document.createElementNS(XMLNS, "line");
-    line.setAttributeNS(null, "x1", x1);
-    line.setAttributeNS(null, "x2", x2);
-    line.setAttributeNS(null, "y1", y1);
-    line.setAttributeNS(null, "y2", y2);
-    line.setAttributeNS(null, "stroke", col);
-    return line;
-};
-const createCount = (count, xCoord, yCoord, col) => {
-    let el = document.createElementNS(XMLNS, "text");
-    el.innerHTML = count;
-    el.setAttributeNS(null, "x", xCoord);
-    el.setAttributeNS(null, "y", yCoord);
-    el.setAttributeNS(null, "fill", col);
-    el.setAttributeNS(null, "text-anchor", "middle");
-    el.setAttributeNS(null, "dominant-baseline", "hanging");
-    return el;
-};
-const calcBoxplotStats = (arr) => {
-    let stats = null;
-    if (arr.length > 0) {
-        let arrSortedAsc = arrAsc(arr);
-        stats = {};
-        stats.median = arrSortedAscQuantile(arrSortedAsc, 0.5);
-        stats.q25 = arrSortedAscQuantile(arrSortedAsc, 0.25);
-        stats.q75 = arrSortedAscQuantile(arrSortedAsc, 0.75);
-        stats.max = arrSortedAscMax(arrSortedAsc);
-        stats.min = arrSortedAscMin(arrSortedAsc);
-        stats.iqr = stats.q75 - stats.q25;
-        stats.iqr15 = 1.5 * stats.iqr;
-        let epsilon = 0.00001;
-        stats.top = arrSortedAscMax(arrSortedAsc.filter((val) => val <= stats.q75 + stats.iqr15 + epsilon &&
-            val <= stats.q75 + stats.iqr15 - epsilon));
-        stats.bottom = arrSortedAscMin(arrSortedAsc.filter((val) => val >= stats.q25 - stats.iqr15 + epsilon &&
-            val >= stats.q25 - stats.iqr15 - epsilon));
-    }
-    return stats;
-};
-const calcMeanStats = (arr) => {
-    let stats = null;
-    if (arr.length > 0) {
-        stats = {};
-        stats.mean = arrMean(arr);
-        stats.sd = arrSd(arr);
-        stats.se = stats.sd / Math.sqrt(arr.length);
-        let errorMargin = 1.96 * stats.se;
-        stats.low = stats.mean - errorMargin;
-        stats.high = stats.mean + errorMargin;
-    }
-    return stats;
-};
-const createErrorBar = (low, mid, high, xCoord, col) => {
-    let el = document.createElementNS(XMLNS, "g");
-    el.setAttributeNS(null, "fill", col);
-    el.setAttributeNS(null, "stroke", col);
-    let point = document.createElementNS(XMLNS, "circle");
-    point.setAttributeNS(null, "cx", xCoord);
-    point.setAttributeNS(null, "cy", mid);
-    point.setAttributeNS(null, "r", "5");
-    let line = document.createElementNS(XMLNS, "line");
-    line.setAttributeNS(null, "y1", low);
-    line.setAttributeNS(null, "y2", high);
-    line.setAttributeNS(null, "x1", xCoord);
-    line.setAttributeNS(null, "x2", xCoord);
-    line.setAttributeNS(null, "stroke-width", "3");
-    el.appendChild(point);
-    el.appendChild(line);
-    return el;
-};
 const isGood = (n) => n !== null && n !== undefined && !isNaN(n);
-const createBoxplotElement = (whiskerDown, boxDown, boxMid, boxUp, whiskerUp, boxWidth, xCoord, col) => {
-    let boxplot = document.createElementNS(XMLNS, "g");
-    boxplot.setAttributeNS(null, "stroke", col);
-    const drawBoxplotHline = (yCoord, thickness, addWidth) => {
-        let line = document.createElementNS(XMLNS, "line");
-        if (!addWidth) {
-            addWidth = 0;
-        }
-        if (isGood(xCoord) && isGood(yCoord) && isGood(boxWidth)) {
-            line.setAttributeNS(null, "x1", `${xCoord - (addWidth + boxWidth / 2)}`);
-            line.setAttributeNS(null, "x2", xCoord + (addWidth + boxWidth / 2));
-            line.setAttributeNS(null, "y1", yCoord);
-            line.setAttributeNS(null, "y2", yCoord);
-            line.setAttributeNS(null, "stroke-width", thickness);
-        }
-        boxplot.appendChild(line);
-    };
-    drawBoxplotHline(boxMid, 4, 10);
-    drawBoxplotHline(boxUp, 1);
-    drawBoxplotHline(boxDown, 1);
-    const drawBoxplotVline = (xCoord) => {
-        let line = document.createElementNS(XMLNS, "line");
-        if (isGood(xCoord) && isGood(boxUp) && isGood(boxDown)) {
-            line.setAttributeNS(null, "x1", xCoord);
-            line.setAttributeNS(null, "x2", xCoord);
-            line.setAttributeNS(null, "y1", boxUp);
-            line.setAttributeNS(null, "y2", boxDown);
-        }
-        boxplot.appendChild(line);
-    };
-    drawBoxplotVline(xCoord - boxWidth / 2);
-    drawBoxplotVline(xCoord + boxWidth / 2);
-    const drawBoxplotWhisker = (start, end) => {
-        let line = document.createElementNS(XMLNS, "line");
-        if (isGood(xCoord) && isGood(start) && isGood(end)) {
-            line.setAttributeNS(null, "x1", xCoord);
-            line.setAttributeNS(null, "x2", xCoord);
-            line.setAttributeNS(null, "y1", start);
-            line.setAttributeNS(null, "y2", end);
-        }
-        boxplot.appendChild(line);
-    };
-    drawBoxplotWhisker(boxUp, whiskerUp);
-    drawBoxplotWhisker(boxDown, whiskerDown);
-    return boxplot;
+//
+// SECTION Plots
+//
+const CANVAS_FONT_HEIGHT = 16;
+const MISSING_STRING = "(missing)";
+const drawRect = (renderer, rect, color) => {
+    renderer.fillStyle = color;
+    renderer.fillRect(rect.l, rect.t, rect.r - rect.l, rect.b - rect.t);
 };
-const createSvgElement = () => {
-    let plotSvg = document.createElementNS(XMLNS, "svg");
-    plotSvg.style.flexShrink = "0";
-    plotSvg.style.display = "block";
-    return plotSvg;
-};
-const setPlotSvgSize = (svg, width, height) => {
-    svg.setAttributeNS(null, "viewBox", "0 0 " + width + " " + height);
-    svg.setAttributeNS(null, "width", width);
-    svg.setAttributeNS(null, "height", height);
-};
-const calcPlotWidth = (sizes, entryCount) => {
-    let result = sizes.dataPadX + sizes.axisPadLeft + sizes.widthPerElement * entryCount;
-    return result;
-};
-const createScaleLogtitre = (sizes, rise) => {
-    let min = 5;
-    let max = 10240;
-    if (rise) {
-        min = 1;
-        max = 550;
+const drawLine = (renderer, x1, y1, x2, y2, color1, color2, thiccness, dashSegments) => {
+    if ((x1 !== x2 || y1 !== y2) && isGood(x1) && isGood(x2) && isGood(y1) && isGood(y2)) {
+        const grad = renderer.createLinearGradient(x1, y1, x2, y2);
+        grad.addColorStop(0, color1);
+        grad.addColorStop(1, color2);
+        renderer.strokeStyle = grad;
+        renderer.beginPath();
+        renderer.moveTo(x1, y1);
+        renderer.lineTo(x2, y2);
+        let oldLineWidth = renderer.lineWidth;
+        renderer.lineWidth = thiccness;
+        renderer.setLineDash(dashSegments);
+        renderer.stroke();
+        renderer.lineWidth = oldLineWidth;
+        renderer.setLineDash([]);
     }
-    return (val) => scale(val, Math.log(min), Math.log(max), sizes.plotHeight - sizes.dataPadY - sizes.axisPadBottom, sizes.dataPadY + sizes.axisPadTop);
 };
-const createScaleFacetedCategorical = (facetEntryCounts, sizes) => {
-    let facetEntryCumCounts = arrCumSum(facetEntryCounts);
-    let totalCount = facetEntryCumCounts[facetEntryCumCounts.length - 1];
-    let plotWidth = calcPlotWidth(sizes, totalCount);
-    return (facetIndex, entryIndex) => {
-        let facetEntryCount = facetEntryCounts[facetIndex];
-        let facetEntryCumCount = facetEntryCumCounts[facetIndex];
-        let entryCountOffset = facetEntryCumCount - facetEntryCount;
-        let realIndex = entryIndex + entryCountOffset;
-        let result = scale(realIndex, 0, totalCount - 1, sizes.axisPadLeft + sizes.dataPadX, plotWidth - sizes.dataPadX);
+const drawRectOutline = (renderer, rect, color, thiccness) => {
+    let halfThicc = thiccness / 2;
+    drawLine(renderer, rect.l - halfThicc, rect.t, rect.r + halfThicc, rect.t, color, color, thiccness, []);
+    drawLine(renderer, rect.r, rect.t, rect.r, rect.b, color, color, thiccness, []);
+    drawLine(renderer, rect.l - halfThicc, rect.b, rect.r + halfThicc, rect.b, color, color, thiccness, []);
+    drawLine(renderer, rect.l, rect.t, rect.l, rect.b, color, color, thiccness, []);
+};
+const drawCircle = (renderer, centerX, centerY, radius, color, outlineColor) => {
+    renderer.beginPath();
+    renderer.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+    renderer.fillStyle = color;
+    renderer.fill();
+    renderer.lineWidth = 1;
+    renderer.strokeStyle = outlineColor;
+    renderer.stroke();
+};
+const drawDoubleLine = (renderer, x1, y1, x2, y2, color, color2, thiccness, dashSegments, flipShade) => {
+    const getLineShift = (x1, y1, x2, y2, thiccness) => {
+        let lineVec = { x: x2 - x1, y: y2 - y1 };
+        let linePerpVec = { x: lineVec.y, y: lineVec.x };
+        let dx = linePerpVec.x / (linePerpVec.x + linePerpVec.y) * thiccness;
+        let dy = linePerpVec.y / (linePerpVec.x + linePerpVec.y) * thiccness;
+        return { dx: dx, dy: dy };
+    };
+    let { dx, dy } = getLineShift(x1, y1, x2, y2, thiccness);
+    if (flipShade) {
+        dx = -dx;
+        dy = -dy;
+    }
+    drawLine(renderer, x1, y1, x2, y2, color, color, thiccness, dashSegments);
+    drawLine(renderer, x1 + dx, y1 + dy, x2 + dx, y2 + dy, color2, color2, thiccness, dashSegments);
+};
+const drawPath = (renderer, yCoords, xCoords, color) => {
+    renderer.strokeStyle = color;
+    renderer.beginPath();
+    let started = false;
+    for (let pointIndex = 0; pointIndex < yCoords.length; pointIndex += 1) {
+        let xCoord = xCoords[pointIndex];
+        let yCoord = yCoords[pointIndex];
+        if (yCoord !== null) {
+            if (!started) {
+                renderer.moveTo(xCoord, yCoord);
+                started = true;
+            }
+            else {
+                renderer.lineTo(xCoord, yCoord);
+            }
+        }
+    }
+    renderer.stroke();
+};
+const drawText = (renderer, text, xCoord, yCoord, color, angle, baseline, textAlign, outlineColor) => {
+    renderer.fillStyle = color;
+    renderer.textBaseline = baseline;
+    renderer.textAlign = textAlign;
+    renderer.translate(xCoord, yCoord);
+    renderer.rotate(toRadians(angle));
+    renderer.font = `${CANVAS_FONT_HEIGHT}px sans-serif`;
+    if (outlineColor !== undefined) {
+        renderer.miterLimit = 2;
+        renderer.lineJoin = "round";
+        renderer.lineWidth = 3;
+        renderer.strokeStyle = outlineColor;
+        renderer.strokeText(text, 0, 0);
+    }
+    renderer.fillText(text, 0, 0);
+    renderer.setTransform(1, 0, 0, 1, 0, 0);
+};
+const beginPlot = (spec) => {
+    const plotAreaWidth = spec.widthTick * spec.xTicksPerFacet.reduce((acc, cur) => acc += cur.length, 0) +
+        spec.padFacet * Math.max(0, spec.xFacetVals.length - 1);
+    const facetHeight = spec.heightTick * spec.yTicks.length;
+    const plotAreaHeight = facetHeight;
+    const totalWidth = plotAreaWidth + spec.padAxis.l + spec.padData.l + spec.padAxis.r + spec.padData.r;
+    const totalHeight = plotAreaHeight + spec.padAxis.t + spec.padData.t + spec.padAxis.b + spec.padData.b;
+    const canvas = createEl("canvas");
+    canvas.width = totalWidth;
+    canvas.height = totalHeight;
+    const renderer = canvas.getContext("2d");
+    const plotMetrics = {
+        t: spec.padAxis.t + spec.padData.t,
+        b: totalHeight - spec.padAxis.b - spec.padData.b,
+        l: spec.padAxis.l + spec.padData.l,
+        r: totalWidth - spec.padAxis.r - spec.padData.r,
+    };
+    const xFacetMetrics = [];
+    if (spec.xFacetVals.length > 0) {
+        let prevFacetRightAndPad = plotMetrics.l;
+        for (let xFacetIndex = 0; xFacetIndex < spec.xFacetVals.length; xFacetIndex++) {
+            const left = prevFacetRightAndPad;
+            const ticksInFacet = spec.xTicksPerFacet[xFacetIndex].length;
+            const right = left + ticksInFacet * spec.widthTick;
+            xFacetMetrics.push({ l: left, r: right });
+            prevFacetRightAndPad = right + spec.padFacet;
+        }
+    }
+    else {
+        xFacetMetrics[0] = { l: plotMetrics.l, r: plotMetrics.r };
+    }
+    const scaleXToPx = (val, xFacetVal) => {
+        const facetIndex = Math.max(0, spec.xFacetVals.indexOf(xFacetVal));
+        const facetMetrics = xFacetMetrics[facetIndex];
+        const facetXMin = spec.scaledXMinPerFacet[facetIndex];
+        const facetXMax = spec.scaledXMaxPerFacet[facetIndex];
+        const result = scale(spec.scaleXData(val, facetIndex), facetXMin, facetXMax, facetMetrics.l, facetMetrics.r);
         return result;
     };
-};
-const createScaleCategorical = (count, sizes) => {
-    let plotWidth = calcPlotWidth(sizes, count);
-    return (index) => scale(index, 0, count - 1, sizes.axisPadLeft + sizes.dataPadX, plotWidth - sizes.dataPadX);
-};
-const createTitrePlotSvg = (data, cladeFreqs, vaccineStrains, opacities, colors, sizes, cladeFreqElements) => {
-    let plotSvg = createSvgElement();
-    if (data !== null && data !== undefined && data.length > 0) {
-        //
-        // SECTION Scales
-        //
-        // NOTE(sen) Y-Axis
-        let scaleLogtitre = createScaleLogtitre(sizes);
-        let scaleTitre = (val) => scaleLogtitre(Math.log(val));
-        // NOTE(sen) X-Axis
-        let virusClades = {};
-        for (let row of data) {
-            if (virusClades[row.virus] === undefined) {
-                virusClades[row.virus] = row.clade;
-            }
+    const scaleYToPx = (val) => {
+        let result = scale(spec.scaleYData(val), spec.scaleYData(spec.yMin), spec.scaleYData(spec.yMax), plotMetrics.b, plotMetrics.t);
+        return result;
+    };
+    const axisThiccness = 1;
+    const axisCol = "#bfbdb6";
+    // NOTE(sen) Axis lines
+    drawLine(renderer, spec.padAxis.l, totalHeight - spec.padAxis.b, totalWidth - spec.padAxis.r, totalHeight - spec.padAxis.b, axisCol, axisCol, axisThiccness, []);
+    drawLine(renderer, spec.padAxis.l, totalHeight - spec.padAxis.b, spec.padAxis.l, spec.padAxis.t, axisCol, axisCol, axisThiccness, []);
+    // NOTE(sen) Axis labels
+    const axisTextCol = axisCol;
+    drawText(renderer, spec.xLabel, (plotMetrics.r - plotMetrics.l) / 2 + plotMetrics.l, totalHeight - 3, axisTextCol, 0, "bottom", "center");
+    drawText(renderer, spec.yLabel, 3, (plotMetrics.b - plotMetrics.t) / 2 + plotMetrics.t, axisTextCol, -90, "top", "center");
+    // NOTE(sen) Ticks and grid
+    const tickLength = 5;
+    const tickToText = 5;
+    const allXTicksXCoords = [];
+    for (let xFacetIndex = 0; xFacetIndex < Math.max(1, spec.xFacetVals.length); xFacetIndex++) {
+        const xFacetVal = spec.xFacetVals[xFacetIndex];
+        const xFacetTicks = spec.xTicksPerFacet[xFacetIndex];
+        for (let xTick of xFacetTicks) {
+            const xCoord = scaleXToPx(xTick, xFacetVal);
+            allXTicksXCoords.push(xCoord);
+            drawLine(renderer, xCoord, totalHeight - spec.padAxis.b, xCoord, totalHeight - spec.padAxis.b + tickLength, axisCol, axisCol, axisThiccness, []);
+            drawText(renderer, `${xTick}`, xCoord, totalHeight - spec.padAxis.b + tickLength + tickToText, axisTextCol, -30, "hanging", "end");
         }
-        let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort);
-        let labViruses = [];
-        let labVirusCounts = [];
-        for (let lab of labs) {
-            let labData = data.filter((row) => row.testing_lab == lab);
-            let viruses = arrUnique(labData.map((row) => row.virus)).sort((v1, v2) => {
-                let result = 0;
-                let yearPat = /(\d{4})e?$/;
-                let year1 = yearPat.exec(v1)[1];
-                let year2 = yearPat.exec(v2)[1];
-                if (year1 !== undefined && year2 !== undefined) {
-                    result = parseInt(year1) - parseInt(year2);
-                }
-                if (result === 0) {
-                    let clade1 = virusClades[v1];
-                    let clade2 = virusClades[v2];
-                    if (clade1 > clade2) {
-                        result = 1;
-                    }
-                    else {
-                        result = -1;
-                    }
-                }
-                if (result === 0) {
-                    if (v1 > v2) {
-                        result = 1;
-                    }
-                    else {
-                        result = -1;
-                    }
-                }
-                return result;
-            });
-            labViruses.push(viruses);
-            labVirusCounts.push(viruses.length);
-        }
-        let plotWidth = calcPlotWidth(sizes, arrSum(labVirusCounts));
-        const scaleLabIndexVirusIndex = createScaleFacetedCategorical(labVirusCounts, sizes);
-        setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight);
-        //
-        // SECTION Y-Axis
-        //
-        let yAxis = createTitreAxisElement(colors, plotWidth, sizes, scaleTitre, "Titre");
-        plotSvg.appendChild(yAxis);
-        //
-        // SECTION X-axis
-        //
-        // NOTE(sen) Line
-        plotSvg.appendChild(createXAxisBottomLine(plotWidth, sizes, colors));
-        plotSvg.appendChild(createXAxisTopLine(plotWidth, sizes, colors));
-        // NOTE(sen) Ticks and labels
-        for (let [labIndex, virusNames] of labViruses.entries()) {
-            for (let [virusIndex, virusName] of virusNames.entries()) {
-                let xCoord = scaleLabIndexVirusIndex(labIndex, virusIndex);
-                plotSvg.appendChild(createXTick(xCoord, sizes, colors));
-                plotSvg.appendChild(createXLabel(virusName, -45, "end", xCoord, sizes, colors));
-                let cladeName = virusClades[virusName];
-                let cladeFreq = Math.round(cladeFreqs[cladeName] * 100);
-                let cladeLabel = createXLabel(cladeName + " (" + cladeFreq + "%)", -45, "end", xCoord + sizes.svgTextLineHeightGuess, sizes, colors);
-                plotSvg.appendChild(cladeLabel);
-                cladeFreqElements[cladeName].push(cladeLabel);
-            }
-        }
-        //
-        // SECTION Main plot
-        //
-        // NOTE(sen) Line at 40
-        let line40 = createDashedHLine(scaleTitre(40), plotWidth, sizes, colors.thresholdLine);
-        plotSvg.appendChild(line40);
-        opacities.line40.elements.noSummary.push(line40);
-        // NOTE(sen) The rest of the plot
-        for (let [labIndex, virusNames] of labViruses.entries()) {
-            let labData = data.filter((row) => row.testing_lab == labs[labIndex]);
-            let serumIds = arrUnique(labData.map((row) => row.serum_id));
-            // NOTE(sen) Lab marker line
-            let labFirstX = scaleLabIndexVirusIndex(labIndex, 0);
-            let labLastX = scaleLabIndexVirusIndex(labIndex, labVirusCounts[labIndex] - 1);
-            if (labIndex < labViruses.length - 1) {
-                let markerLineX = labLastX + sizes.widthPerElement / 2;
-                let markerLine = createVLine(markerLineX, colors.axis, sizes);
-                plotSvg.appendChild(markerLine);
-            }
-            // NOTE(sen) Lab marker text
-            let markerTextX = (labLastX + labFirstX) / 2;
-            let markerText = createFacetLabel(markerTextX, colors.text, labs[labIndex], sizes);
-            plotSvg.appendChild(markerText);
-            for (let [virusIndex, virusName] of virusNames.entries()) {
-                let virusData = labData.filter((row) => row.virus == virusName);
-                let virusDataPrevax = virusData.filter((row) => row.timepoint === "Pre-vax");
-                let virusDataPostvax = virusData.filter((row) => row.timepoint === "Post-vax");
-                let preVaxPoints = 0;
-                let postVaxPoints = 0;
-                let thisPreVaxCol = colors.preVax;
-                let thisPostVaxCol = colors.postVax;
-                if (vaccineStrains.includes(virusName)) {
-                    thisPreVaxCol = colors.vaccinePreVax;
-                    thisPostVaxCol = colors.vaccinePostVax;
-                }
-                for (let serumId of serumIds) {
-                    let preVaxData = virusDataPrevax.filter((row) => row.serum_id == serumId);
-                    let postVaxData = virusDataPostvax.filter((row) => row.serum_id == serumId);
-                    const drawPoint = (titre, timepoint) => {
-                        let coords = null;
-                        if (titre) {
-                            let yCoord = scaleLogtitre(Math.log(titre) + Math.random() * 0.1);
-                            let xCoord = scaleLabIndexVirusIndex(labIndex, virusIndex + (Math.random() - 0.5) * 0.05) -
-                                sizes.prePostDistance / 2;
-                            let col = thisPreVaxCol;
-                            if (timepoint === "Post-vax") {
-                                xCoord += sizes.prePostDistance;
-                                col = thisPostVaxCol;
-                                postVaxPoints += 1;
-                            }
-                            else {
-                                preVaxPoints += 1;
-                            }
-                            let point = createPoint(xCoord, yCoord, col + colChannel255ToString(opacities.points.value));
-                            plotSvg.appendChild(point);
-                            opacities.points.elements.noSummary.push(point);
-                            coords = { x: xCoord, y: yCoord };
-                        }
-                        return coords;
-                    };
-                    let p1 = null;
-                    if (preVaxData.length == 1) {
-                        p1 = drawPoint(preVaxData[0].titre, "Pre-vax");
-                    }
-                    let p2 = null;
-                    if (postVaxData.length == 1) {
-                        p2 = drawPoint(postVaxData[0].titre, "Post-vax");
-                    }
-                    // NOTE(sen) Line
-                    if (p1 != null && p2 != null) {
-                        let line = createLine(p1.x, p2.x, p1.y, p2.y, thisPreVaxCol + colChannel255ToString(opacities.lines.value));
-                        plotSvg.appendChild(line);
-                        opacities.lines.elements.noSummary.push(line);
-                    }
-                }
-                // NOTE(sen) Point counts and boxplots
-                for (let timepoint of ["Pre-vax", "Post-vax"]) {
-                    // NOTE(sen) Counts
-                    let col = thisPreVaxCol;
-                    let xCoord = scaleLabIndexVirusIndex(labIndex, virusIndex) -
-                        sizes.prePostDistance / 2;
-                    let countValue = preVaxPoints;
-                    let titres = virusDataPrevax;
-                    if (timepoint == "Post-vax") {
-                        xCoord += sizes.prePostDistance;
-                        col = thisPostVaxCol;
-                        countValue = postVaxPoints;
-                        titres = virusDataPostvax;
-                    }
-                    let yCoord = sizes.axisPadTop + 2;
-                    let count = createCount(countValue, xCoord, yCoord, col + colChannel255ToString(opacities.counts.value));
-                    plotSvg.appendChild(count);
-                    opacities.counts.elements.noSummary.push(count);
-                    // NOTE(sen) Boxplots
-                    titres = titres
-                        .filter((row) => isGood(row.titre))
-                        .map((row) => Math.log(row.titre));
-                    let boxplotStats = calcBoxplotStats(titres);
-                    if (boxplotStats !== null) {
-                        let boxplot = createBoxplotElement(scaleLogtitre(boxplotStats.bottom), scaleLogtitre(boxplotStats.q25), scaleLogtitre(boxplotStats.median), scaleLogtitre(boxplotStats.q75), scaleLogtitre(boxplotStats.top), sizes.boxPlotWidth, xCoord, col + colChannel255ToString(opacities.boxplots.value));
-                        plotSvg.appendChild(boxplot);
-                        opacities.boxplots.elements.noSummary.push(boxplot);
-                    }
-                    // NOTE(sen) GMTs
-                    let gmtStats = calcMeanStats(titres);
-                    if (virusName === "A/Victoria/2570/2019e" && timepoint === "Post-vax") {
-                        const yCoord = scaleLogtitre(gmtStats.mean);
-                        const line = createLine(labFirstX - sizes.widthPerElement / 2, labLastX + sizes.widthPerElement / 2, yCoord, yCoord, colors.vaccinePostVax);
-                        addEl(plotSvg, line);
-                    }
-                    if (gmtStats !== null) {
-                        let gmtErrorBar = createErrorBar(scaleLogtitre(gmtStats.low), scaleLogtitre(gmtStats.mean), scaleLogtitre(gmtStats.high), xCoord, colChangeSaturation(col + colChannel255ToString(opacities.means.value), 2));
-                        plotSvg.appendChild(gmtErrorBar);
-                        opacities.means.elements.noSummary.push(gmtErrorBar);
-                    }
-                } // NOTE(sen) for (timepoint)
-            } // NOTE(sen) for (virus)
-        } // NOTE(sen) for (lab)
     }
-    return plotSvg;
-};
-const createRisePlotSvg = (data, cladeFreqs, vaccineStrains, opacities, colors, sizes, cladeFreqElements) => {
-    let plotSvg = createSvgElement();
-    if (data !== null && data !== undefined && data.length > 0) {
-        //
-        // SECTION Scales
-        //
-        // NOTE(sen) Y-Axis
-        let scaleLogrise = createScaleLogtitre(sizes, true);
-        let scaleRise = (val) => scaleLogrise(Math.log(val));
-        // NOTE(sen) X-Axis
-        let virusClades = {};
-        for (let row of data) {
-            if (virusClades[row.virus] === undefined) {
-                virusClades[row.virus] = row.clade;
-            }
-        }
-        let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort);
-        let labViruses = [];
-        let labVirusCounts = [];
-        for (let lab of labs) {
-            let labData = data.filter((row) => row.testing_lab == lab);
-            let viruses = arrUnique(labData.map((row) => row.virus)).sort((v1, v2) => {
-                let result = 0;
-                let yearPat = /(\d{4})e?$/;
-                let year1 = yearPat.exec(v1)[1];
-                let year2 = yearPat.exec(v2)[1];
-                if (year1 !== undefined && year2 !== undefined) {
-                    result = parseInt(year1) - parseInt(year2);
-                }
-                if (result === 0) {
-                    let clade1 = virusClades[v1];
-                    let clade2 = virusClades[v2];
-                    if (clade1 > clade2) {
-                        result = 1;
-                    }
-                    else {
-                        result = -1;
-                    }
-                }
-                if (result === 0) {
-                    if (v1 > v2) {
-                        result = 1;
-                    }
-                    else {
-                        result = -1;
-                    }
-                }
-                return result;
-            });
-            labViruses.push(viruses);
-            labVirusCounts.push(viruses.length);
-        }
-        let plotWidth = calcPlotWidth(sizes, arrSum(labVirusCounts));
-        const scaleLabIndexVirusIndex = createScaleFacetedCategorical(labVirusCounts, sizes);
-        setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight);
-        //
-        // SECTION Y-Axis
-        //
-        let yAxis = createTitreAxisElement(colors, plotWidth, sizes, scaleRise, "Fold-rise", true);
-        plotSvg.appendChild(yAxis);
-        //
-        // SECTION X-axis
-        //
-        // NOTE(sen) Line
-        plotSvg.appendChild(createXAxisBottomLine(plotWidth, sizes, colors));
-        plotSvg.appendChild(createXAxisTopLine(plotWidth, sizes, colors));
-        // NOTE(sen) Ticks and labels
-        for (let [labIndex, virusNames] of labViruses.entries()) {
-            for (let [virusIndex, virusName] of virusNames.entries()) {
-                let xCoord = scaleLabIndexVirusIndex(labIndex, virusIndex);
-                plotSvg.appendChild(createXTick(xCoord, sizes, colors));
-                plotSvg.appendChild(createXLabel(virusName, -45, "end", xCoord, sizes, colors));
-                let cladeName = virusClades[virusName];
-                let cladeFreq = Math.round(cladeFreqs[cladeName] * 100);
-                let cladeLabel = createXLabel(cladeName + " (" + cladeFreq + "%)", -45, "end", xCoord + sizes.svgTextLineHeightGuess, sizes, colors);
-                plotSvg.appendChild(cladeLabel);
-                cladeFreqElements[cladeName].push(cladeLabel);
-            }
-        }
-        //
-        // SECTION Main plot
-        //
-        // NOTE(sen) Line at 4
-        let line4 = createDashedHLine(scaleRise(4), plotWidth, sizes, colors.thresholdLine);
-        plotSvg.appendChild(line4);
-        opacities.line40.elements.noSummary.push(line4);
-        // NOTE(sen) The rest of the plot
-        for (let [labIndex, virusNames] of labViruses.entries()) {
-            let labData = data.filter((row) => row.testing_lab == labs[labIndex]);
-            let serumIds = arrUnique(labData.map((row) => row.serum_id));
-            // NOTE(sen) Lab marker line
-            let labFirstX = scaleLabIndexVirusIndex(labIndex, 0);
-            let labLastX = scaleLabIndexVirusIndex(labIndex, labVirusCounts[labIndex] - 1);
-            if (labIndex < labViruses.length - 1) {
-                let markerLineX = labLastX + sizes.widthPerElement / 2;
-                let markerLine = createVLine(markerLineX, colors.axis, sizes);
-                plotSvg.appendChild(markerLine);
-            }
-            // NOTE(sen) Lab marker text
-            let markerTextX = (labLastX + labFirstX) / 2;
-            let markerText = createFacetLabel(markerTextX, colors.text, labs[labIndex], sizes);
-            plotSvg.appendChild(markerText);
-            for (let [virusIndex, virusName] of virusNames.entries()) {
-                let virusData = labData.filter((row) => row.virus == virusName);
-                let points = 0;
-                let thisCol = colors.preVax;
-                if (vaccineStrains.includes(virusName)) {
-                    thisCol = colors.vaccinePreVax;
-                }
-                let xCoord = scaleLabIndexVirusIndex(labIndex, virusIndex + (Math.random() - 0.5) * 0.05);
-                for (let row of virusData) {
-                    let rise = row.titreRatio;
-                    if (isGood(rise)) {
-                        points += 1;
-                        let yCoord = scaleLogrise(Math.log(rise) + Math.random() * 0.1);
-                        let point = createPoint(xCoord, yCoord, thisCol + colChannel255ToString(opacities.points.value));
-                        plotSvg.appendChild(point);
-                        opacities.points.elements.noSummary.push(point);
-                    }
-                }
-                // NOTE(sen) Counts
-                let yCoord = sizes.axisPadTop + 2;
-                let count = createCount(points, xCoord, yCoord, thisCol + colChannel255ToString(opacities.counts.value));
-                plotSvg.appendChild(count);
-                opacities.counts.elements.noSummary.push(count);
-                // NOTE(sen) Boxplots
-                let rises = virusData
-                    .filter((row) => isGood(row.titreRatio))
-                    .map((row) => Math.log(row.titreRatio));
-                let boxplotStats = calcBoxplotStats(rises);
-                if (boxplotStats !== null) {
-                    let boxplot = createBoxplotElement(scaleLogrise(boxplotStats.bottom), scaleLogrise(boxplotStats.q25), scaleLogrise(boxplotStats.median), scaleLogrise(boxplotStats.q75), scaleLogrise(boxplotStats.top), sizes.boxPlotWidth, xCoord, thisCol + colChannel255ToString(opacities.boxplots.value));
-                    plotSvg.appendChild(boxplot);
-                    opacities.boxplots.elements.noSummary.push(boxplot);
-                }
-                // NOTE(sen) GMRs
-                let gmrStats = calcMeanStats(rises);
-                if (gmrStats !== null) {
-                    let gmrErrorBar = createErrorBar(scaleLogrise(gmrStats.low), scaleLogrise(gmrStats.mean), scaleLogrise(gmrStats.high), xCoord, colChangeSaturation(thisCol + colChannel255ToString(opacities.means.value), 2));
-                    plotSvg.appendChild(gmrErrorBar);
-                    opacities.means.elements.noSummary.push(gmrErrorBar);
-                }
-            } // NOTE(sen) for (virus)
-        } // NOTE(sen) for (lab)
+    const gridCol = axisCol + "22";
+    const gridThiccness = 1;
+    const allYTicksYCoords = [];
+    for (let yTick of spec.yTicks) {
+        let yCoord = scaleYToPx(yTick);
+        allYTicksYCoords.push(yCoord);
+        drawRect(renderer, { l: spec.padAxis.l - tickLength, r: spec.padAxis.l,
+            t: yCoord - axisThiccness, b: yCoord }, axisCol);
+        drawLine(renderer, spec.padAxis.l, yCoord, totalWidth - spec.padAxis.r, yCoord, gridCol, gridCol, gridThiccness, []);
+        drawText(renderer, `${yTick}`, spec.padAxis.l - tickLength - tickToText, yCoord, axisTextCol, 0, "middle", "end");
     }
-    return plotSvg;
-};
-const createTitreCladeAveragePlotSvg = (data, cladeFreqs, vaccineClades, opacities, colors, sizes, cladeFreqElements) => {
-    let plotSvg = createSvgElement();
-    if (data !== null && data !== undefined && data.length > 0) {
-        //
-        // SECTION Scales
-        //
-        // NOTE(sen) Y-Axis
-        let scaleLogtitre = createScaleLogtitre(sizes);
-        let scaleTitre = (val) => scaleLogtitre(Math.log(val));
-        // NOTE(sen) X-Axis
-        let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort);
-        let labClades = [];
-        let labCladeCounts = [];
-        for (let lab of labs) {
-            let labData = data.filter((row) => row.testing_lab == lab);
-            let clades = arrUnique(labData.map((row) => row.clade)).sort(stringSort);
-            labClades.push(clades);
-            labCladeCounts.push(clades.length);
+    // NOTE(sen) Facet labels and separators
+    const facetSepColor = "#555555";
+    const facetSepThiccness = 1;
+    for (let xFacetIndex = 0; xFacetIndex < spec.xFacetVals.length; xFacetIndex++) {
+        const xFacetVal = spec.xFacetVals[xFacetIndex];
+        const metrics = xFacetMetrics[xFacetIndex];
+        const facetCenter = (metrics.r + metrics.l) / 2;
+        const facetGap = metrics.r + spec.padFacet / 2;
+        const yOffset = 5;
+        const sepThiccness = 2;
+        drawText(renderer, `${xFacetVal !== null && xFacetVal !== void 0 ? xFacetVal : MISSING_STRING}`, facetCenter, yOffset, axisTextCol, 0, "top", "center");
+        if (xFacetIndex < spec.xFacetVals.length - 1) {
+            drawLine(renderer, facetGap, yOffset, facetGap, totalHeight - spec.padAxis.b - axisThiccness, facetSepColor, facetSepColor, sepThiccness, []);
         }
-        let plotWidth = calcPlotWidth(sizes, arrSum(labCladeCounts));
-        const scaleLabIndexCladeIndex = createScaleFacetedCategorical(labCladeCounts, sizes);
-        setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight);
-        //
-        // SECTION Y-Axis
-        //
-        let yAxis = createTitreAxisElement(colors, plotWidth, sizes, scaleTitre, "Clade average titre");
-        plotSvg.appendChild(yAxis);
-        //
-        // SECTION X-axis
-        //
-        // NOTE(sen) Line
-        plotSvg.appendChild(createXAxisBottomLine(plotWidth, sizes, colors));
-        plotSvg.appendChild(createXAxisTopLine(plotWidth, sizes, colors));
-        // NOTE(sen) Ticks and labels
-        for (let [labIndex, cladeNames] of labClades.entries()) {
-            for (let [cladeIndex, cladeName] of cladeNames.entries()) {
-                let xCoord = scaleLabIndexCladeIndex(labIndex, cladeIndex);
-                plotSvg.appendChild(createXTick(xCoord, sizes, colors));
-                let cladeFreq = Math.round(cladeFreqs[cladeName] * 100);
-                let label = createXLabel(cladeName + " (" + cladeFreq + "%)", -30, "end", xCoord, sizes, colors);
-                plotSvg.appendChild(label);
-                cladeFreqElements[cladeName].push(label);
+    }
+    const result = {
+        canvas: canvas, renderer: renderer, spec: spec,
+        scaleXToPx: scaleXToPx, scaleYToPx: scaleYToPx,
+        allXTicksXCoords: allXTicksXCoords, allYTicksYCoords: allYTicksYCoords,
+        metrics: plotMetrics,
+        totalWidth: totalWidth,
+        totalHeight: totalHeight,
+    };
+    return result;
+};
+const addBoxplot = (plot, stats, xCoord, totalBoxWidth, color, altColor, meanColor, lineThiccness) => {
+    totalBoxWidth = Math.max(totalBoxWidth, 0);
+    let boxWidth = totalBoxWidth * 3 / 4;
+    let medianChonkiness = boxWidth / 4;
+    let boxLeft = xCoord - boxWidth;
+    let boxRight = xCoord;
+    const boxCenter = xCoord - boxWidth / 2;
+    let boxplotBody = { l: boxLeft, b: stats.q75, r: boxRight, t: stats.q25 };
+    drawRectOutline(plot.renderer, boxplotBody, color, lineThiccness);
+    drawRectOutline(plot.renderer, rectShrink(boxplotBody, lineThiccness), altColor, lineThiccness);
+    drawDoubleLine(plot.renderer, xCoord, stats.q75, xCoord, stats.max, color, altColor, lineThiccness, [], true);
+    drawDoubleLine(plot.renderer, xCoord, stats.min, xCoord, stats.q25, color, altColor, lineThiccness, [], true);
+    // NOTE(sen) Median
+    drawDoubleLine(plot.renderer, boxLeft - medianChonkiness, stats.median, boxRight, stats.median, color, altColor, lineThiccness, []);
+    // NOTE(sen) Mean
+    drawDoubleLine(plot.renderer, boxCenter, stats.mean + stats.meanSe * 1.96, boxCenter, stats.mean - stats.meanSe * 1.96, meanColor, altColor, lineThiccness, []);
+    drawCircle(plot.renderer, boxCenter, stats.mean, 5, meanColor, altColor);
+};
+const createPlot = (data, settings, dataVarNames, timepointLabels) => {
+    const virusSort = (v1, v2) => {
+        var _a, _b;
+        let result = 0;
+        if (v1.startsWith("A") && v2.startsWith("B")) {
+            result = -1;
+        }
+        else if (v2.startsWith("A") && v1.startsWith("B")) {
+            result = 1;
+        }
+        if (result === 0) {
+            let yearPat = /(\d{4})e?$/;
+            let year1 = (_a = yearPat.exec(v1)) === null || _a === void 0 ? void 0 : _a[1];
+            let year2 = (_b = yearPat.exec(v2)) === null || _b === void 0 ? void 0 : _b[1];
+            if (year1 !== undefined && year2 !== undefined) {
+                result = parseInt(year1) - parseInt(year2);
             }
         }
-        //
-        // SECTION Main plot
-        //
-        // NOTE(sen) Line at 40
-        let line40 = createDashedHLine(scaleTitre(40), plotWidth, sizes, colors.thresholdLine);
-        plotSvg.appendChild(line40);
-        opacities.line40.elements.cladeAverage.push(line40);
-        // NOTE(sen) The rest of the plot
-        for (let [labIndex, cladeNames] of labClades.entries()) {
-            let labData = data.filter((row) => row.testing_lab == labs[labIndex]);
-            let serumIds = arrUnique(labData.map((row) => row.serum_id));
-            // NOTE(sen) Lab marker line
-            let labFirstX = scaleLabIndexCladeIndex(labIndex, 0);
-            let labLastX = scaleLabIndexCladeIndex(labIndex, labCladeCounts[labIndex] - 1);
-            if (labIndex < labClades.length - 1) {
-                let markerLineX = labLastX + sizes.widthPerElement / 2;
-                let markerLine = createVLine(markerLineX, colors.axis, sizes);
-                plotSvg.appendChild(markerLine);
+        if (result === 0) {
+            if (v1 > v2) {
+                result = 1;
             }
-            // NOTE(sen) Lab marker text
-            let markerTextX = (labLastX + labFirstX) / 2;
-            let markerText = createFacetLabel(markerTextX, colors.text, labs[labIndex], sizes);
-            plotSvg.appendChild(markerText);
-            for (let [cladeIndex, cladeName] of cladeNames.entries()) {
-                let cladeData = labData.filter((row) => row.clade == cladeName);
-                let cladeDataPrevax = cladeData.filter((row) => row.timepoint === "Pre-vax");
-                let cladeDataPostvax = cladeData.filter((row) => row.timepoint === "Post-vax");
-                let preVaxPoints = 0;
-                let postVaxPoints = 0;
-                let thisPreVaxCol = colors.preVax;
-                let thisPostVaxCol = colors.postVax;
-                if (vaccineClades.includes(cladeName)) {
-                    thisPreVaxCol = colors.vaccinePreVax;
-                    thisPostVaxCol = colors.vaccinePostVax;
-                }
-                for (let serumId of serumIds) {
-                    let preVaxData = cladeDataPrevax.filter((row) => row.serum_id == serumId);
-                    let postVaxData = cladeDataPostvax.filter((row) => row.serum_id == serumId);
-                    const drawPoint = (titre, timepoint) => {
-                        let coords = null;
-                        if (titre) {
-                            let yCoord = scaleLogtitre(Math.log(titre));
-                            let xCoord = scaleLabIndexCladeIndex(labIndex, cladeIndex + (Math.random() - 0.5) * 0.05) -
-                                sizes.prePostDistance / 2;
-                            let col = thisPreVaxCol;
-                            if (timepoint === "Post-vax") {
-                                xCoord += sizes.prePostDistance;
-                                col = thisPostVaxCol;
-                                postVaxPoints += 1;
-                            }
-                            else {
-                                preVaxPoints += 1;
-                            }
-                            let point = createPoint(xCoord, yCoord, col + colChannel255ToString(opacities.points.value));
-                            plotSvg.appendChild(point);
-                            opacities.points.elements.cladeAverage.push(point);
-                            coords = { x: xCoord, y: yCoord };
-                        }
-                        return coords;
-                    };
-                    let p1 = null;
-                    if (preVaxData.length == 1) {
-                        p1 = drawPoint(preVaxData[0].titreCladeAverage, "Pre-vax");
-                    }
-                    let p2 = null;
-                    if (postVaxData.length == 1) {
-                        p2 = drawPoint(postVaxData[0].titreCladeAverage, "Post-vax");
-                    }
-                    // NOTE(sen) Line
-                    if (p1 != null && p2 != null) {
-                        let line = createLine(p1.x, p2.x, p1.y, p2.y, thisPreVaxCol + colChannel255ToString(opacities.lines.value));
-                        plotSvg.appendChild(line);
-                        opacities.lines.elements.cladeAverage.push(line);
-                    }
-                } // NOTE(sen) for serum id
-                // NOTE(sen) Point counts and boxplots
-                for (let timepoint of ["Pre-vax", "Post-vax"]) {
-                    // NOTE(sen) Counts
-                    let col = thisPreVaxCol;
-                    let xCoord = scaleLabIndexCladeIndex(labIndex, cladeIndex) -
-                        sizes.prePostDistance / 2;
-                    let countValue = preVaxPoints;
-                    let titres = cladeDataPrevax;
-                    if (timepoint == "Post-vax") {
-                        xCoord += sizes.prePostDistance;
-                        col = thisPostVaxCol;
-                        countValue = postVaxPoints;
-                        titres = cladeDataPostvax;
-                    }
-                    let yCoord = sizes.axisPadTop + 2;
-                    let count = createCount(countValue, xCoord, yCoord, col + colChannel255ToString(opacities.counts.value));
-                    plotSvg.appendChild(count);
-                    opacities.counts.elements.cladeAverage.push(count);
-                    // NOTE(sen) Boxplots
-                    titres = titres
-                        .filter((row) => isGood(row.titreCladeAverage))
-                        .map((row) => Math.log(row.titreCladeAverage));
-                    let boxplotStats = calcBoxplotStats(titres);
-                    if (boxplotStats !== null) {
-                        let boxplot = createBoxplotElement(scaleLogtitre(boxplotStats.bottom), scaleLogtitre(boxplotStats.q25), scaleLogtitre(boxplotStats.median), scaleLogtitre(boxplotStats.q75), scaleLogtitre(boxplotStats.top), sizes.boxPlotWidth, xCoord, col + colChannel255ToString(opacities.boxplots.value));
-                        plotSvg.appendChild(boxplot);
-                        opacities.boxplots.elements.cladeAverage.push(boxplot);
-                    }
-                    // NOTE(sen) GMTs
-                    let gmtStats = calcMeanStats(titres);
-                    if (gmtStats !== null) {
-                        let gmtErrorBar = createErrorBar(scaleLogtitre(gmtStats.low), scaleLogtitre(gmtStats.mean), scaleLogtitre(gmtStats.high), xCoord, colChangeSaturation(col + colChannel255ToString(opacities.means.value), 2));
-                        plotSvg.appendChild(gmtErrorBar);
-                        opacities.means.elements.cladeAverage.push(gmtErrorBar);
-                    }
-                } // NOTE(sen) for timepoint
-            } // NOTE(sen) for clade
-        } // NOTE(sen) for lab
-    } // NOTE(sen) if data
-    return plotSvg;
-};
-const createRiseCladeAveragePlotSvg = (data, cladeFreqs, vaccineClades, opacities, colors, sizes, cladeFreqElements) => {
-    let plotSvg = createSvgElement();
-    if (data !== null && data !== undefined && data.length > 0) {
-        //
-        // SECTION Scales
-        //
-        // NOTE(sen) Y-Axis
-        let scaleLogrise = createScaleLogtitre(sizes, true);
-        let scaleRise = (val) => scaleLogrise(Math.log(val));
-        // NOTE(sen) X-Axis
-        let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort);
-        let labClades = [];
-        let labCladeCounts = [];
-        for (let lab of labs) {
-            let labData = data.filter((row) => row.testing_lab == lab);
-            let clades = arrUnique(labData.map((row) => row.clade)).sort(stringSort);
-            labClades.push(clades);
-            labCladeCounts.push(clades.length);
-        }
-        let plotWidth = calcPlotWidth(sizes, arrSum(labCladeCounts));
-        const scaleLabIndexCladeIndex = createScaleFacetedCategorical(labCladeCounts, sizes);
-        setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight);
-        //
-        // SECTION Y-Axis
-        //
-        let yAxis = createTitreAxisElement(colors, plotWidth, sizes, scaleRise, "Clade average rise", true);
-        plotSvg.appendChild(yAxis);
-        //
-        // SECTION X-axis
-        //
-        // NOTE(sen) Line
-        plotSvg.appendChild(createXAxisBottomLine(plotWidth, sizes, colors));
-        plotSvg.appendChild(createXAxisTopLine(plotWidth, sizes, colors));
-        // NOTE(sen) Ticks and labels
-        for (let [labIndex, cladeNames] of labClades.entries()) {
-            for (let [cladeIndex, cladeName] of cladeNames.entries()) {
-                let xCoord = scaleLabIndexCladeIndex(labIndex, cladeIndex);
-                plotSvg.appendChild(createXTick(xCoord, sizes, colors));
-                let cladeFreq = Math.round(cladeFreqs[cladeName] * 100);
-                let label = createXLabel(cladeName + " (" + cladeFreq + "%)", -30, "end", xCoord, sizes, colors);
-                plotSvg.appendChild(label);
-                cladeFreqElements[cladeName].push(label);
+            else {
+                result = -1;
             }
         }
-        //
-        // SECTION Main plot
-        //
-        // NOTE(sen) Line at 4
-        let line4 = createDashedHLine(scaleRise(4), plotWidth, sizes, colors.thresholdLine);
-        plotSvg.appendChild(line4);
-        opacities.line40.elements.cladeAverage.push(line4);
-        // NOTE(sen) The rest of the plot
-        for (let [labIndex, cladeNames] of labClades.entries()) {
-            let labData = data.filter((row) => row.testing_lab == labs[labIndex]);
-            let serumIds = arrUnique(labData.map((row) => row.serum_id));
-            // NOTE(sen) Lab marker line
-            let labFirstX = scaleLabIndexCladeIndex(labIndex, 0);
-            let labLastX = scaleLabIndexCladeIndex(labIndex, labCladeCounts[labIndex] - 1);
-            if (labIndex < labClades.length - 1) {
-                let markerLineX = labLastX + sizes.widthPerElement / 2;
-                let markerLine = createVLine(markerLineX, colors.axis, sizes);
-                plotSvg.appendChild(markerLine);
+        return result;
+    };
+    const getSorter = (varName) => varName === "virus" ? virusSort : generalSort;
+    const xFacetVals = arrUnique(data.map(row => row[settings.xFacetBy])).sort(getSorter(settings.xFacetBy));
+    const xTicksPerFacet = xFacetVals.map(xFacetVal => {
+        const dataFacet = data.filter(row => row[settings.xFacetBy] === xFacetVal);
+        const facetXTicks = arrUnique(dataFacet.map(row => row[settings.xAxis])).sort(getSorter(settings.xAxis));
+        return facetXTicks;
+    });
+    const plot = beginPlot({
+        widthTick: 50,
+        heightTick: 30,
+        scaleXData: (xVal, xFacetIndex) => xTicksPerFacet[xFacetIndex].indexOf(xVal),
+        scaleYData: Math.log,
+        padAxis: { l: 100, t: 50, r: 50, b: 150 },
+        padData: { l: 20, t: 20, r: 20, b: 20 },
+        padFacet: 0,
+        scaledXMinPerFacet: xTicksPerFacet.map(ticks => -1),
+        scaledXMaxPerFacet: xTicksPerFacet.map(ticks => ticks.length),
+        yMin: 5,
+        yMax: 5120,
+        xTicksPerFacet: xTicksPerFacet,
+        yTicks: [5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120],
+        xFacetVals: xFacetVals,
+        xLabel: "",
+        yLabel: "Titre",
+    });
+    // NOTE(sen) Ref line
+    {
+        const yCoord = plot.scaleYToPx(settings.refTitre);
+        const color = "#aaaaaaaa";
+        const thickness = 1;
+        drawLine(plot.renderer, plot.spec.padAxis.l, yCoord, plot.totalWidth - plot.spec.padAxis.r, yCoord, color, color, thickness, []);
+    }
+    for (let xFacetIndex = 0; xFacetIndex < xFacetVals.length; xFacetIndex++) {
+        const xFacetVal = xFacetVals[xFacetIndex];
+        const xTicksForFacet = xTicksPerFacet[xFacetIndex];
+        for (let xTick of xTicksForFacet) {
+            const stripData = data.filter(row => row[settings.xFacetBy] === xFacetVal && row[settings.xAxis] === xTick);
+            const pids = arrUnique(stripData.map(row => row[dataVarNames.pid]));
+            const stripXCoord = plot.scaleXToPx(xTick, xFacetVal);
+            const leftRightStep = plot.spec.widthTick / 4;
+            const preColor = "#308A36";
+            const postColor = "#7FA438";
+            const preData = stripData.filter(row => row[dataVarNames.timepoint] === timepointLabels.pre);
+            const postData = stripData.filter(row => row[dataVarNames.timepoint] === timepointLabels.post);
+            // NOTE(sen) Points and lines connecting them
+            let preCount = 0;
+            let postCount = 0;
+            for (let pid of pids) {
+                const pre = preData.filter(row => row[dataVarNames.pid] === pid);
+                const post = postData.filter(row => row[dataVarNames.pid] === pid);
+                const preTitre = pre.length === 1 ? pre[0][dataVarNames.titre] : null;
+                const postTitre = post.length === 1 ? post[0][dataVarNames.titre] : null;
+                const adjacentDistance = plot.spec.widthTick - leftRightStep * 2;
+                const jitterMaxX = adjacentDistance / 4;
+                const jitterX = randUnif(-jitterMaxX, jitterMaxX);
+                const jitterMaxY = plot.spec.heightTick / 4;
+                const jitterY = randUnif(-jitterMaxY, jitterMaxY);
+                const preXCoord = stripXCoord - leftRightStep + jitterX;
+                const postXCoord = stripXCoord + leftRightStep + jitterX;
+                const preYCoord = preTitre !== null ? plot.scaleYToPx(preTitre) + jitterY : null;
+                const postYCoord = postTitre !== null ? plot.scaleYToPx(postTitre) + jitterY : null;
+                if (preYCoord !== null) {
+                    preCount += 1;
+                }
+                if (postYCoord !== null) {
+                    postCount += 1;
+                }
+                const alpha = 0.1;
+                const alphaStr = Math.round(alpha * 255).toString(16).padStart(2, "0");
+                const preColorWithAlpha = preColor + alphaStr;
+                const postColorWithAlpha = postColor + alphaStr;
+                const pointSize = 2;
+                const lineSize = 1;
+                if (preYCoord !== null) {
+                    drawCircle(plot.renderer, preXCoord, preYCoord, pointSize, preColorWithAlpha, preColorWithAlpha);
+                }
+                if (postYCoord !== null) {
+                    drawCircle(plot.renderer, postXCoord, postYCoord, pointSize, postColorWithAlpha, postColorWithAlpha);
+                }
+                if (preYCoord !== null && postYCoord !== null) {
+                    drawLine(plot.renderer, preXCoord, preYCoord, postXCoord, postYCoord, preColorWithAlpha, postColorWithAlpha, lineSize, []);
+                }
             }
-            // NOTE(sen) Lab marker text
-            let markerTextX = (labLastX + labFirstX) / 2;
-            let markerText = createFacetLabel(markerTextX, colors.text, labs[labIndex], sizes);
-            plotSvg.appendChild(markerText);
-            for (let [cladeIndex, cladeName] of cladeNames.entries()) {
-                let cladeData = labData.filter((row) => row.clade == cladeName);
-                let points = 0;
-                let thisCol = colors.preVax;
-                if (vaccineClades.includes(cladeName)) {
-                    thisCol = colors.vaccinePreVax;
+            const altColor = "#000000";
+            // NOTE(sen) Boxplots
+            {
+                const preStats = getBoxplotStats(preData.map(row => plot.scaleYToPx(row[dataVarNames.titre])));
+                const postStats = getBoxplotStats(postData.map(row => plot.scaleYToPx(row[dataVarNames.titre])));
+                const boxWidth = leftRightStep;
+                const boxLineThiccness = 2;
+                if (preStats !== null) {
+                    addBoxplot(plot, preStats, stripXCoord - leftRightStep, boxWidth, preColor, altColor, preColor, boxLineThiccness);
                 }
-                let xCoord = scaleLabIndexCladeIndex(labIndex, cladeIndex + (Math.random() - 0.5) * 0.05);
-                for (let row of cladeData) {
-                    let rise = row.titreCladeAverageRatio;
-                    if (isGood(rise)) {
-                        points += 1;
-                        let yCoord = scaleRise(rise);
-                        let point = createPoint(xCoord, yCoord, thisCol + colChannel255ToString(opacities.points.value));
-                        plotSvg.appendChild(point);
-                        opacities.points.elements.cladeAverage.push(point);
-                    }
-                }
-                // NOTE(sen) Counts
-                let yCoord = sizes.axisPadTop + 2;
-                let count = createCount(points, xCoord, yCoord, thisCol + colChannel255ToString(opacities.counts.value));
-                plotSvg.appendChild(count);
-                opacities.counts.elements.cladeAverage.push(count);
-                // NOTE(sen) Boxplots
-                cladeData = cladeData
-                    .filter((row) => isGood(row.titreCladeAverageRatio))
-                    .map((row) => Math.log(row.titreCladeAverageRatio));
-                let boxplotStats = calcBoxplotStats(cladeData);
-                if (boxplotStats !== null) {
-                    let boxplot = createBoxplotElement(scaleLogrise(boxplotStats.bottom), scaleLogrise(boxplotStats.q25), scaleLogrise(boxplotStats.median), scaleLogrise(boxplotStats.q75), scaleLogrise(boxplotStats.top), sizes.boxPlotWidth, xCoord, thisCol + colChannel255ToString(opacities.boxplots.value));
-                    plotSvg.appendChild(boxplot);
-                    opacities.boxplots.elements.cladeAverage.push(boxplot);
-                }
-                // NOTE(sen) GMRs
-                let gmrStats = calcMeanStats(cladeData);
-                if (gmrStats !== null) {
-                    let gmrErrorBar = createErrorBar(scaleLogrise(gmrStats.low), scaleLogrise(gmrStats.mean), scaleLogrise(gmrStats.high), xCoord, colChangeSaturation(thisCol + colChannel255ToString(opacities.means.value), 2));
-                    plotSvg.appendChild(gmrErrorBar);
-                    opacities.means.elements.cladeAverage.push(gmrErrorBar);
-                }
-            } // NOTE(sen) for clade
-        } // NOTE(sen) for lab
-    } // NOTE(sen) if data
-    return plotSvg;
-};
-const createTitreCirculatingAveragePlotSvg = (data, opacities, colors, sizes) => {
-    let plotSvg = createSvgElement();
-    if (data !== null && data !== undefined && data.length > 0) {
-        //
-        // SECTION Scales
-        //
-        // NOTE(sen) Y-Axis
-        let scaleLogtitre = createScaleLogtitre(sizes);
-        let scaleTitre = (val) => scaleLogtitre(Math.log(val));
-        // NOTE(sen) X-Axis
-        let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort);
-        let plotWidth = calcPlotWidth(sizes, labs.length);
-        const scaleLabIndex = createScaleCategorical(labs.length, sizes);
-        setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight);
-        //
-        // SECTION Y-Axis
-        //
-        let yAxis = createTitreAxisElement(colors, plotWidth, sizes, scaleTitre, "Circulating average titre");
-        plotSvg.appendChild(yAxis);
-        //
-        // SECTION X-axis
-        //
-        // NOTE(sen) Line
-        plotSvg.appendChild(createXAxisBottomLine(plotWidth, sizes, colors));
-        plotSvg.appendChild(createXAxisTopLine(plotWidth, sizes, colors));
-        // NOTE(sen) Ticks and labels
-        for (let [labIndex, labName] of labs.entries()) {
-            let xCoord = scaleLabIndex(labIndex);
-            plotSvg.appendChild(createXTick(xCoord, sizes, colors));
-            plotSvg.appendChild(createXLabel(labName, 0, "middle", xCoord, sizes, colors));
-        }
-        //
-        // SECTION Main plot
-        //
-        // NOTE(sen) Line at 40
-        let line40 = createDashedHLine(scaleTitre(40), plotWidth, sizes, colors.thresholdLine);
-        plotSvg.appendChild(line40);
-        opacities.line40.elements.circulatingAverage.push(line40);
-        // NOTE(sen) The rest of the plot
-        for (let [labIndex, labName] of labs.entries()) {
-            let labData = data.filter((row) => row.testing_lab == labName);
-            let serumIds = arrUnique(labData.map((row) => row.serum_id));
-            let labDataPrevax = labData.filter((row) => row.timepoint === "Pre-vax");
-            let labDataPostvax = labData.filter((row) => row.timepoint === "Post-vax");
-            let preVaxPoints = 0;
-            let postVaxPoints = 0;
-            for (let serumId of serumIds) {
-                let preVaxData = labDataPrevax.filter((row) => row.serum_id == serumId);
-                let postVaxData = labDataPostvax.filter((row) => row.serum_id == serumId);
-                const drawPoint = (titre, timepoint) => {
-                    let coords = null;
-                    if (titre) {
-                        let yCoord = scaleLogtitre(Math.log(titre));
-                        let xCoord = scaleLabIndex(labIndex) - sizes.prePostDistance / 2;
-                        let col = colors.preVax;
-                        if (timepoint === "Post-vax") {
-                            xCoord += sizes.prePostDistance;
-                            col = colors.postVax;
-                            postVaxPoints += 1;
-                        }
-                        else {
-                            preVaxPoints += 1;
-                        }
-                        let point = createPoint(xCoord, yCoord, col + colChannel255ToString(opacities.points.value));
-                        plotSvg.appendChild(point);
-                        opacities.points.elements.circulatingAverage.push(point);
-                        coords = { x: xCoord, y: yCoord };
-                    }
-                    return coords;
-                };
-                let p1 = null;
-                if (preVaxData.length == 1) {
-                    p1 = drawPoint(preVaxData[0].titreCirculatingAverage, "Pre-vax");
-                }
-                let p2 = null;
-                if (postVaxData.length == 1) {
-                    p2 = drawPoint(postVaxData[0].titreCirculatingAverage, "Post-vax");
-                }
-                // NOTE(sen) Line
-                if (p1 != null && p2 != null) {
-                    let line = createLine(p1.x, p2.x, p1.y, p2.y, colors.preVax + colChannel255ToString(opacities.lines.value));
-                    plotSvg.appendChild(line);
-                    opacities.lines.elements.circulatingAverage.push(line);
-                }
-            } // NOTE(sen) for serum id
-            // NOTE(sen) Point counts and boxplots
-            for (let timepoint of ["Pre-vax", "Post-vax"]) {
-                // NOTE(sen) Counts
-                let col = colors.preVax;
-                let xCoord = scaleLabIndex(labIndex) - sizes.prePostDistance / 2;
-                let countValue = preVaxPoints;
-                let titres = labDataPrevax;
-                if (timepoint == "Post-vax") {
-                    xCoord += sizes.prePostDistance;
-                    col = colors.postVax;
-                    countValue = postVaxPoints;
-                    titres = labDataPostvax;
-                }
-                let yCoord = sizes.axisPadTop + 2;
-                let count = createCount(countValue, xCoord, yCoord, col + colChannel255ToString(opacities.counts.value));
-                plotSvg.appendChild(count);
-                opacities.counts.elements.circulatingAverage.push(count);
-                // NOTE(sen) Boxplots
-                titres = titres
-                    .filter((row) => isGood(row.titreCirculatingAverage))
-                    .map((row) => Math.log(row.titreCirculatingAverage));
-                let boxplotStats = calcBoxplotStats(titres);
-                if (boxplotStats !== null) {
-                    let boxplot = createBoxplotElement(scaleLogtitre(boxplotStats.bottom), scaleLogtitre(boxplotStats.q25), scaleLogtitre(boxplotStats.median), scaleLogtitre(boxplotStats.q75), scaleLogtitre(boxplotStats.top), sizes.boxPlotWidth, xCoord, col + colChannel255ToString(opacities.boxplots.value));
-                    plotSvg.appendChild(boxplot);
-                    opacities.boxplots.elements.circulatingAverage.push(boxplot);
-                }
-                // NOTE(sen) GMTs
-                let gmtStats = calcMeanStats(titres);
-                if (gmtStats !== null) {
-                    let gmtErrorBar = createErrorBar(scaleLogtitre(gmtStats.low), scaleLogtitre(gmtStats.mean), scaleLogtitre(gmtStats.high), xCoord, colChangeSaturation(col + colChannel255ToString(opacities.means.value), 2));
-                    plotSvg.appendChild(gmtErrorBar);
-                    opacities.means.elements.circulatingAverage.push(gmtErrorBar);
-                }
-            } // NOTE(sen) for timepoint
-        } // NOTE(sen) for lab
-    } // NOTE(sen) if data
-    return plotSvg;
-};
-const createRiseCirculatingAveragePlotSvg = (data, opacities, colors, sizes) => {
-    let plotSvg = createSvgElement();
-    if (data !== null && data !== undefined && data.length > 0) {
-        //
-        // SECTION Scales
-        //
-        // NOTE(sen) Y-Axis
-        let scaleLogrise = createScaleLogtitre(sizes, true);
-        let scaleRise = (val) => scaleLogrise(Math.log(val));
-        // NOTE(sen) X-Axis
-        let labs = arrUnique(data.map((row) => row.testing_lab)).sort(stringSort);
-        let plotWidth = calcPlotWidth(sizes, labs.length);
-        const scaleLabIndex = createScaleCategorical(labs.length, sizes);
-        setPlotSvgSize(plotSvg, plotWidth, sizes.plotHeight);
-        //
-        // SECTION Y-Axis
-        //
-        let yAxis = createTitreAxisElement(colors, plotWidth, sizes, scaleRise, "Circulating average rise", true);
-        plotSvg.appendChild(yAxis);
-        //
-        // SECTION X-axis
-        //
-        // NOTE(sen) Line
-        plotSvg.appendChild(createXAxisBottomLine(plotWidth, sizes, colors));
-        plotSvg.appendChild(createXAxisTopLine(plotWidth, sizes, colors));
-        // NOTE(sen) Ticks and labels
-        for (let [labIndex, labName] of labs.entries()) {
-            let xCoord = scaleLabIndex(labIndex);
-            plotSvg.appendChild(createXTick(xCoord, sizes, colors));
-            plotSvg.appendChild(createXLabel(labName, 0, "middle", xCoord, sizes, colors));
-        }
-        //
-        // SECTION Main plot
-        //
-        // NOTE(sen) Line at 4
-        let line4 = createDashedHLine(scaleRise(4), plotWidth, sizes, colors.thresholdLine);
-        plotSvg.appendChild(line4);
-        opacities.line40.elements.circulatingAverage.push(line4);
-        let col = colors.preVax;
-        // NOTE(sen) The rest of the plot
-        for (let [labIndex, labName] of labs.entries()) {
-            let labData = data.filter((row) => row.testing_lab == labName);
-            let points = 0;
-            let xCoord = scaleLabIndex(labIndex);
-            for (let row of labData) {
-                let rise = row.titreCirculatingAverageRatio;
-                if (isGood(rise)) {
-                    points += 1;
-                    let yCoord = scaleRise(rise);
-                    let point = createPoint(xCoord, yCoord, col + colChannel255ToString(opacities.points.value));
-                    plotSvg.appendChild(point);
-                    opacities.points.elements.circulatingAverage.push(point);
+                if (postStats !== null) {
+                    addBoxplot(plot, postStats, stripXCoord + leftRightStep, boxWidth, postColor, altColor, postColor, boxLineThiccness);
                 }
             }
             // NOTE(sen) Counts
-            let yCoord = sizes.axisPadTop + 2;
-            let count = createCount(points, xCoord, yCoord, col + colChannel255ToString(opacities.counts.value));
-            plotSvg.appendChild(count);
-            opacities.counts.elements.circulatingAverage.push(count);
-            // NOTE(sen) Boxplots
-            labData = labData
-                .filter((row) => isGood(row.titreCirculatingAverageRatio))
-                .map((row) => Math.log(row.titreCirculatingAverageRatio));
-            let boxplotStats = calcBoxplotStats(labData);
-            if (boxplotStats !== null) {
-                let boxplot = createBoxplotElement(scaleLogrise(boxplotStats.bottom), scaleLogrise(boxplotStats.q25), scaleLogrise(boxplotStats.median), scaleLogrise(boxplotStats.q75), scaleLogrise(boxplotStats.top), sizes.boxPlotWidth, xCoord, col + colChannel255ToString(opacities.boxplots.value));
-                plotSvg.appendChild(boxplot);
-                opacities.boxplots.elements.circulatingAverage.push(boxplot);
+            {
+                const yCoord = plot.scaleYToPx(plot.spec.yTicks[plot.spec.yTicks.length - 1]);
+                drawText(plot.renderer, `${preCount}`, stripXCoord - leftRightStep, yCoord, preColor, -90, "middle", "center", altColor);
+                drawText(plot.renderer, `${postCount}`, stripXCoord + leftRightStep, yCoord, postColor, -90, "middle", "center", altColor);
             }
-            // NOTE(sen) GMRs
-            let gmrStats = calcMeanStats(labData);
-            if (gmrStats !== null) {
-                let gmrErrorBar = createErrorBar(scaleLogrise(gmrStats.low), scaleLogrise(gmrStats.mean), scaleLogrise(gmrStats.high), xCoord, colChangeSaturation(col + colChannel255ToString(opacities.means.value), 2));
-                plotSvg.appendChild(gmrErrorBar);
-                opacities.means.elements.circulatingAverage.push(gmrErrorBar);
-            }
-        } // NOTE(sen) for lab
-    } // NOTE(sen) if data
-    return plotSvg;
-};
-const areAllFiltersSet = (filters) => {
-    let allFiltersSet = true;
-    for (let varName of Object.keys(filters)) {
-        if (filters[varName].selected === null) {
-            allFiltersSet = false;
-            break;
         }
     }
-    return allFiltersSet;
+    return plot;
 };
-const updateSliderSubtype = (filters, subtypeSlidersContainers) => {
-    for (let [subtype, slidersContainer] of Object.entries(subtypeSlidersContainers)) {
-        if (subtype === filters.subtype.selected) {
-            slidersContainer.style.display = "block";
-        }
-        else {
-            slidersContainer.style.display = "none";
-        }
-    }
-};
-const updateFilterColors = (data, filters) => {
-    for (let varName of Object.keys(filters)) {
-        let otherVarNames = Object.keys(filters).filter((key) => key !== varName);
-        for (let [optionIndex, option] of filters[varName].options.entries()) {
-            let testRows = data.filter((row) => {
-                let result = row[varName] === option;
-                if (result) {
-                    for (let otherVarName of otherVarNames) {
-                        result =
-                            row[otherVarName] === filters[otherVarName].selected;
-                        if (!result) {
-                            break;
-                        }
+//
+// SECTION Data and main
+//
+const parseData = (input, varNames) => {
+    let result = [];
+    if (input.length > 0) {
+        let lines = input.split(/\r?\n/).filter((line) => line !== "");
+        let linesSplit = lines.map((line) => line.split(","));
+        let names = linesSplit[0];
+        if (linesSplit.length > 1) {
+            for (let values of linesSplit.slice(1)) {
+                let row = {};
+                for (let [index, name] of names.entries()) {
+                    let value = values[index];
+                    if (name === varNames.titre) {
+                        value = parseFloat(value);
                     }
+                    row[name] = value;
                 }
-                return result;
-            });
-            let element = filters[varName].elements[optionIndex];
-            if (testRows.length === 0) {
-                element.style.color = "var(--color-error)";
-            }
-            else {
-                element.style.color = "inherit";
+                result.push(row);
             }
         }
     }
+    return result;
 };
-const findNonEmptyFilterSubset = (data, filters, subtypeSlidersContainers) => {
-    if (!areAllFiltersSet(filters)) {
-        let currentSettings = [];
-        for (let [filterIndex, varName] of Object.keys(filters).entries()) {
-            currentSettings.push({
-                name: varName,
-                lastIndex: filters[varName].options.length - 1,
-                currentIndex: 0,
-            });
-        }
-        let currentFilteredDataRows = 0;
-        let currentlyIncrementing = currentSettings.length - 1;
-        while (currentFilteredDataRows === 0) {
-            for (let [filterIndex, varName] of Object.keys(filters).entries()) {
-                filters[varName].selected =
-                    filters[varName].options[currentSettings[filterIndex].currentIndex];
-                for (let [optionIndex, optionEl] of filters[varName].elements.entries()) {
-                    if (optionIndex === currentSettings[filterIndex].currentIndex) {
-                        optionEl.style.background = "var(--color-selected)";
-                    }
-                    else {
-                        optionEl.style.background = "inherit";
-                    }
-                }
-            }
-            let testRows = data.filter((row) => {
-                let result = true;
-                for (let varName of Object.keys(filters)) {
-                    result = row[varName] === filters[varName].selected;
-                    if (!result) {
-                        break;
-                    }
-                }
-                return result;
-            });
-            currentFilteredDataRows = testRows.length;
-            if (currentSettings[currentlyIncrementing].currentIndex ===
-                currentSettings[currentlyIncrementing].lastIndex) {
-                currentSettings[currentlyIncrementing].currentIndex = 0;
-                currentlyIncrementing -= 1;
-                if (currentlyIncrementing === -1) {
-                    currentlyIncrementing = currentSettings.length - 1;
-                }
-            }
-            if (currentSettings[currentlyIncrementing].currentIndex ===
-                currentSettings[currentlyIncrementing].lastIndex) {
-                break;
-            }
-            else {
-                currentSettings[currentlyIncrementing].currentIndex += 1;
-            }
-        }
-        updateSliderSubtype(filters, subtypeSlidersContainers);
-        updateFilterColors(data, filters);
-    }
-};
-const createSubsetFilter = (filters) => {
-    return (row) => {
-        let result = true;
-        for (let varName of Object.keys(filters)) {
-            result = row[varName] === filters[varName].selected;
-            if (!result) {
-                break;
-            }
-        }
-        return result;
-    };
-};
-const updateTitrePlot = (titres, rises, cladeFreqs, vaccineViruses, filters, opacities, colors, defaultPlotSizes, container, cladeFreqElements) => {
-    if (areAllFiltersSet(filters)) {
-        const subsetFilter = createSubsetFilter(filters);
-        let dataSubset = titres.filter(subsetFilter);
-        let dataRisesSubset = rises.filter(subsetFilter);
-        removeChildren(container.element);
-        for (let varName of Object.keys(opacities)) {
-            opacities[varName].titrePlotElements = [];
-        }
-        container.titres = addEl(container.element, createTitrePlotSvg(dataSubset, cladeFreqs, vaccineViruses, opacities, colors, defaultPlotSizes, cladeFreqElements));
-        container.rises = addEl(container.element, createRisePlotSvg(dataRisesSubset, cladeFreqs, vaccineViruses, opacities, colors, defaultPlotSizes, cladeFreqElements));
-    }
-};
-const updateTitreCladeAveragePlot = (cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors, defaultPlotSizes, container, cladeFreqElements) => {
-    if (areAllFiltersSet(filters)) {
-        const subsetFilter = createSubsetFilter(filters);
-        let dataSubsetCladeAverages = cladeAverageTitres.filter(subsetFilter);
-        let dataSubsetCladeAverageRises = cladeAverageRises.filter(subsetFilter);
-        removeChildren(container.element);
-        for (let varName of Object.keys(opacities)) {
-            opacities[varName].titreCladeAveragePlotElements = [];
-        }
-        let plotSizes = reduceAxisPadBottom(100, defaultPlotSizes);
-        let vaccineClades = ["A.5a.2", "3C.2a1b.2a.2", "V1A.3a", "Y3"];
-        container.titres = addEl(container.element, createTitreCladeAveragePlotSvg(dataSubsetCladeAverages, cladeFreqs, vaccineClades, opacities, colors, plotSizes, cladeFreqElements));
-        container.rises = addEl(container.element, createRiseCladeAveragePlotSvg(dataSubsetCladeAverageRises, cladeFreqs, vaccineClades, opacities, colors, plotSizes, cladeFreqElements));
-    }
-};
-const updateTitreCirculatingAveragePlot = (circulatingAverageTitres, circulatingAverageRises, filters, opacities, colors, defaultPlotSizes, container) => {
-    if (areAllFiltersSet(filters)) {
-        const subsetFilter = createSubsetFilter(filters);
-        let dataSubsetCirculatingAverages = circulatingAverageTitres.filter(subsetFilter);
-        let dataSubsetCirculatingAverageRises = circulatingAverageRises.filter(subsetFilter);
-        removeChildren(container.element);
-        for (let varName of Object.keys(opacities)) {
-            opacities[varName].titreCirculatingAveragePlotElements = [];
-        }
-        let plotSizes = reduceAxisPadBottom(40, defaultPlotSizes);
-        container.titres = addEl(container.element, createTitreCirculatingAveragePlotSvg(dataSubsetCirculatingAverages, opacities, colors, plotSizes));
-        container.rises = addEl(container.element, createRiseCirculatingAveragePlotSvg(dataSubsetCirculatingAverageRises, opacities, colors, plotSizes));
-    }
-};
-const updateCirculatingAverageData = (cladeAverageTitres, cladeFreqs, filters, opacities, colors, defaultPlotSizes, plotContainer) => {
-    let circulatingAverageTitres = [];
-    let circulatingAverageRises = [];
-    if (cladeAverageTitres.length > 0) {
-        // NOTE(sen) Titres
-        const titresGroupVars = Object.keys(cladeAverageTitres[0]).filter((key) => key !== "titreCladeAverage" &&
-            key !== "clade" &&
-            key !== "clade_freq");
-        const titresGroupedData = groupByMultiple(cladeAverageTitres, titresGroupVars);
-        circulatingAverageTitres = summariseGrouped(titresGroupedData, titresGroupVars, (data) => {
-            let sumLogTitres = 0;
-            let sumWeights = 0;
-            for (let row of data) {
-                let weight = cladeFreqs[row.clade];
-                let titre = row.titreCladeAverage;
-                if (isGood(weight) && isGood(titre)) {
-                    sumLogTitres += weight * Math.log(row.titreCladeAverage);
-                    sumWeights += weight;
-                }
-            }
-            let weightedMean = null;
-            if (sumWeights !== 0) {
-                weightedMean = Math.exp(sumLogTitres / sumWeights);
-            }
-            return { titreCirculatingAverage: weightedMean };
-        });
-        // NOTE(sen) Rises
-        const risesGroupVars = Object.keys(circulatingAverageTitres[0]).filter((key) => key !== "titreCirculatingAverage" && key !== "timepoint");
-        const risesGroupedData = groupByMultiple(circulatingAverageTitres, risesGroupVars);
-        circulatingAverageRises = summariseGrouped(risesGroupedData, risesGroupVars, (data) => {
-            let preVaxArr = data.filter((row) => row.timepoint === "Pre-vax");
-            let postVaxArr = data.filter((row) => row.timepoint === "Post-vax");
-            let titreRatio = null;
-            if (preVaxArr.length === 1 && postVaxArr.length === 1) {
-                let preVax = preVaxArr[0].titreCirculatingAverage;
-                let postVax = postVaxArr[0].titreCirculatingAverage;
-                if (isGood(preVax) && isGood(postVax)) {
-                    titreRatio = postVax / preVax;
-                }
-            }
-            return { titreCirculatingAverageRatio: titreRatio };
-        });
-        updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises, filters, opacities, colors, defaultPlotSizes, plotContainer);
-    }
-    return { titres: circulatingAverageTitres, rises: circulatingAverageRises };
-};
-const updateData = (contentsString, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer, filtersContainer) => {
+const onNewDataString = (contentsString, plotParent) => {
     if (contentsString.length > 0) {
-        // NOTE(sen) Main data
-        const data = parseData(contentsString);
-        // NOTE(sen) Vaccine viruses
-        const vaccineViruses = [];
-        for (let row of data) {
-            if (row.vaccine_strain === true) {
-                if (!vaccineViruses.includes(row.virus)) {
-                    vaccineViruses.push(row.virus);
-                }
-            }
-        }
-        // NOTE(sen) Clade frequencies
-        const cladeFreqs = {};
-        const cladeFreqsDefault = {};
-        for (let row of data) {
-            if (cladeFreqs[row.clade] === undefined) {
-                cladeFreqs[row.clade] = Math.round(row.clade_freq * 100) / 100;
-                cladeFreqsDefault[row.clade] = cladeFreqs[row.clade];
-            }
-        }
-        // NOTE(sen) Subtype clades
-        const subtypeClades = {};
-        if (data.length > 0) {
-            let subtypes = arrUnique(data.map((row) => row.subtype)).sort(stringSort);
-            for (let subtype of subtypes) {
-                let clades = arrUnique(data
-                    .filter((row) => row.subtype === subtype)
-                    .map((row) => row.clade));
-                subtypeClades[subtype] = clades.sort(stringSort);
-            }
-        }
-        // NOTE(sen) Populate clade frequency sliders
-        removeChildren(slidersContainer);
-        const subtypeSlidersContainers = {};
-        const cladeFreqElements = {};
-        for (let [subtype, clades] of Object.entries(subtypeClades)) {
-            let subtypeContainer = addDiv(slidersContainer);
-            subtypeContainer.style.marginBottom = "5px";
-            for (let clade of clades) {
-                let slider = document.createElement("div");
-                let name = document.createElement("div");
-                name.innerHTML =
-                    clade + " (" + Math.round(cladeFreqs[clade] * 100) + "%)";
-                name.style.textAlign = "center";
-                let reset = document.createElement("div");
-                reset.innerHTML = "⟲";
-                reset.style.cursor = "pointer";
-                reset.style.color = "var(--color-border)";
-                let top = document.createElement("div");
-                top.style.display = "flex";
-                top.style.justifyContent = "space-between";
-                top.appendChild(name);
-                top.appendChild(reset);
-                let input = document.createElement("input");
-                input.setAttribute("type", "range");
-                input.setAttribute("min", "0");
-                input.setAttribute("max", "100");
-                input.value = `${cladeFreqs[clade] * 100}`;
-                input.addEventListener("input", (event) => {
-                    const val = event.target.value;
-                    cladeFreqs[clade] = parseFloat(val) / 100;
-                    name.innerHTML = clade + " (" + val + "%)";
-                    for (let el of cladeFreqElements[clade]) {
-                        el.innerHTML = clade + " (" + val + "%)";
-                    }
-                    updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters, opacities, colors, defaultPlotSizes, plotContainers.circulatingAverage);
-                    if (cladeFreqs[clade] === cladeFreqsDefault[clade]) {
-                        reset.style.color = "var(--color-border)";
-                    }
-                    else {
-                        reset.style.color = "var(--color-text)";
-                    }
-                });
-                reset.addEventListener("click", (event) => {
-                    input.value = `${cladeFreqsDefault[clade] * 100}`;
-                    input.dispatchEvent(new Event("input"));
-                });
-                slider.appendChild(top);
-                slider.appendChild(input);
-                subtypeContainer.appendChild(slider);
-                cladeFreqElements[clade] = [];
-            }
-            subtypeSlidersContainers[subtype] = subtypeContainer;
-        }
-        // NOTE(sen) Work out clade-average titres
-        let cladeAverageTitres = [];
-        if (data.length > 0) {
-            let groupVars = Object.keys(data[0]).filter((key) => key !== "titre" && key !== "virus" && key !== "egg_cell" && key !== "vaccine_strain");
-            let groupedData = groupByMultiple(data.filter((row) => row.clade !== "unassigned"), groupVars);
-            cladeAverageTitres = summariseGrouped(groupedData, groupVars, (data) => {
-                let dataSubsetNoEggs = data;
-                if (dataSubsetNoEggs.length > 1) {
-                    dataSubsetNoEggs = dataSubsetNoEggs.filter((row) => row.egg_cell === "Cell");
-                }
-                let logtitres = dataSubsetNoEggs
-                    .filter(row => isGood(row.titre))
-                    .map((row) => Math.log(row.titre));
-                let logmean = arrMean(logtitres);
-                return { titreCladeAverage: Math.exp(logmean) };
-            });
-        }
-        const filters = {
-            subtype: { elements: [], options: [], selected: null },
-            serum_source: { elements: [], options: [], selected: null },
-            cohort: { elements: [], options: [], selected: null },
-        };
-        // NOTE(sen) Populate filters
-        for (let varName of Object.keys(filters)) {
-            filters[varName].selected = null;
-            filters[varName].options = arrUnique(data.map((row) => row[varName]));
-            switch (varName) {
-                case "cohort": {
-                    filters[varName].options = filters[varName]
-                        .options.sort(stringSort);
-                    break;
-                }
-                case "subtype": {
-                    filters[varName].options = filters[varName]
-                        .options.sort(desiredOrderSort(["H1", "H3", "BVic"]));
-                    break;
-                }
-                case "serum_source": {
-                    filters[varName].options = filters[varName]
-                        .options.sort((a, b) => (a > b ? 1 : a < b ? -1 : 0));
-                    break;
-                }
-            }
-        }
-        // NOTE(sen) Draw the newly populated filters
-        removeChildren(filtersContainer);
-        for (let varName of Object.keys(filters)) {
-            let filterEl = document.createElement("div");
-            filterEl.style.display = "flex";
-            filterEl.style.flexDirection = "column";
-            filterEl.style.marginBottom = "10px";
-            filterEl.style.flexGrow = "1";
-            filters[varName].elements = [];
-            for (let option of filters[varName].options) {
-                let optionEl = document.createElement("div");
-                optionEl.innerHTML = option;
-                optionEl.addEventListener("click", (event) => {
-                    filters[varName].selected = option;
-                    for (let otherOption of filters[varName].elements) {
-                        otherOption.style.background = "inherit";
-                    }
-                    optionEl.style.background = "var(--color-selected)";
-                    updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters, opacities, colors, defaultPlotSizes, plotContainers.noSummary, cladeFreqElements);
-                    updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors, defaultPlotSizes, plotContainers.cladeAverage, cladeFreqElements);
-                    updateTitreCirculatingAveragePlot(circulatingAverageTitres, circulatingAverageRises, filters, opacities, colors, defaultPlotSizes, plotContainers.circulatingAverage);
-                    updateFilterColors(data, filters);
-                    if (varName === "subtype") {
-                        updateSliderSubtype(filters, subtypeSlidersContainers);
-                    }
-                });
-                optionEl.style.padding = "5px";
-                optionEl.style.border = "1px solid var(--color-border)";
-                optionEl.style.cursor = "pointer";
-                optionEl.style.textAlign = "center";
-                if (option === filters[varName].selected) {
-                    optionEl.style.background = "var(--color-selected)";
-                }
-                filterEl.appendChild(optionEl);
-                filters[varName].elements.push(optionEl);
-            }
-            filtersContainer.appendChild(filterEl);
-        }
-        // NOTE(sen) Titre rises
-        let rises = [];
-        if (data.length > 0) {
-            let groupVars = Object.keys(data[0]).filter((key) => key !== "titre" && key !== "timepoint");
-            let groupedData = groupByMultiple(data, groupVars);
-            rises = summariseGrouped(groupedData, groupVars, (data) => {
-                let preVaxArr = data.filter((row) => row.timepoint === "Pre-vax");
-                let postVaxArr = data.filter((row) => row.timepoint === "Post-vax");
-                let titreRatio = null;
-                if (preVaxArr.length === 1 && postVaxArr.length === 1) {
-                    let preVax = preVaxArr[0].titre;
-                    let postVax = postVaxArr[0].titre;
-                    if (isGood(preVax) && isGood(postVax)) {
-                        titreRatio = postVax / preVax;
-                    }
-                }
-                return { titreRatio: titreRatio };
-            });
-        }
-        // NOTE(sen) Clade-average rises
-        let cladeAverageRises = [];
-        if (cladeAverageTitres.length > 0) {
-            let groupVars = Object.keys(cladeAverageTitres[0]).filter((key) => key !== "titreCladeAverage" && key !== "timepoint");
-            let groupedData = groupByMultiple(cladeAverageTitres, groupVars);
-            cladeAverageRises = summariseGrouped(groupedData, groupVars, (data) => {
-                let preVaxArr = data.filter((row) => row.timepoint === "Pre-vax");
-                let postVaxArr = data.filter((row) => row.timepoint === "Post-vax");
-                let titreRatio = null;
-                if (preVaxArr.length === 1 && postVaxArr.length === 1) {
-                    let preVax = preVaxArr[0].titreCladeAverage;
-                    let postVax = postVaxArr[0].titreCladeAverage;
-                    if (isGood(preVax) && isGood(postVax)) {
-                        titreRatio = postVax / preVax;
-                    }
-                }
-                return { titreCladeAverageRatio: titreRatio };
-            });
-        }
-        findNonEmptyFilterSubset(data, filters, subtypeSlidersContainers);
-        const circulatingAverages = updateCirculatingAverageData(cladeAverageTitres, cladeFreqs, filters, opacities, colors, defaultPlotSizes, plotContainers.circulatingAverage);
-        const circulatingAverageTitres = circulatingAverages.titres;
-        const circulatingAverageRises = circulatingAverages.rises;
-        updateTitrePlot(data, rises, cladeFreqs, vaccineViruses, filters, opacities, colors, defaultPlotSizes, plotContainers.noSummary, cladeFreqElements);
-        updateTitreCladeAveragePlot(cladeAverageTitres, cladeAverageRises, cladeFreqs, filters, opacities, colors, defaultPlotSizes, plotContainers.cladeAverage, cladeFreqElements);
+        const dataVarNames = { pid: "serum_id", timepoint: "timepoint", titre: "titre" };
+        const data = parseData(contentsString, dataVarNames);
+        removeChildren(plotParent);
+        const plotSettings = { xFacetBy: "testing_lab", xAxis: "virus", refTitre: 40 };
+        const timepointLabels = { pre: "Pre-vax", post: "Post-vax" };
+        const plot = createPlot(data, plotSettings, dataVarNames, timepointLabels);
+        addEl(plotParent, plot.canvas);
     }
 };
 const main = async () => {
@@ -1839,18 +689,10 @@ const main = async () => {
     plotContainer.style.height = "calc(100vh - 0px)";
     plotContainer.style.overflowY = "scroll";
     plotContainer.style.overflowX = "hidden";
-    const plotContainers = {
-        noSummary: { element: null, titres: null, rises: null },
-        cladeAverage: { element: null, titres: null, rises: null },
-        circulatingAverage: { element: null, titres: null, rises: null },
-    };
-    for (let summaryType of SUMMARY_TYPES) {
-        const el = addDiv(plotContainer);
-        el.style.flexShrink = "0";
-        el.style.overflowX = "scroll";
-        el.style.overflowY = "hidden";
-        plotContainers[summaryType].element = el;
-    }
+    const plotParent = addDiv(plotContainer);
+    plotParent.style.flexShrink = "0";
+    plotParent.style.overflowX = "scroll";
+    plotParent.style.overflowY = "hidden";
     const fileInputContainer = addDiv(inputContainer);
     fileInputContainer.style.border = "1px dashed var(--color-fileSelectBorder)";
     fileInputContainer.style.width = "100%";
@@ -1871,11 +713,12 @@ const main = async () => {
     fileInputLabel.style.fontWeight = "bold";
     fileInputLabel.style.letterSpacing = "2px";
     const fileInputHandler = (event) => {
+        var _a;
         fileInputWholePage.style.visibility = "hidden";
-        let file = event.target.files[0];
+        let file = (_a = event.target.files) === null || _a === void 0 ? void 0 : _a[0];
         if (file !== null && file !== undefined) {
             fileInputLabel.innerHTML = file.name;
-            file.text().then((string) => updateData(string, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer, filtersContainer));
+            file.text().then((string) => onNewDataString(string, plotParent));
         }
     };
     const fileInput = addEl(fileInputContainer, createEl("input"));
@@ -1899,110 +742,37 @@ const main = async () => {
     fileInputWholePage.style.background = "gray";
     window.addEventListener("dragenter", () => fileInputWholePage.style.visibility = "visible");
     fileInputWholePage.addEventListener("dragleave", () => fileInputWholePage.style.visibility = "hidden");
-    const colors = {
-        theme: "dark",
-        preVax: "#308A36",
-        postVax: "#7FA438",
-        vaccinePreVax: "#8E3164",
-        vaccinePostVax: "#B0403D",
-        text: "var(--color-text)",
-        axis: "#aaaaaa",
-        thresholdLine: "#aaaaaa",
-        grid: "#99999944",
-    };
     const themeSwitch = addEl(inputContainer, createSwitch("dark", THEMES, (opt) => {
-        colors.theme = opt;
         document.documentElement.setAttribute("theme", opt);
+        // TODO(sen) Actually implement this
     }, switchOptionStyleAllCaps));
     themeSwitch.style.display = "flex";
     themeSwitch.style.flexDirection = "row";
     themeSwitch.style.marginBottom = "20px";
     const modeSwitch = addEl(inputContainer, createSwitch(PLOT_MODES, PLOT_MODES, (plotModes) => {
-        for (let summaryType of SUMMARY_TYPES) {
-            for (let plotMode of PLOT_MODES) {
-                let targetVisibility = "none";
-                if (plotModes.includes(plotMode)) {
-                    targetVisibility = "block";
-                }
-                plotContainers[summaryType][plotMode].style.display = targetVisibility;
-            }
-        }
+        // TODO(sen) Actually implement this
     }, switchOptionStyleAllCaps));
     modeSwitch.style.display = "flex";
     modeSwitch.style.flexDirection = "row";
     modeSwitch.style.marginBottom = "20px";
     const opacities = {
-        points: {
-            elements: { noSummary: [], cladeAverage: [], circulatingAverage: [] },
-            value: 255, default: 255,
-        },
-        lines: {
-            elements: { noSummary: [], cladeAverage: [], circulatingAverage: [] },
-            value: 127, default: 127,
-        },
-        boxplots: {
-            elements: { noSummary: [], cladeAverage: [], circulatingAverage: [] },
-            value: 255, default: 255,
-        },
-        counts: {
-            elements: { noSummary: [], cladeAverage: [], circulatingAverage: [] },
-            value: 255, default: 255,
-        },
-        line40: {
-            elements: { noSummary: [], cladeAverage: [], circulatingAverage: [] },
-            value: 255, default: 255,
-        },
-        means: {
-            elements: { noSummary: [], cladeAverage: [], circulatingAverage: [] },
-            value: 255, default: 255,
-        },
+        points: true,
+        lines: true,
+        boxplots: true,
+        counts: true,
+        line40: true,
+        means: true,
     };
     const opacitiesSwitch = addEl(inputContainer, createSwitch(OPACITY_KINDS, OPACITY_KINDS, (opacitiesSel) => {
         for (let opacityKind of OPACITY_KINDS) {
-            let targetOpacity = 0;
+            let elementPresent = false;
             if (opacitiesSel.includes(opacityKind)) {
-                targetOpacity = opacities[opacityKind].default;
+                elementPresent = true;
             }
-            const alpha = colChannel255ToString(targetOpacity);
-            let attrNames = ["stroke"];
-            if (opacityKind === "counts" || opacityKind === "points") {
-                attrNames = ["fill"];
-            }
-            else if (opacityKind === "means") {
-                attrNames.push("fill");
-            }
-            for (let summaryType of SUMMARY_TYPES) {
-                for (let el of opacities[opacityKind].elements[summaryType]) {
-                    for (let attrName of attrNames) {
-                        let currentColFull = el.getAttribute(attrName);
-                        let currentColNoAlpha = currentColFull.slice(0, 7);
-                        let newCol = currentColNoAlpha + alpha;
-                        el.setAttributeNS(null, attrName, newCol);
-                    }
-                }
-            }
+            // TODO(sen) Actually implement this
         }
     }, switchOptionStyleAllCaps));
     opacitiesSwitch.style.marginBottom = "20px";
-    const filtersContainer = addDiv(inputContainer);
-    filtersContainer.style.display = "flex";
-    filtersContainer.style.flexDirection = "row";
-    filtersContainer.style.flexWrap = "wrap";
-    const slidersContainer = addDiv(inputContainer);
-    slidersContainer.style.marginBottom = "5px";
-    const defaultPlotSizes = {
-        plotHeight: 600,
-        widthPerElement: 100,
-        axisPadLeft: 120,
-        axisPadBottom: 250,
-        axisPadTop: 20,
-        dataPadX: 50,
-        dataPadY: 10,
-        tickLength: 5,
-        prePostDistance: 40,
-        boxPlotWidth: 15,
-        svgTextLineHeightGuess: 20,
-    };
     // NOTE(sen) Dev only for now
     let fetchString = "";
     try {
@@ -2012,7 +782,7 @@ const main = async () => {
         }
     }
     catch (e) { }
-    updateData(fetchString, opacities, colors, defaultPlotSizes, plotContainers, slidersContainer, filtersContainer);
+    onNewDataString(fetchString, plotParent);
 };
 main();
 export {};
