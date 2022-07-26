@@ -54,9 +54,24 @@ type SummaryType = (typeof SUMMARY_TYPES_)[number]
 const PLOT_ELEMENTS_ = ["points", "lines", "boxplots", "counts", "refLine", "means"] as const
 const PLOT_ELEMENTS = PLOT_ELEMENTS_ as unknown as string[]
 type PlotElement = (typeof PLOT_ELEMENTS_)[number]
-
 type PlotElements = Record<PlotElement, boolean>
-type Data = Record<string, string | number>[]
+
+type DataVarNames = {
+	pid: string,
+	timepoint: string,
+	titre: string,
+}
+
+type TimepointLabels = {
+	pre: string,
+	post: string,
+}
+
+type Data = {
+	data: Record<string, string | number>[],
+	varNames: DataVarNames,
+	timepointLabels: TimepointLabels,
+}
 
 //
 // SECTION Math
@@ -831,17 +846,6 @@ const addBoxplot = (
 	}
 }
 
-type DataVarNames = {
-	pid: string,
-	timepoint: string,
-	titre: string,
-}
-
-type TimpointLabels = {
-	pre: string,
-	post: string,
-}
-
 type PlotSettings = {
 	xFacetBy: string,
 	xAxis: string,
@@ -850,9 +854,7 @@ type PlotSettings = {
 	elements: PlotElements,
 }
 
-const createPlot = (
-	data: Data, settings: PlotSettings, dataVarNames: DataVarNames, timepointLabels: TimpointLabels,
-) => {
+const createPlot = (data: Data, settings: PlotSettings) => {
 
 	const virusSort = (v1: string, v2: string) => {
 		let result = 0
@@ -885,9 +887,9 @@ const createPlot = (
 
 	const getSorter = (varName: string) => varName === "virus" ? virusSort : generalSort
 
-	const xFacetVals = arrUnique(data.map(row => row[settings.xFacetBy] as any)).sort(getSorter(settings.xFacetBy))
+	const xFacetVals = arrUnique(data.data.map(row => row[settings.xFacetBy] as any)).sort(getSorter(settings.xFacetBy))
 	const xTicksPerFacet = xFacetVals.map(xFacetVal => {
-		const dataFacet = data.filter(row => row[settings.xFacetBy] === xFacetVal)
+		const dataFacet = data.data.filter(row => row[settings.xFacetBy] === xFacetVal)
 		const facetXTicks = arrUnique(dataFacet.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis))
 		return facetXTicks
 	})
@@ -924,26 +926,26 @@ const createPlot = (
 		const xTicksForFacet = xTicksPerFacet[xFacetIndex]
 
 		for (let xTick of xTicksForFacet) {
-			const stripData = data.filter(row => row[settings.xFacetBy] === xFacetVal && row[settings.xAxis] === xTick)
-			const pids = arrUnique(stripData.map(row => row[dataVarNames.pid]))
+			const stripData = data.data.filter(row => row[settings.xFacetBy] === xFacetVal && row[settings.xAxis] === xTick)
+			const pids = arrUnique(stripData.map(row => row[data.varNames.pid]))
 			const stripXCoord = plot.scaleXToPx(xTick, xFacetVal)
 
 			const leftRightStep = plot.spec.widthTick / 4
 			const preColor = "#308A36"
 			const postColor = "#7FA438"
 
-			const preData = stripData.filter(row => row[dataVarNames.timepoint] === timepointLabels.pre)
-			const postData = stripData.filter(row => row[dataVarNames.timepoint] === timepointLabels.post)
+			const preData = stripData.filter(row => row[data.varNames.timepoint] === data.timepointLabels.pre)
+			const postData = stripData.filter(row => row[data.varNames.timepoint] === data.timepointLabels.post)
 
 			// NOTE(sen) Points and lines connecting them
 			let preCount = 0
 			let postCount = 0
 			for (let pid of pids) {
-				const pre = preData.filter(row => row[dataVarNames.pid] === pid)
-				const post = postData.filter(row => row[dataVarNames.pid] === pid)
+				const pre = preData.filter(row => row[data.varNames.pid] === pid)
+				const post = postData.filter(row => row[data.varNames.pid] === pid)
 
-				const preTitre = pre.length === 1 ? <number>pre[0][dataVarNames.titre] : null
-				const postTitre = post.length === 1 ? <number>post[0][dataVarNames.titre] : null
+				const preTitre = pre.length === 1 ? <number>pre[0][data.varNames.titre] : null
+				const postTitre = post.length === 1 ? <number>post[0][data.varNames.titre] : null
 
 				const adjacentDistance = plot.spec.widthTick - leftRightStep * 2
 
@@ -986,8 +988,8 @@ const createPlot = (
 
 			// NOTE(sen) Boxplots
 			if (settings.elements.boxplots || settings.elements.means) {
-				const preStats = getBoxplotStats(preData.map(row => plot.scaleYToPx(row[dataVarNames.titre] as number)))
-				const postStats = getBoxplotStats(postData.map(row => plot.scaleYToPx(row[dataVarNames.titre] as number)))
+				const preStats = getBoxplotStats(preData.map(row => plot.scaleYToPx(row[data.varNames.titre] as number)))
+				const postStats = getBoxplotStats(postData.map(row => plot.scaleYToPx(row[data.varNames.titre] as number)))
 
 				const boxWidth = leftRightStep
 				const boxLineThiccness = 2
@@ -1033,27 +1035,49 @@ const createPlot = (
 // SECTION Data and main
 //
 
-const parseData = (input: string, varNames: DataVarNames): Data => {
-	let result = []
+const DEFAULT_DATA_VAR_NAMES: DataVarNames = {pid: "serum_id", timepoint: "timepoint", titre: "titre"}
+const DEFAULT_TIMEPOINT_LABELS: TimepointLabels = {pre: "Pre-vax", post: "Post-vax"}
+
+const guessDataVarNames = (existingNames: string[]) => {
+	const varNames = {...DEFAULT_DATA_VAR_NAMES}
+	return varNames
+}
+
+const parseData = (input: string): Data => {
+	let data: Data = {data: [], varNames: DEFAULT_DATA_VAR_NAMES, timepointLabels: DEFAULT_TIMEPOINT_LABELS}
+
 	if (input.length > 0) {
 		let lines = input.split(/\r?\n/).filter((line) => line !== "")
 		let linesSplit = lines.map((line) => line.split(","))
 		let names = linesSplit[0]
+
+		data.varNames = guessDataVarNames(names)
+
 		if (linesSplit.length > 1) {
 			for (let values of linesSplit.slice(1)) {
 				let row: Record<string, string | number> = {}
 				for (let [index, name] of names.entries()) {
 					let value: string | number = values[index]
-					if (name === varNames.titre) {
+					if (name === data.varNames.titre) {
 						value = parseFloat(value)
 					}
 					row[name] = value
 				}
-				result.push(row)
+				data.data.push(row)
+			}
+		}
+
+		const allTimepointLabels = arrUnique(data.data.map(row => row[data.varNames.timepoint])) as string[]
+		for (let timepointLabel of allTimepointLabels) {
+			if (timepointLabel.toLowerCase().includes("pre")) {
+				data.timepointLabels.pre = timepointLabel
+			} else if (timepointLabel.toLowerCase().includes("post")) {
+				data.timepointLabels.post = timepointLabel
 			}
 		}
 	}
-	return result
+
+	return data
 }
 
 const main = async () => {
@@ -1105,7 +1129,8 @@ const main = async () => {
 	fileInputLabel.style.fontWeight = "bold"
 	fileInputLabel.style.letterSpacing = "2px"
 
-	let data: Data = []
+	let data: Data = {data: [], varNames: DEFAULT_DATA_VAR_NAMES, timepointLabels: DEFAULT_TIMEPOINT_LABELS}
+
 	const plotSettings: PlotSettings = {
 		xFacetBy: "testing_lab", xAxis: "virus", refTitre: 40, theme: "dark",
 		elements: {
@@ -1117,20 +1142,18 @@ const main = async () => {
 			means: true,
 		},
 	}
-	const dataVarNames: DataVarNames = {pid: "serum_id", timepoint: "timepoint", titre: "titre"}
-	const timepointLabels: TimpointLabels = {pre: "Pre-vax", post: "Post-vax"}
 
 	document.documentElement.setAttribute("theme", plotSettings.theme)
 
 	const regenPlot = () => {
 		removeChildren(plotParent)
-		const plot = createPlot(data, plotSettings, dataVarNames, timepointLabels)
+		const plot = createPlot(data, plotSettings)
 		addEl(plotParent, plot.canvas)
 	}
 
 	const onNewDataString = (contentsString: string) => {
 		if (contentsString.length > 0) {
-			data = parseData(contentsString, dataVarNames)
+			data = parseData(contentsString)
 			regenPlot()
 		}
 	}

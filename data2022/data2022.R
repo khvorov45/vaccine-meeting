@@ -46,7 +46,7 @@ vis2022 <- nh_titres %>%
 	pivot_longer(c(prevax, postvax), names_to = "timepoint", values_to = "titre") %>%
 	mutate(
 		clade = "uncladed",
-		timepoint = recode(timepoint, "prevax" = "Pre-vax", "postvax" = "Post-vax"),
+		#timepoint = recode(timepoint, "prevax" = "Pre-vax", "postvax" = "Post-vax"),
 		egg_cell = if_else(passage == "Egg", "Egg", "Cell"),
 		clade_freq = 0.5,
 		virus = paste0(strain, if_else(egg_cell == "Egg", "e", "")) %>%
