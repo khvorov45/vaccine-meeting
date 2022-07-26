@@ -60,6 +60,8 @@ type DataVarNames = {
 	pid: string,
 	timepoint: string,
 	titre: string,
+	testingLab: string,
+	virus: string,
 }
 
 type TimepointLabels = {
@@ -71,6 +73,7 @@ type Data = {
 	data: Record<string, string | number>[],
 	varNames: DataVarNames,
 	timepointLabels: TimepointLabels,
+	colnames: string[],
 }
 
 //
@@ -1063,7 +1066,8 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 // SECTION Data and main
 //
 
-const DEFAULT_DATA_VAR_NAMES: DataVarNames = {pid: "serum_id", timepoint: "timepoint", titre: "titre"}
+const DEFAULT_DATA_VAR_NAMES: DataVarNames =
+	{pid: "serum_id", timepoint: "timepoint", titre: "titre", testingLab: "testing_lab", virus: "virus"}
 const DEFAULT_TIMEPOINT_LABELS: TimepointLabels = {pre: "Pre-vax", post: "Post-vax"}
 
 const guessDataVarNames = (existingNames: string[]) => {
@@ -1072,19 +1076,19 @@ const guessDataVarNames = (existingNames: string[]) => {
 }
 
 const parseData = (input: string): Data => {
-	let data: Data = {data: [], varNames: DEFAULT_DATA_VAR_NAMES, timepointLabels: DEFAULT_TIMEPOINT_LABELS}
+	let data: Data = {data: [], varNames: DEFAULT_DATA_VAR_NAMES, timepointLabels: DEFAULT_TIMEPOINT_LABELS, colnames: []}
 
 	if (input.length > 0) {
 		let lines = input.split(/\r?\n/).filter((line) => line !== "")
 		let linesSplit = lines.map((line) => line.split(","))
-		let names = linesSplit[0]
+		data.colnames = linesSplit[0]
 
-		data.varNames = guessDataVarNames(names)
+		data.varNames = guessDataVarNames(data.colnames)
 
 		if (linesSplit.length > 1) {
 			for (let values of linesSplit.slice(1)) {
 				let row: Record<string, string | number> = {}
-				for (let [index, name] of names.entries()) {
+				for (let [index, name] of data.colnames.entries()) {
 					let value: string | number = values[index]
 					if (name === data.varNames.titre) {
 						value = parseFloat(value)
@@ -1157,10 +1161,15 @@ const main = async () => {
 	fileInputLabel.style.fontWeight = "bold"
 	fileInputLabel.style.letterSpacing = "2px"
 
-	let data: Data = {data: [], varNames: DEFAULT_DATA_VAR_NAMES, timepointLabels: DEFAULT_TIMEPOINT_LABELS}
+	let data: Data = {
+		data: [],
+		varNames: DEFAULT_DATA_VAR_NAMES,
+		timepointLabels: DEFAULT_TIMEPOINT_LABELS,
+		colnames: []
+	}
 
 	const plotSettings: PlotSettings = {
-		xFacetBy: "testing_lab", xAxis: "virus", refTitre: 40, theme: "dark",
+		xFacetBy: data.varNames.testingLab, xAxis: data.varNames.virus, refTitre: 40, theme: "dark",
 		elements: {
 			points: true,
 			lines: true,
@@ -1182,6 +1191,7 @@ const main = async () => {
 	const onNewDataString = (contentsString: string) => {
 		if (contentsString.length > 0) {
 			data = parseData(contentsString)
+			regenDataRelatedInputs()
 			regenPlot()
 		}
 	}
@@ -1261,6 +1271,43 @@ const main = async () => {
 		switchOptionStyleAllCaps
 	))
 	opacitiesSwitch.style.marginBottom = "20px"
+
+	const dataRelatedInputs = addDiv(inputContainer)
+	const regenDataRelatedInputs = () => {
+		removeChildren(dataRelatedInputs)
+
+		const facetSwitch = addEl(dataRelatedInputs, createSwitch(
+			plotSettings.xFacetBy, data.colnames,
+			(sel) => {
+				plotSettings.xFacetBy = sel
+				regenPlot()
+			},
+			"facet by",
+		))
+		facetSwitch.style.marginBottom = "20px"
+
+		const xAxisSwitch = addEl(dataRelatedInputs, createSwitch(
+			plotSettings.xAxis, data.colnames,
+			(sel) => {
+				plotSettings.xAxis = sel
+				regenPlot()
+			},
+			"X axis",
+		))
+		xAxisSwitch.style.marginBottom = "20px"
+
+		for (let varName of Object.keys(data.varNames)) {
+			const el = addEl(dataRelatedInputs, createSwitch(
+				data.varNames[varName as keyof DataVarNames], data.colnames,
+				(sel) => {
+					data.varNames[varName as keyof DataVarNames] = sel
+					regenPlot()
+				},
+				varName,
+			))
+			el.style.marginBottom = "20px"
+		}
+	}
 
 	// NOTE(sen) Dev only for now
 	let fetchString = ""
