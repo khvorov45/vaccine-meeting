@@ -70,7 +70,8 @@ type TimepointLabels = {
 }
 
 type Data = {
-	data: Record<string, string | number>[],
+	dataFull: Record<string, string | number>[],
+	dataFiltered: Record<string, string | number>[],
 	varNames: DataVarNames,
 	timepointLabels: TimepointLabels,
 	colnames: string[],
@@ -918,9 +919,9 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 
 	const getSorter = (varName: string) => varName === "virus" ? virusSort : generalSort
 
-	const xFacetVals = arrUnique(data.data.map(row => row[settings.xFacetBy] as any)).sort(getSorter(settings.xFacetBy))
+	const xFacetVals = arrUnique(data.dataFiltered.map(row => row[settings.xFacetBy] as any)).sort(getSorter(settings.xFacetBy))
 	const xTicksPerFacet = xFacetVals.map(xFacetVal => {
-		const dataFacet = data.data.filter(row => row[settings.xFacetBy] === xFacetVal)
+		const dataFacet = data.dataFiltered.filter(row => row[settings.xFacetBy] === xFacetVal)
 		const facetXTicks = arrUnique(dataFacet.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis))
 		return facetXTicks
 	})
@@ -957,7 +958,7 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 		const xTicksForFacet = xTicksPerFacet[xFacetIndex]
 
 		for (let xTick of xTicksForFacet) {
-			const stripData = data.data.filter(row => row[settings.xFacetBy] === xFacetVal && row[settings.xAxis] === xTick)
+			const stripData = data.dataFiltered.filter(row => row[settings.xFacetBy] === xFacetVal && row[settings.xAxis] === xTick)
 			const pids = arrUnique(stripData.map(row => row[data.varNames.pid]))
 			const stripXCoord = plot.scaleXToPx(xTick, xFacetVal)
 
@@ -1076,7 +1077,7 @@ const guessDataVarNames = (existingNames: string[]) => {
 }
 
 const parseData = (input: string): Data => {
-	let data: Data = {data: [], varNames: DEFAULT_DATA_VAR_NAMES, timepointLabels: DEFAULT_TIMEPOINT_LABELS, colnames: []}
+	let data: Data = {dataFull: [], dataFiltered: [], varNames: DEFAULT_DATA_VAR_NAMES, timepointLabels: DEFAULT_TIMEPOINT_LABELS, colnames: []}
 
 	if (input.length > 0) {
 		let lines = input.split(/\r?\n/).filter((line) => line !== "")
@@ -1095,11 +1096,12 @@ const parseData = (input: string): Data => {
 					}
 					row[name] = value
 				}
-				data.data.push(row)
+				data.dataFull.push(row)
+				data.dataFiltered.push(row)
 			}
 		}
 
-		const allTimepointLabels = arrUnique(data.data.map(row => row[data.varNames.timepoint])) as string[]
+		const allTimepointLabels = arrUnique(data.dataFull.map(row => row[data.varNames.timepoint])) as string[]
 		for (let timepointLabel of allTimepointLabels) {
 			if (timepointLabel.toLowerCase().includes("pre")) {
 				data.timepointLabels.pre = timepointLabel
@@ -1162,7 +1164,8 @@ const main = async () => {
 	fileInputLabel.style.letterSpacing = "2px"
 
 	let data: Data = {
-		data: [],
+		dataFull: [],
+		dataFiltered: [],
 		varNames: DEFAULT_DATA_VAR_NAMES,
 		timepointLabels: DEFAULT_TIMEPOINT_LABELS,
 		colnames: []
@@ -1259,6 +1262,8 @@ const main = async () => {
 		modeSwitch.style.marginBottom = "20px"
 	}
 
+	const collapsibleSelectorSpacing = "10px"
+
 	const opacitiesSwitch = addEl(inputContainer, createSwitch(
 		<PlotElement[]>PLOT_ELEMENTS, <PlotElement[]>PLOT_ELEMENTS,
 		(opacitiesSel) => {
@@ -1270,7 +1275,19 @@ const main = async () => {
 		"Elements",
 		switchOptionStyleAllCaps
 	))
-	opacitiesSwitch.style.marginBottom = "20px"
+	opacitiesSwitch.style.marginBottom = collapsibleSelectorSpacing
+
+	const addInputSep = (parent: HTMLElement, label: string) => {
+		const sep = addDiv(parent)
+		sep.textContent = label
+		sep.style.textAlign = "center"
+		sep.style.padding = "10px"
+		sep.style.fontWeight = "bold"
+		sep.style.textTransform = "uppercase"
+		sep.style.letterSpacing = "2px"
+		sep.style.borderBottom = "1px solid var(--color-border)"
+		sep.style.marginBottom = "10px"
+	}
 
 	const dataRelatedInputs = addDiv(inputContainer)
 	const regenDataRelatedInputs = () => {
@@ -1284,7 +1301,7 @@ const main = async () => {
 			},
 			"facet by",
 		))
-		facetSwitch.style.marginBottom = "20px"
+		facetSwitch.style.marginBottom = collapsibleSelectorSpacing
 
 		const xAxisSwitch = addEl(dataRelatedInputs, createSwitch(
 			plotSettings.xAxis, data.colnames,
@@ -1294,7 +1311,29 @@ const main = async () => {
 			},
 			"X axis",
 		))
-		xAxisSwitch.style.marginBottom = "20px"
+		xAxisSwitch.style.marginBottom = collapsibleSelectorSpacing
+
+		addInputSep(dataRelatedInputs, "filters")
+		const filters: Record<string, (string | number)[]> = {}
+		for (let colname of data.colnames) {
+			const colUniqueVals = arrUnique(data.dataFull.map(row => row[colname]))
+			filters[colname] = colUniqueVals
+			const el = addEl(dataRelatedInputs, createSwitch(
+				colUniqueVals, colUniqueVals, (sel) => {
+					filters[colname] = sel
+					data.dataFiltered = [...data.dataFull]
+					for (let otherColname of data.colnames) {
+						const allowedVals = filters[otherColname]
+						data.dataFiltered = data.dataFiltered.filter(row => allowedVals.includes(row[otherColname]))
+					}
+					regenPlot()
+				},
+				colname,
+			))
+			el.style.marginBottom = collapsibleSelectorSpacing
+		}
+
+		addInputSep(dataRelatedInputs, "colnames")
 
 		for (let varName of Object.keys(data.varNames)) {
 			const el = addEl(dataRelatedInputs, createSwitch(
@@ -1305,7 +1344,7 @@ const main = async () => {
 				},
 				varName,
 			))
-			el.style.marginBottom = "20px"
+			el.style.marginBottom = collapsibleSelectorSpacing
 		}
 	}
 
