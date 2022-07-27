@@ -350,7 +350,7 @@ type SwitchSpec<SingleOpt extends string | number, OptType extends SingleOpt | S
 const createSwitch = <SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]>
 	(spec: SwitchSpec<SingleOpt, OptType>) => {
 	const multiple = Array.isArray(spec.init)
-	const collapsibleWithLabel = name !== undefined
+	const collapsibleWithLabel = spec.name !== undefined
 
 	const switchElement = createDiv()
 
@@ -883,6 +883,37 @@ const addBoxplot = (
 	}
 }
 
+const virusSort = (v1: string, v2: string) => {
+	let result = 0
+
+	if (v1.startsWith("A") && v2.startsWith("B")) {
+		result = -1
+	} else if (v2.startsWith("A") && v1.startsWith("B")) {
+		result = 1
+	}
+
+	if (result === 0) {
+		let yearPat = /(\d{4})e?$/
+		let year1 = yearPat.exec(v1)?.[1]
+		let year2 = yearPat.exec(v2)?.[1]
+		if (year1 !== undefined && year2 !== undefined) {
+			result = parseInt(year1) - parseInt(year2)
+		}
+	}
+
+	if (result === 0) {
+		if (v1 > v2) {
+			result = 1
+		} else {
+			result = -1
+		}
+	}
+
+	return result
+}
+
+const getSorter = (varName: string, varNames: DataVarNames) => varName === varNames.virus ? virusSort : generalSort
+
 type PlotSettings = {
 	xFacetBy: string,
 	xAxis: string,
@@ -893,41 +924,10 @@ type PlotSettings = {
 
 const createPlot = (data: Data, settings: PlotSettings) => {
 
-	const virusSort = (v1: string, v2: string) => {
-		let result = 0
-
-		if (v1.startsWith("A") && v2.startsWith("B")) {
-			result = -1
-		} else if (v2.startsWith("A") && v1.startsWith("B")) {
-			result = 1
-		}
-
-		if (result === 0) {
-			let yearPat = /(\d{4})e?$/
-			let year1 = yearPat.exec(v1)?.[1]
-			let year2 = yearPat.exec(v2)?.[1]
-			if (year1 !== undefined && year2 !== undefined) {
-				result = parseInt(year1) - parseInt(year2)
-			}
-		}
-
-		if (result === 0) {
-			if (v1 > v2) {
-				result = 1
-			} else {
-				result = -1
-			}
-		}
-
-		return result
-	}
-
-	const getSorter = (varName: string) => varName === "virus" ? virusSort : generalSort
-
-	const xFacetVals = arrUnique(data.dataFiltered.map(row => row[settings.xFacetBy] as any)).sort(getSorter(settings.xFacetBy))
+	const xFacetVals = arrUnique(data.dataFiltered.map(row => row[settings.xFacetBy] as any)).sort(getSorter(settings.xFacetBy, data.varNames))
 	const xTicksPerFacet = xFacetVals.map(xFacetVal => {
 		const dataFacet = data.dataFiltered.filter(row => row[settings.xFacetBy] === xFacetVal)
-		const facetXTicks = arrUnique(dataFacet.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis))
+		const facetXTicks = arrUnique(dataFacet.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))
 		return facetXTicks
 	})
 
@@ -1356,7 +1356,7 @@ const main = async () => {
 		const filters: Record<string, (string | number)[]> = {}
 		for (let colname of data.colnames) {
 			const colUniqueVals = arrUnique(data.dataFull.map(row => row[colname]))
-			filters[colname] = colUniqueVals
+			filters[colname] = (<any[]>colUniqueVals).sort(getSorter(colname, data.varNames))
 			const el = addEl(dataRelatedInputs, createSwitch({
 				init: colUniqueVals,
 				opts: colUniqueVals,
