@@ -1095,17 +1095,18 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 			// NOTE(sen) Counts
 			{
 				const yCoord = plot.scaleYToPx(plot.spec.yTicks[plot.spec.yTicks.length - 1])
+				const alphaStr = colChannel255ToString(settings.opacities.counts)
 				drawText(
 					plot.renderer, `${preCount}`,
 					stripXCoord - leftRightStep,
 					yCoord,
-					preColor, -90, "middle", "center", altColor,
+					preColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
 				)
 				drawText(
 					plot.renderer, `${postCount}`,
 					stripXCoord + leftRightStep,
 					yCoord,
-					postColor, -90, "middle", "center", altColor,
+					postColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
 				)
 			}
 		}
