@@ -54,7 +54,7 @@ type SummaryType = (typeof SUMMARY_TYPES_)[number]
 const PLOT_ELEMENTS_ = ["points", "lines", "boxplots", "counts", "refLine", "means"] as const
 const PLOT_ELEMENTS = PLOT_ELEMENTS_ as unknown as string[]
 type PlotElement = (typeof PLOT_ELEMENTS_)[number]
-type PlotElements = Record<PlotElement, boolean>
+type Opacities = Record<PlotElement, number>
 
 type DataVarNames = {
 	uniquePairId: string[],
@@ -341,11 +341,12 @@ const switchOptionStyleAllCaps = (optEl: HTMLElement, optVal: string) => {
 type SwitchSpec<SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]> = {
 	init: OptType,
 	opts: SingleOpt[],
-	onUpdate: (opt: OptType) => void,
+	onUpdate: (opt: OptType, fromLeft?: number) => void,
 	name?: string,
 	optElementStyle?: (optEl: HTMLElement, optVal: SingleOpt) => void,
 	optContainerStyle?: (container: HTMLElement) => void,
 	optElements?: HTMLElement[],
+	horizontalGradient?: number | number[],
 }
 
 const createSwitch = <SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]>
@@ -399,7 +400,8 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 	}
 
 	const allOptElements: HTMLElement[] = spec.optElements === undefined ? [] : spec.optElements
-	for (let opt of spec.opts) {
+	for (let optIndex = 0; optIndex < spec.opts.length; optIndex++) {
+		const opt = spec.opts[optIndex]
 		let optElement = addDiv(optContainer)
 		allOptElements.push(optElement)
 		optElement.style.paddingTop = "5px"
@@ -414,56 +416,73 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 		let hoverCol = "var(--color-background2)"
 		let selectedCol = "var(--color-selected)"
 
-		if (isSelected(opt)) {
-			optElement.style.backgroundColor = selectedCol
-		} else {
-			optElement.style.backgroundColor = normalCol
-		}
-
-		optElement.addEventListener("mouseover", (event) => {
-			if (!isSelected(opt)) {
-				optElement.style.backgroundColor = hoverCol
-			}
-		})
-		optElement.addEventListener("mouseout", (event) => {
-			if (!isSelected(opt)) {
+		if (spec.horizontalGradient === undefined) {
+			if (isSelected(opt)) {
+				optElement.style.backgroundColor = selectedCol
+			} else {
 				optElement.style.backgroundColor = normalCol
 			}
-		})
+
+			optElement.addEventListener("mouseover", (event) => {
+				if (!isSelected(opt)) {
+					optElement.style.backgroundColor = hoverCol
+				}
+			})
+			optElement.addEventListener("mouseout", (event) => {
+				if (!isSelected(opt)) {
+					optElement.style.backgroundColor = normalCol
+				}
+			})
+		} else {
+			// @ts-ignore
+			const fromLeft = spec.horizontalGradient[optIndex]
+			const fromLeftPercent = Math.round(fromLeft * 100)
+			optElement.style.background = `linear-gradient(to right, ${selectedCol} ${fromLeftPercent}%, ${normalCol} ${fromLeftPercent}%)`
+		}
 
 		optElement.addEventListener("click", async (event) => {
-			if (!multiple && opt !== currentSel) {
+			if (spec.horizontalGradient === undefined) {
 
-				for (let child of optContainer.childNodes) {
-					(<HTMLElement>child).style.backgroundColor = normalCol
-				}
-				optElement.style.backgroundColor = selectedCol
-				currentSel = <OptType>opt
-				spec.onUpdate(<OptType>opt)
+				if (!multiple && opt !== currentSel) {
 
-			} else if (multiple) {
+					for (let child of optContainer.childNodes) {
+						(<HTMLElement>child).style.backgroundColor = normalCol
+					}
+					optElement.style.backgroundColor = selectedCol
+					currentSel = <OptType>opt
 
-				if (event.ctrlKey) {
-					allOptElements.map(optEl => optEl.style.backgroundColor = normalCol)
-					optElement.style.backgroundColor = selectedCol;
-					// @ts-ignore
-					currentSel = [opt]
-				} else if (event.shiftKey) {
-					allOptElements.map(optEl => optEl.style.backgroundColor = selectedCol)
-					// @ts-ignore
-					currentSel = [...spec.opts]
-				} else {
-					let optIndex = arrLinSearch(<SingleOpt[]>currentSel, opt)
-					if (optIndex !== -1) {
-						optElement.style.backgroundColor = normalCol
-						arrRemoveIndex(<SingleOpt[]>currentSel, optIndex)
-					} else {
+				} else if (multiple) {
+
+					if (event.ctrlKey) {
+						allOptElements.map(optEl => optEl.style.backgroundColor = normalCol)
 						optElement.style.backgroundColor = selectedCol;
-						(<SingleOpt[]>currentSel).push(opt)
+						// @ts-ignore
+						currentSel = [opt]
+					} else if (event.shiftKey) {
+						allOptElements.map(optEl => optEl.style.backgroundColor = selectedCol)
+						// @ts-ignore
+						currentSel = [...spec.opts]
+					} else {
+						let optIndex = arrLinSearch(<SingleOpt[]>currentSel, opt)
+						if (optIndex !== -1) {
+							optElement.style.backgroundColor = normalCol
+							arrRemoveIndex(<SingleOpt[]>currentSel, optIndex)
+						} else {
+							optElement.style.backgroundColor = selectedCol;
+							(<SingleOpt[]>currentSel).push(opt)
+						}
 					}
 				}
 
 				spec.onUpdate(currentSel)
+
+			} else {
+				// @ts-ignore
+				const fromLeft = event.offsetX / event.target!.offsetWidth
+				const fromLeftPercent = Math.round(fromLeft * 100)
+				optElement.style.background = `linear-gradient(to right, ${selectedCol} ${fromLeftPercent}%, ${normalCol} ${fromLeftPercent}%)`
+				// @ts-ignore
+				spec.onUpdate(opt, fromLeft)
 			}
 		})
 	}
@@ -820,12 +839,11 @@ const addBoxplot = (
 	stats: BoxplotStats,
 	xCoord: number,
 	totalBoxWidth: number,
-	color: string,
-	altColor: string,
-	meanColor: string,
+	baseColor: string,
+	baseAltColor: string,
 	lineThiccness: number,
-	boxes: boolean,
-	means: boolean,
+	boxesAlpha: number,
+	meansAlpha: number,
 ) => {
 
 	totalBoxWidth = Math.max(totalBoxWidth, 0)
@@ -838,7 +856,12 @@ const addBoxplot = (
 
 	let boxplotBody = {l: boxLeft, b: stats.q75, r: boxRight, t: stats.q25}
 
-	if (boxes) {
+	// NOTE(sen) Boxes
+	{
+		const alphaStr = colChannel255ToString(boxesAlpha)
+		const color = baseColor + alphaStr
+		const altColor = baseAltColor + alphaStr
+
 		drawRectOutline(plot.renderer, boxplotBody, color, lineThiccness)
 		drawRectOutline(plot.renderer, rectShrink(boxplotBody, lineThiccness), altColor, lineThiccness)
 
@@ -882,19 +905,24 @@ const addBoxplot = (
 		)
 	}
 
-	if (means) {
+	// NOTE(sen) Means
+	{
+		const alphaStr = colChannel255ToString(meansAlpha)
+		const color = baseColor + alphaStr
+		const altColor = baseAltColor + alphaStr
+
 		drawDoubleLine(
 			plot.renderer,
 			boxCenter,
 			stats.mean + stats.meanSe * 1.96,
 			boxCenter,
 			stats.mean - stats.meanSe * 1.96,
-			meanColor,
+			color,
 			altColor,
 			lineThiccness,
 			[]
 		)
-		drawPoint(plot.renderer, boxCenter, stats.mean, 5, meanColor, altColor)
+		drawPoint(plot.renderer, boxCenter, stats.mean, 5, color, altColor)
 	}
 }
 
@@ -934,7 +962,7 @@ type PlotSettings = {
 	xAxis: string,
 	refTitre: number,
 	theme: Theme,
-	elements: PlotElements,
+	opacities: Opacities,
 }
 
 const createPlot = (data: Data, settings: PlotSettings) => {
@@ -966,9 +994,10 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 		theme: settings.theme,
 	})
 
-	if (settings.elements.refLine) {
+	// NOTE(sen) Reference line
+	{
 		const yCoord = plot.scaleYToPx(settings.refTitre)
-		const color = plot.axisColor
+		const color = plot.axisColor + colChannel255ToString(settings.opacities.refLine)
 		const thickness = 1
 		drawLine(plot.renderer, plot.spec.padAxis.l, yCoord, plot.totalWidth - plot.spec.padAxis.r, yCoord, color, color, thickness, [])
 	}
@@ -1016,8 +1045,8 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 				if (preYCoord !== null) {preCount += 1}
 				if (postYCoord !== null) {postCount += 1}
 
-				const pointAlphaStr = colChannel255ToString(0.5)
-				const lineAlphaStr = colChannel255ToString(0.1)
+				const pointAlphaStr = colChannel255ToString(settings.opacities.points)
+				const lineAlphaStr = colChannel255ToString(settings.opacities.lines)
 
 				const preColorWithAlpha = preColor + pointAlphaStr
 				const postColorWithAlpha = postColor + pointAlphaStr
@@ -1025,13 +1054,13 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 				const pointSize = 2
 				const lineSize = 1
 
-				if (preYCoord !== null && settings.elements.points) {
+				if (preYCoord !== null) {
 					drawPoint(plot.renderer, preXCoord, preYCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
 				}
-				if (postYCoord !== null && settings.elements.points) {
+				if (postYCoord !== null) {
 					drawPoint(plot.renderer, postXCoord, postYCoord, pointSize, postColorWithAlpha, postColorWithAlpha)
 				}
-				if (preYCoord !== null && postYCoord !== null && settings.elements.lines) {
+				if (preYCoord !== null && postYCoord !== null) {
 					const preC = preColor + lineAlphaStr
 					const postC = postColor + lineAlphaStr
 					drawLine(plot.renderer, preXCoord, preYCoord, postXCoord, postYCoord, preC, postC, lineSize, [])
@@ -1041,7 +1070,7 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 			const altColor = settings.theme === "dark" ? "#000000" : "#ffffff"
 
 			// NOTE(sen) Boxplots
-			if (settings.elements.boxplots || settings.elements.means) {
+			{
 				const preStats = getBoxplotStats(preData.map(row => plot.scaleYToPx(row[data.varNames.titre] as number)))
 				const postStats = getBoxplotStats(postData.map(row => plot.scaleYToPx(row[data.varNames.titre] as number)))
 
@@ -1050,21 +1079,21 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 				if (preStats !== null) {
 					addBoxplot(
 						plot, preStats, stripXCoord - leftRightStep, boxWidth,
-						preColor, altColor, preColor, boxLineThiccness,
-						settings.elements.boxplots, settings.elements.means,
+						preColor, altColor, boxLineThiccness,
+						settings.opacities.boxplots, settings.opacities.means,
 					)
 				}
 				if (postStats !== null) {
 					addBoxplot(
 						plot, postStats, stripXCoord + leftRightStep, boxWidth,
-						postColor, altColor, postColor, boxLineThiccness,
-						settings.elements.boxplots, settings.elements.means,
+						postColor, altColor, boxLineThiccness,
+						settings.opacities.boxplots, settings.opacities.means,
 					)
 				}
 			}
 
 			// NOTE(sen) Counts
-			if (settings.elements.counts) {
+			{
 				const yCoord = plot.scaleYToPx(plot.spec.yTicks[plot.spec.yTicks.length - 1])
 				drawText(
 					plot.renderer, `${preCount}`,
@@ -1224,13 +1253,13 @@ const main = async () => {
 
 	const plotSettings: PlotSettings = {
 		xFacetBy: data.varNames.testingLab, xAxis: data.varNames.virus, refTitre: 40, theme: "dark",
-		elements: {
-			points: true,
-			lines: true,
-			boxplots: true,
-			counts: true,
-			refLine: true,
-			means: true,
+		opacities: {
+			points: 0.5,
+			lines: 0.1,
+			boxplots: 1,
+			counts: 1,
+			refLine: 1,
+			means: 1,
 		},
 	}
 
@@ -1318,14 +1347,14 @@ const main = async () => {
 	const opacitiesSwitch = addEl(inputContainer, createSwitch({
 		init: <PlotElement[]>PLOT_ELEMENTS,
 		opts: <PlotElement[]>PLOT_ELEMENTS,
-		onUpdate: (opacitiesSel) => {
-			for (let opacityKind of <PlotElement[]>PLOT_ELEMENTS) {
-				plotSettings.elements[opacityKind] = opacitiesSel.includes(opacityKind)
-			}
+		onUpdate: (el, fromLeft) => {
+			// @ts-ignore
+			plotSettings.opacities[el] = fromLeft
 			regenPlot()
 		},
 		name: "Elements",
 		optElementStyle: switchOptionStyleAllCaps,
+		horizontalGradient: [0.5, 0.1, 1, 1, 1, 1],
 	}))
 	opacitiesSwitch.style.marginBottom = collapsibleSelectorSpacing
 
