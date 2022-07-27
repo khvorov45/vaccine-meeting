@@ -345,6 +345,7 @@ type SwitchSpec<SingleOpt extends string | number, OptType extends SingleOpt | S
 	name?: string,
 	optElementStyle?: (optEl: HTMLElement, optVal: SingleOpt) => void,
 	optContainerStyle?: (container: HTMLElement) => void,
+	optElements?: HTMLElement[],
 }
 
 const createSwitch = <SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]>
@@ -397,7 +398,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 		return result
 	}
 
-	const allOptElements: HTMLElement[] = []
+	const allOptElements: HTMLElement[] = spec.optElements === undefined ? [] : spec.optElements
 	for (let opt of spec.opts) {
 		let optElement = addDiv(optContainer)
 		allOptElements.push(optElement)
@@ -951,10 +952,10 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 		scaleXData: (xVal, xFacetIndex) => xTicksPerFacet[xFacetIndex].indexOf(xVal),
 		scaleYData: Math.log,
 		padAxis: {l: 100, t: 50, r: 50, b: 150},
-		padData: {l: 20, t: 20, r: 20, b: 20},
-		padFacet: 0,
-		scaledXMinPerFacet: xTicksPerFacet.map(ticks => -1),
-		scaledXMaxPerFacet: xTicksPerFacet.map(ticks => ticks.length),
+		padData: {l: 40, t: 20, r: 40, b: 20},
+		padFacet: 80,
+		scaledXMinPerFacet: xTicksPerFacet.map(ticks => 0),
+		scaledXMaxPerFacet: xTicksPerFacet.map(ticks => ticks.length - 1),
 		yMin: 5,
 		yMax: 5120,
 		xTicksPerFacet: xTicksPerFacet,
@@ -1367,23 +1368,53 @@ const main = async () => {
 		xAxisSwitch.style.marginBottom = collapsibleSelectorSpacing
 
 		addInputSep(dataRelatedInputs, "filters")
-		const filters: Record<string, (string | number)[]> = {}
+		type Filter = {
+			selected: any[],
+			all: any[],
+			optElements: HTMLElement[],
+		}
+		const filters: Record<string, Filter> = {}
+
+		const updateVisible = (colname: string) => {
+			let dataFilteredOther = [...data.dataFull]
+			for (let otherColname of data.colnames) {
+				if (otherColname !== colname) {
+					const allowedVals = filters[otherColname].selected
+					dataFilteredOther = dataFilteredOther.filter(row => allowedVals.includes(row[otherColname]))
+				}
+			}
+			const visible = arrUnique(dataFilteredOther.map(row => row[colname]))
+			const thisFilter = filters[colname]
+			for (let optIndex = 0; optIndex < thisFilter.all.length; optIndex++) {
+				const thisEl = thisFilter.optElements[optIndex]
+				if (thisEl !== undefined) {
+					if (visible.includes(thisFilter.all[optIndex])) {
+						thisEl.style.display = "block"
+					} else {
+						thisEl.style.display = "none"
+					}
+				}
+			}
+		}
+
 		for (let colname of data.colnames) {
-			const colUniqueVals = arrUnique(data.dataFull.map(row => row[colname]))
-			filters[colname] = (<any[]>colUniqueVals).sort(getSorter(colname, data.varNames))
+			const colUniqueVals = arrUnique(data.dataFull.map(row => row[colname] as any)).sort(getSorter(colname, data.varNames))
+			filters[colname] = {selected: colUniqueVals, all: [...colUniqueVals], optElements: []}
 			const el = addEl(dataRelatedInputs, createSwitch({
 				init: colUniqueVals,
 				opts: colUniqueVals,
 				onUpdate: (sel) => {
-					filters[colname] = sel
+					filters[colname].selected = sel
 					data.dataFiltered = [...data.dataFull]
 					for (let otherColname of data.colnames) {
-						const allowedVals = filters[otherColname]
+						const allowedVals = filters[otherColname].selected
 						data.dataFiltered = data.dataFiltered.filter(row => allowedVals.includes(row[otherColname]))
+						updateVisible(otherColname)
 					}
 					regenPlot()
 				},
 				name: colname,
+				optElements: filters[colname].optElements,
 			}))
 			el.style.marginBottom = collapsibleSelectorSpacing
 		}
