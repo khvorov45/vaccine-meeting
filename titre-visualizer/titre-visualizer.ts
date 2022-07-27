@@ -338,23 +338,24 @@ const switchOptionStyleAllCaps = (optEl: HTMLElement, optVal: string) => {
 	optEl.textContent = optVal.toUpperCase()
 }
 
-const createSwitch = <SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]>(
-	init: OptType, opts: SingleOpt[], onUpdate: (opt: OptType) => void,
+type SwitchSpec<SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]> = {
+	init: OptType,
+	opts: SingleOpt[],
+	onUpdate: (opt: OptType) => void,
 	name?: string,
 	optElementStyle?: (optEl: HTMLElement, optVal: SingleOpt) => void,
 	optContainerStyle?: (container: HTMLElement) => void,
-) => {
-	const multiple = Array.isArray(init)
-	const collapsibleWithLabel = name !== undefined
+}
 
-	if (multiple) {
-		init = <OptType>Array.from(<any[]>init)
-	}
+const createSwitch = <SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]>
+	(spec: SwitchSpec<SingleOpt, OptType>) => {
+	const multiple = Array.isArray(spec.init)
+	const collapsibleWithLabel = name !== undefined
 
 	const switchElement = createDiv()
 
 	const optContainer = createDiv()
-	optContainerStyle?.(optContainer)
+	spec.optContainerStyle?.(optContainer)
 	let optContainerDisplayed = !collapsibleWithLabel
 	let optContainerOldDisplay = optContainer.style.display
 	if (!optContainerDisplayed) {
@@ -363,20 +364,21 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 
 	if (collapsibleWithLabel) {
 		const label = addDiv(switchElement)
-		label.textContent = name!.toUpperCase() + " ▼"
+		label.textContent = spec.name! + " ▼"
 		label.style.fontWeight = "bold"
 		label.style.letterSpacing = "2px"
 		label.style.cursor = "pointer"
 		label.style.paddingLeft = "5px"
+		label.style.textTransform = "uppercase"
 
 		label.addEventListener("click", (event) => {
 			if (optContainerDisplayed) {
 				optContainerOldDisplay = optContainer.style.display
 				optContainer.style.display = "none"
-				label!.textContent = name!.toUpperCase() + " ▼"
+				label!.textContent = spec.name! + " ▼"
 			} else {
 				optContainer.style.display = optContainerOldDisplay
-				label!.textContent = name!.toUpperCase() + " ▲"
+				label!.textContent = spec.name! + " ▲"
 			}
 			optContainerDisplayed = !optContainerDisplayed
 		})
@@ -384,14 +386,18 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 
 	addEl(switchElement, optContainer)
 
-	let currentSel = init
+	let currentSel = spec.init
+	if (multiple) {
+		// @ts-ignore
+		currentSel = [...currentSel]
+	}
 	const isSelected = (opt: SingleOpt) => {
 		let result = (!multiple && opt === currentSel) ||
 			(multiple && arrLinSearch(<SingleOpt[]>currentSel, opt) !== -1)
 		return result
 	}
 
-	for (let opt of opts) {
+	for (let opt of spec.opts) {
 		let optElement = addDiv(optContainer)
 		optElement.style.paddingTop = "5px"
 		optElement.style.paddingBottom = "5px"
@@ -399,8 +405,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 		optElement.style.textAlign = "center"
 
 		optElement.textContent = `${opt}`
-
-		optElementStyle?.(optElement, opt)
+		spec.optElementStyle?.(optElement, opt)
 
 		let normalCol = "var(--color-background)"
 		let hoverCol = "var(--color-background2)"
@@ -431,7 +436,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 				}
 				optElement.style.backgroundColor = selectedCol
 				currentSel = <OptType>opt
-				onUpdate(<OptType>opt)
+				spec.onUpdate(<OptType>opt)
 
 			} else if (multiple) {
 
@@ -443,7 +448,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 					optElement.style.backgroundColor = selectedCol;
 					(<SingleOpt[]>currentSel).push(opt)
 				}
-				onUpdate(currentSel)
+				spec.onUpdate(currentSel)
 			}
 		})
 	}
@@ -1263,31 +1268,31 @@ const main = async () => {
 	window.addEventListener("dragenter", () => fileInputWholePage.style.visibility = "visible")
 	fileInputWholePage.addEventListener("dragleave", () => fileInputWholePage.style.visibility = "hidden")
 
-	const themeSwitch = addEl(inputContainer, createSwitch(
-		plotSettings.theme, <Theme[]>THEMES,
-		(opt) => {
+	const themeSwitch = addEl(inputContainer, createSwitch({
+		init: plotSettings.theme,
+		opts: <Theme[]>THEMES,
+		onUpdate: (opt) => {
 			document.documentElement.setAttribute("theme", opt)
 			plotSettings.theme = opt
 			regenPlot()
 		},
-		undefined,
-		switchOptionStyleAllCaps,
-		(container) => {
+		optElementStyle: switchOptionStyleAllCaps,
+		optContainerStyle: (container) => {
 			container.style.display = "flex"
 			container.style.flexDirection = "row"
 			container.style.marginBottom = "20px"
 		}
-	))
+	}))
 
 	if (false) {
-		const modeSwitch = addEl(inputContainer, createSwitch(
-			<PlotMode[]>PLOT_MODES, <PlotMode[]>PLOT_MODES,
-			(plotModes) => {
+		const modeSwitch = addEl(inputContainer, createSwitch({
+			init: <PlotMode[]>PLOT_MODES,
+			opts: <PlotMode[]>PLOT_MODES,
+			onUpdate: (plotModes) => {
 				// TODO(sen) Actually implement this
 			},
-			undefined,
-			switchOptionStyleAllCaps,
-		))
+			optElementStyle: switchOptionStyleAllCaps,
+		}))
 		modeSwitch.style.display = "flex"
 		modeSwitch.style.flexDirection = "row"
 		modeSwitch.style.marginBottom = "20px"
@@ -1295,17 +1300,18 @@ const main = async () => {
 
 	const collapsibleSelectorSpacing = "10px"
 
-	const opacitiesSwitch = addEl(inputContainer, createSwitch(
-		<PlotElement[]>PLOT_ELEMENTS, <PlotElement[]>PLOT_ELEMENTS,
-		(opacitiesSel) => {
+	const opacitiesSwitch = addEl(inputContainer, createSwitch({
+		init: <PlotElement[]>PLOT_ELEMENTS,
+		opts: <PlotElement[]>PLOT_ELEMENTS,
+		onUpdate: (opacitiesSel) => {
 			for (let opacityKind of <PlotElement[]>PLOT_ELEMENTS) {
 				plotSettings.elements[opacityKind] = opacitiesSel.includes(opacityKind)
 			}
 			regenPlot()
 		},
-		"Elements",
-		switchOptionStyleAllCaps
-	))
+		name: "Elements",
+		optElementStyle: switchOptionStyleAllCaps,
+	}))
 	opacitiesSwitch.style.marginBottom = collapsibleSelectorSpacing
 
 	const addInputSep = (parent: HTMLElement, label: string) => {
@@ -1324,24 +1330,26 @@ const main = async () => {
 	const regenDataRelatedInputs = () => {
 		removeChildren(dataRelatedInputs)
 
-		const facetSwitch = addEl(dataRelatedInputs, createSwitch(
-			plotSettings.xFacetBy, data.colnames,
-			(sel) => {
+		const facetSwitch = addEl(dataRelatedInputs, createSwitch({
+			init: plotSettings.xFacetBy,
+			opts: data.colnames,
+			onUpdate: (sel) => {
 				plotSettings.xFacetBy = sel
 				regenPlot()
 			},
-			"facet by",
-		))
+			name: "facet by",
+		}))
 		facetSwitch.style.marginBottom = collapsibleSelectorSpacing
 
-		const xAxisSwitch = addEl(dataRelatedInputs, createSwitch(
-			plotSettings.xAxis, data.colnames,
-			(sel) => {
+		const xAxisSwitch = addEl(dataRelatedInputs, createSwitch({
+			init: plotSettings.xAxis,
+			opts: data.colnames,
+			onUpdate: (sel) => {
 				plotSettings.xAxis = sel
 				regenPlot()
 			},
-			"X axis",
-		))
+			name: "X axis",
+		}))
 		xAxisSwitch.style.marginBottom = collapsibleSelectorSpacing
 
 		addInputSep(dataRelatedInputs, "filters")
@@ -1349,8 +1357,10 @@ const main = async () => {
 		for (let colname of data.colnames) {
 			const colUniqueVals = arrUnique(data.dataFull.map(row => row[colname]))
 			filters[colname] = colUniqueVals
-			const el = addEl(dataRelatedInputs, createSwitch(
-				colUniqueVals, colUniqueVals, (sel) => {
+			const el = addEl(dataRelatedInputs, createSwitch({
+				init: colUniqueVals,
+				opts: colUniqueVals,
+				onUpdate: (sel) => {
 					filters[colname] = sel
 					data.dataFiltered = [...data.dataFull]
 					for (let otherColname of data.colnames) {
@@ -1359,23 +1369,24 @@ const main = async () => {
 					}
 					regenPlot()
 				},
-				colname,
-			))
+				name: colname,
+			}))
 			el.style.marginBottom = collapsibleSelectorSpacing
 		}
 
 		addInputSep(dataRelatedInputs, "colnames")
 
 		for (let varName of Object.keys(data.varNames)) {
-			const el = addEl(dataRelatedInputs, createSwitch(
-				data.varNames[varName as keyof DataVarNames], data.colnames,
-				(sel) => {
+			const el = addEl(dataRelatedInputs, createSwitch({
+				init: data.varNames[varName as keyof DataVarNames],
+				opts: data.colnames,
+				onUpdate: (sel) => {
 					// @ts-ignore
 					data.varNames[varName as keyof DataVarNames] = sel
 					regenPlot()
 				},
-				varName,
-			))
+				name: varName,
+			}))
 			el.style.marginBottom = collapsibleSelectorSpacing
 		}
 	}
