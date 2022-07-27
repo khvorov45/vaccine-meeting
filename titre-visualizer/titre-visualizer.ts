@@ -1025,8 +1025,8 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 				const pre = preData.filter(row => row.__UNIQUEPID__ === pid)
 				const post = postData.filter(row => row.__UNIQUEPID__ === pid)
 
-				const preTitre = pre.length === 1 ? <number>pre[0][data.varNames.titre] : null
-				const postTitre = post.length === 1 ? <number>post[0][data.varNames.titre] : null
+				const preTitres = pre.map(row => row[data.varNames.titre] as number)
+				const postTitres = post.map(row => row[data.varNames.titre] as number)
 
 				const adjacentDistance = plot.spec.widthTick - leftRightStep * 2
 
@@ -1039,11 +1039,11 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 				const preXCoord = stripXCoord - leftRightStep + jitterX
 				const postXCoord = stripXCoord + leftRightStep + jitterX
 
-				const preYCoord = preTitre !== null ? plot.scaleYToPx(preTitre) + jitterY : null
-				const postYCoord = postTitre !== null ? plot.scaleYToPx(postTitre) + jitterY : null
+				const preYCoords = preTitres.map(titre => plot.scaleYToPx(titre) + jitterY)
+				const postYCoords = postTitres.map(titre => plot.scaleYToPx(titre) + jitterY)
 
-				if (preYCoord !== null) {preCount += 1}
-				if (postYCoord !== null) {postCount += 1}
+				preCount += preYCoords.length
+				postCount += postYCoords.length
 
 				const pointAlphaStr = colChannel255ToString(settings.opacities.points)
 				const lineAlphaStr = colChannel255ToString(settings.opacities.lines)
@@ -1054,16 +1054,17 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 				const pointSize = 2
 				const lineSize = 1
 
-				if (preYCoord !== null) {
+				for (let preYCoord of preYCoords) {
 					drawPoint(plot.renderer, preXCoord, preYCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
 				}
-				if (postYCoord !== null) {
+				for (let postYCoord of postYCoords) {
 					drawPoint(plot.renderer, postXCoord, postYCoord, pointSize, postColorWithAlpha, postColorWithAlpha)
 				}
-				if (preYCoord !== null && postYCoord !== null) {
+
+				if (preYCoords.length === 1 && postYCoords.length === 1) {
 					const preC = preColor + lineAlphaStr
 					const postC = postColor + lineAlphaStr
-					drawLine(plot.renderer, preXCoord, preYCoord, postXCoord, postYCoord, preC, postC, lineSize, [])
+					drawLine(plot.renderer, preXCoord, preYCoords[0], postXCoord, postYCoords[0], preC, postC, lineSize, [])
 				}
 			}
 
@@ -1144,6 +1145,14 @@ const guessDataVarNames = (existingNames: string[]) => {
 	return varNames
 }
 
+const constructUniquePid = (row: Record<string, string | number>, uniquePairId: string[]) => {
+	let result = ""
+	for (let pairId of uniquePairId) {
+		result += `${row[pairId]}`
+	}
+	return result
+}
+
 const parseData = (input: string): Data => {
 	const data: Data = {
 		dataFull: [], dataFiltered: [],
@@ -1158,14 +1167,6 @@ const parseData = (input: string): Data => {
 
 		data.varNames = guessDataVarNames(data.colnames)
 
-		const constructUniquePid = (row: Record<string, string | number>) => {
-			let result = ""
-			for (let pairId of data.varNames.uniquePairId) {
-				result += `${row[pairId]}`
-			}
-			return result
-		}
-
 		if (linesSplit.length > 1) {
 			for (let values of linesSplit.slice(1)) {
 				let row: Record<string, string | number> = {}
@@ -1176,7 +1177,7 @@ const parseData = (input: string): Data => {
 					}
 					row[name] = value
 				}
-				row.__UNIQUEPID__ = constructUniquePid(row)
+				row.__UNIQUEPID__ = constructUniquePid(row, data.varNames.uniquePairId)
 				data.dataFull.push(row)
 				data.dataFiltered.push(row)
 			}
@@ -1458,6 +1459,18 @@ const main = async () => {
 				onUpdate: (sel) => {
 					// @ts-ignore
 					data.varNames[varName as keyof DataVarNames] = sel
+
+					if (varName == "uniquePairId") {
+						data.dataFull = data.dataFull.map(row => {
+							row.__UNIQUEPID__ = constructUniquePid(row, data.varNames.uniquePairId)
+							return row
+						})
+						data.dataFiltered = data.dataFiltered.map(row => {
+							row.__UNIQUEPID__ = constructUniquePid(row, data.varNames.uniquePairId)
+							return row
+						})
+					}
+
 					regenPlot()
 				},
 				name: varName,
