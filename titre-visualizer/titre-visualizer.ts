@@ -1079,11 +1079,15 @@ const guessDataVarNames = (existingNames: string[]) => {
 }
 
 const parseData = (input: string): Data => {
-	let data: Data = {dataFull: [], dataFiltered: [], varNames: DEFAULT_DATA_VAR_NAMES, timepointLabels: DEFAULT_TIMEPOINT_LABELS, colnames: []}
+	const data: Data = {
+		dataFull: [], dataFiltered: [],
+		varNames: DEFAULT_DATA_VAR_NAMES,
+		timepointLabels: DEFAULT_TIMEPOINT_LABELS, colnames: []
+	}
 
 	if (input.length > 0) {
-		let lines = input.split(/\r?\n/).filter((line) => line !== "")
-		let linesSplit = lines.map((line) => line.split(","))
+		const lines = input.split(/\r?\n/).filter((line) => line !== "")
+		const linesSplit = lines.map((line) => line.split(","))
 		data.colnames = linesSplit[0]
 
 		data.varNames = guessDataVarNames(data.colnames)
