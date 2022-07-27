@@ -341,34 +341,30 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 	optElementStyle?: (optEl: HTMLElement, optVal: SingleOpt) => void,
 	optContainerStyle?: (container: HTMLElement) => void,
 ) => {
-	let multiple = Array.isArray(init)
+	const multiple = Array.isArray(init)
+	const collapsibleWithLabel = name !== undefined
+
 	if (multiple) {
 		init = <OptType>Array.from(<any[]>init)
 	}
 
 	const switchElement = createDiv()
-	let currentSel = init
-	const isSelected = (opt: SingleOpt) => {
-		let result = (!multiple && opt === currentSel) ||
-			(multiple && arrLinSearch(<SingleOpt[]>currentSel, opt) !== -1)
-		return result
-	}
 
 	const optContainer = createDiv()
 	optContainerStyle?.(optContainer)
-
-	let optContainerDisplayed = name === undefined
+	let optContainerDisplayed = !collapsibleWithLabel
 	let optContainerOldDisplay = optContainer.style.display
 	if (!optContainerDisplayed) {
 		optContainer.style.display = "none"
 	}
 
-	if (name !== undefined) {
+	if (collapsibleWithLabel) {
 		const label = addDiv(switchElement)
 		label.textContent = name!.toUpperCase() + " ▼"
 		label.style.fontWeight = "bold"
 		label.style.letterSpacing = "2px"
 		label.style.cursor = "pointer"
+		label.style.paddingLeft = "5px"
 
 		label.addEventListener("click", (event) => {
 			if (optContainerDisplayed) {
@@ -384,6 +380,13 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 	}
 
 	addEl(switchElement, optContainer)
+
+	let currentSel = init
+	const isSelected = (opt: SingleOpt) => {
+		let result = (!multiple && opt === currentSel) ||
+			(multiple && arrLinSearch(<SingleOpt[]>currentSel, opt) !== -1)
+		return result
+	}
 
 	for (let opt of opts) {
 		let optElement = addDiv(optContainer)
@@ -438,7 +441,6 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 					(<SingleOpt[]>currentSel).push(opt)
 				}
 				onUpdate(currentSel)
-
 			}
 		})
 	}
