@@ -397,8 +397,10 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 		return result
 	}
 
+	const allOptElements: HTMLElement[] = []
 	for (let opt of spec.opts) {
 		let optElement = addDiv(optContainer)
+		allOptElements.push(optElement)
 		optElement.style.paddingTop = "5px"
 		optElement.style.paddingBottom = "5px"
 		optElement.style.cursor = "pointer"
@@ -440,14 +442,26 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 
 			} else if (multiple) {
 
-				let optIndex = arrLinSearch(<SingleOpt[]>currentSel, opt)
-				if (optIndex !== -1) {
-					optElement.style.backgroundColor = normalCol
-					arrRemoveIndex(<SingleOpt[]>currentSel, optIndex)
-				} else {
+				if (event.ctrlKey) {
+					allOptElements.map(optEl => optEl.style.backgroundColor = normalCol)
 					optElement.style.backgroundColor = selectedCol;
-					(<SingleOpt[]>currentSel).push(opt)
+					// @ts-ignore
+					currentSel = [opt]
+				} else if (event.shiftKey) {
+					allOptElements.map(optEl => optEl.style.backgroundColor = selectedCol)
+					// @ts-ignore
+					currentSel = [...spec.opts]
+				} else {
+					let optIndex = arrLinSearch(<SingleOpt[]>currentSel, opt)
+					if (optIndex !== -1) {
+						optElement.style.backgroundColor = normalCol
+						arrRemoveIndex(<SingleOpt[]>currentSel, optIndex)
+					} else {
+						optElement.style.backgroundColor = selectedCol;
+						(<SingleOpt[]>currentSel).push(opt)
+					}
 				}
+
 				spec.onUpdate(currentSel)
 			}
 		})
