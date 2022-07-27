@@ -45,33 +45,21 @@ quick_summary(nh_titres)
 vis2022 <- nh_titres %>%
 	pivot_longer(c(prevax, postvax), names_to = "timepoint", values_to = "titre") %>%
 	mutate(
-		clade = "uncladed",
-		#timepoint = recode(timepoint, "prevax" = "Pre-vax", "postvax" = "Post-vax"),
 		egg_cell = if_else(passage == "Egg", "Egg", "Cell"),
-		clade_freq = 0.5,
 		virus = paste0(strain, if_else(egg_cell == "Egg", "e", "")) %>%
 			tolower() %>%
 			tools::toTitleCase() %>%
 			str_replace("^a/", "A/") %>%
 			str_replace("^b/", "B/"),
-		serum_id = paste(testing_lab, cohort, location, vaccine, pid, sep = "__")
 	) %>%
 	select(
-		serum_id, cohort, virus, clade, titre, subtype = type, timepoint,
-		egg_cell, serum_source = location, vaccine = vaccine, testing_lab, clade_freq,
-	) %>%
-	mutate(
-		vaccine_strain = virus %in% c(
-			"A/Darwin/6/2021e",
-			"A/Victoria/2570/2019e",
-			"B/Washington/02/2019e",
-			"B/Phuket/3073/2013e"
-	    ),
+		pid, cohort, virus, titre, subtype = type, timepoint,
+		egg_cell, serum_source = location, vaccine, testing_lab,
 	)
 
-# NOTE(sen) Should be one row per id, virus, timpepoint
+# NOTE(sen) Find columns that uniquely identify a row
 vis2022 %>%
-	group_by(serum_id, virus, timepoint) %>%
+	group_by(pid, cohort, vaccine, serum_source, virus, testing_lab, timepoint) %>%
 	filter(n() > 1)
 
 quick_summary(vis2022)
@@ -124,5 +112,3 @@ nh_titres %>%
 	) %>%
 	select(-contains("log")) %>%
 	print(n = 100)
-
-
