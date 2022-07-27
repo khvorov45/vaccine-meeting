@@ -57,7 +57,7 @@ type PlotElement = (typeof PLOT_ELEMENTS_)[number]
 type PlotElements = Record<PlotElement, boolean>
 
 type DataVarNames = {
-	pid: string,
+	uniquePairId: string[],
 	timepoint: string,
 	titre: string,
 	testingLab: string,
@@ -288,7 +288,10 @@ const desiredOrderSort = (ord: any[]) => {
 }
 
 const colChannel255ToString = (channel: number) => {
-	return channel.toString(16).padStart(2, "0")
+	if (channel <= 1) {
+		channel *= 255
+	}
+	return Math.round(channel).toString(16).padStart(2, "0")
 }
 
 const colChangeSaturation = (col: string, satDelta: number) => {
@@ -466,11 +469,11 @@ const drawLine = (
 	color1: string, color2: string, thiccness: number, dashSegments: number[]
 ) => {
 	if ((x1 !== x2 || y1 !== y2) && isGood(x1) && isGood(x2) && isGood(y1) && isGood(y2)) {
-		const grad = renderer.createLinearGradient(x1, y1, x2, y2)
-		grad.addColorStop(0, color1)
-		grad.addColorStop(1, color2)
+		// const grad = renderer.createLinearGradient(x1, y1, x2, y2)
+		// grad.addColorStop(0, color1)
+		// grad.addColorStop(1, color2)
 
-		renderer.strokeStyle = grad
+		renderer.strokeStyle = color1
 		renderer.beginPath()
 		renderer.moveTo(x1, y1)
 		renderer.lineTo(x2, y2)
@@ -494,17 +497,12 @@ const drawRectOutline = (renderer: CanvasRenderingContext2D, rect: Rect, color: 
 	drawLine(renderer, rect.l, rect.t, rect.l, rect.b, color, color, thiccness, [])
 }
 
-const drawCircle = (
+const drawPoint = (
 	renderer: CanvasRenderingContext2D, centerX: number, centerY: number, radius: number,
 	color: string, outlineColor: string,
 ) => {
-	renderer.beginPath()
-	renderer.arc(centerX, centerY, radius, 0, 2 * Math.PI, false)
-	renderer.fillStyle = color
-	renderer.fill()
-	renderer.lineWidth = 1
-	renderer.strokeStyle = outlineColor
-	renderer.stroke()
+	const halfr = radius / 2
+	drawRect(renderer, {l: centerX - halfr, r: centerX + halfr, t: centerY - halfr, b: centerY + halfr}, color)
 }
 
 const drawDoubleLine = (
@@ -765,7 +763,7 @@ const beginPlot = (spec: PlotSpec) => {
 	}
 
 	// NOTE(sen) Facet labels and separators
-	const facetSepColor = axisCol + colChannel255ToString(0.4 * 255)
+	const facetSepColor = axisCol + colChannel255ToString(0.4)
 	const facetSepThiccness = 1
 	for (let xFacetIndex = 0; xFacetIndex < spec.xFacetVals.length; xFacetIndex++) {
 		const xFacetVal = spec.xFacetVals[xFacetIndex]
@@ -876,7 +874,7 @@ const addBoxplot = (
 			lineThiccness,
 			[]
 		)
-		drawCircle(plot.renderer, boxCenter, stats.mean, 5, meanColor, altColor)
+		drawPoint(plot.renderer, boxCenter, stats.mean, 5, meanColor, altColor)
 	}
 }
 
@@ -961,7 +959,7 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 
 		for (let xTick of xTicksForFacet) {
 			const stripData = data.dataFiltered.filter(row => row[settings.xFacetBy] === xFacetVal && row[settings.xAxis] === xTick)
-			const pids = arrUnique(stripData.map(row => row[data.varNames.pid]))
+			const pids = arrUnique(stripData.map(row => row.__UNIQUEPID__))
 			const stripXCoord = plot.scaleXToPx(xTick, xFacetVal)
 
 			const leftRightStep = plot.spec.widthTick / 4
@@ -975,8 +973,8 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 			let preCount = 0
 			let postCount = 0
 			for (let pid of pids) {
-				const pre = preData.filter(row => row[data.varNames.pid] === pid)
-				const post = postData.filter(row => row[data.varNames.pid] === pid)
+				const pre = preData.filter(row => row.__UNIQUEPID__ === pid)
+				const post = postData.filter(row => row.__UNIQUEPID__ === pid)
 
 				const preTitre = pre.length === 1 ? <number>pre[0][data.varNames.titre] : null
 				const postTitre = post.length === 1 ? <number>post[0][data.varNames.titre] : null
@@ -998,23 +996,25 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 				if (preYCoord !== null) {preCount += 1}
 				if (postYCoord !== null) {postCount += 1}
 
-				const alpha = 0.1
-				const alphaStr = Math.round(alpha * 255).toString(16).padStart(2, "0")
+				const pointAlphaStr = colChannel255ToString(0.5)
+				const lineAlphaStr = colChannel255ToString(0.1)
 
-				const preColorWithAlpha = preColor + alphaStr
-				const postColorWithAlpha = postColor + alphaStr
+				const preColorWithAlpha = preColor + pointAlphaStr
+				const postColorWithAlpha = postColor + pointAlphaStr
 
 				const pointSize = 2
 				const lineSize = 1
 
 				if (preYCoord !== null && settings.elements.points) {
-					drawCircle(plot.renderer, preXCoord, preYCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
+					drawPoint(plot.renderer, preXCoord, preYCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
 				}
 				if (postYCoord !== null && settings.elements.points) {
-					drawCircle(plot.renderer, postXCoord, postYCoord, pointSize, postColorWithAlpha, postColorWithAlpha)
+					drawPoint(plot.renderer, postXCoord, postYCoord, pointSize, postColorWithAlpha, postColorWithAlpha)
 				}
 				if (preYCoord !== null && postYCoord !== null && settings.elements.lines) {
-					drawLine(plot.renderer, preXCoord, preYCoord, postXCoord, postYCoord, preColorWithAlpha, postColorWithAlpha, lineSize, [])
+					const preC = preColor + lineAlphaStr
+					const postC = postColor + lineAlphaStr
+					drawLine(plot.renderer, preXCoord, preYCoord, postXCoord, postYCoord, preC, postC, lineSize, [])
 				}
 			}
 
@@ -1069,12 +1069,28 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 // SECTION Data and main
 //
 
-const DEFAULT_DATA_VAR_NAMES: DataVarNames =
-	{pid: "serum_id", timepoint: "timepoint", titre: "titre", testingLab: "testing_lab", virus: "virus"}
+const DEFAULT_DATA_VAR_NAMES: DataVarNames = {
+	uniquePairId: ["pid", "cohort", "vaccine", "serum_source", "virus", "testing_lab"],
+	timepoint: "timepoint", titre: "titre", testingLab: "testing_lab", virus: "virus"
+}
 const DEFAULT_TIMEPOINT_LABELS: TimepointLabels = {pre: "Pre-vax", post: "Post-vax"}
 
 const guessDataVarNames = (existingNames: string[]) => {
 	const varNames = {...DEFAULT_DATA_VAR_NAMES}
+	varNames.uniquePairId = [...DEFAULT_DATA_VAR_NAMES.uniquePairId]
+
+	// NOTE(sen) Unique names
+	for (let testName of DEFAULT_DATA_VAR_NAMES.uniquePairId) {
+		if (!existingNames.includes(testName)) {
+			arrRemoveIndex(varNames.uniquePairId, varNames.uniquePairId.indexOf(testName))
+		}
+	}
+	for (let existingName of existingNames) {
+		if (existingName.toLowerCase().endsWith("id") && !varNames.uniquePairId.includes(existingName)) {
+			varNames.uniquePairId.push(existingName)
+		}
+	}
+
 	return varNames
 }
 
@@ -1092,6 +1108,14 @@ const parseData = (input: string): Data => {
 
 		data.varNames = guessDataVarNames(data.colnames)
 
+		const constructUniquePid = (row: Record<string, string | number>) => {
+			let result = ""
+			for (let pairId of data.varNames.uniquePairId) {
+				result += `${row[pairId]}`
+			}
+			return result
+		}
+
 		if (linesSplit.length > 1) {
 			for (let values of linesSplit.slice(1)) {
 				let row: Record<string, string | number> = {}
@@ -1102,6 +1126,7 @@ const parseData = (input: string): Data => {
 					}
 					row[name] = value
 				}
+				row.__UNIQUEPID__ = constructUniquePid(row)
 				data.dataFull.push(row)
 				data.dataFiltered.push(row)
 			}
@@ -1345,6 +1370,7 @@ const main = async () => {
 			const el = addEl(dataRelatedInputs, createSwitch(
 				data.varNames[varName as keyof DataVarNames], data.colnames,
 				(sel) => {
+					// @ts-ignore
 					data.varNames[varName as keyof DataVarNames] = sel
 					regenPlot()
 				},
