@@ -478,7 +478,12 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 
 			} else {
 				// @ts-ignore
-				const fromLeft = event.offsetX / event.target!.offsetWidth
+				let fromLeft = event.offsetX / event.target!.offsetWidth
+				if (event.ctrlKey) {
+					fromLeft = 0
+				} else if (event.shiftKey) {
+					fromLeft = 1
+				}
 				const fromLeftPercent = Math.round(fromLeft * 100)
 				optElement.style.background = `linear-gradient(to right, ${selectedCol} ${fromLeftPercent}%, ${normalCol} ${fromLeftPercent}%)`
 				// @ts-ignore
