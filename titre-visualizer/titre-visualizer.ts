@@ -1617,6 +1617,7 @@ main()
 // TODO(sen) Handle wide input
 // TODO(sen) Handle quotes in csv files
 // TODO(sen) Improve boxplot shading
+// TODO(sen) Better colnames guessing (especially the id part)
 
 // NOTE(sen) To make this a "module"
 export {}
