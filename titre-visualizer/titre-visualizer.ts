@@ -60,7 +60,6 @@ type DataVarNames = {
 	uniquePairId: string[],
 	timepoint: string,
 	titre: string,
-	testingLab: string,
 	virus: string,
 }
 
@@ -360,6 +359,7 @@ type SwitchSpec<SingleOpt extends string | number, OptType extends SingleOpt | S
 	optElements?: HTMLElement[],
 	horizontalGradient?: number | number[],
 	helpText?: string,
+	singleNullable?: boolean
 }
 
 const createSwitch = <SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]>
@@ -497,13 +497,19 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 		optElement.addEventListener("click", async (event) => {
 			if (spec.horizontalGradient === undefined) {
 
-				if (!multiple && opt !== currentSel) {
+				if (!multiple) {
 
-					for (let child of optContainer.childNodes) {
-						(<HTMLElement>child).style.backgroundColor = normalCol
+					if (opt !== currentSel) {
+						for (let child of optContainer.childNodes) {
+							(<HTMLElement>child).style.backgroundColor = normalCol
+						}
+						optElement.style.backgroundColor = selectedCol
+						currentSel = <OptType>opt
+					} else if (spec.singleNullable) {
+						optElement.style.backgroundColor = normalCol
+						//@ts-ignore
+						currentSel = null
 					}
-					optElement.style.backgroundColor = selectedCol
-					currentSel = <OptType>opt
 
 				} else if (multiple) {
 
@@ -1026,7 +1032,7 @@ const virusSort = (v1: string, v2: string) => {
 const getSorter = (varName: string, varNames: DataVarNames) => varName === varNames.virus ? virusSort : generalSort
 
 type PlotSettings = {
-	xFacetBy: string,
+	xFacetBy: string | null,
 	xAxis: string,
 	refTitre: number,
 	refRatio: number,
@@ -1037,12 +1043,12 @@ type PlotSettings = {
 
 const createPlot = (data: Data, settings: PlotSettings) => {
 
-	const xFacetVals = arrUnique(data.dataFiltered.map(row => row[settings.xFacetBy] as any)).sort(getSorter(settings.xFacetBy, data.varNames))
-	const xTicksPerFacet = xFacetVals.map(xFacetVal => {
-		const dataFacet = data.dataFiltered.filter(row => row[settings.xFacetBy] === xFacetVal)
+	const xFacetVals = settings.xFacetBy === null ? [] : arrUnique(data.dataFiltered.map(row => row[settings.xFacetBy!] as any)).sort(getSorter(settings.xFacetBy, data.varNames))
+	const xTicksPerFacet = settings.xFacetBy !== null ? xFacetVals.map(xFacetVal => {
+		const dataFacet = data.dataFiltered.filter(row => row[settings.xFacetBy!] === xFacetVal)
 		const facetXTicks = arrUnique(dataFacet.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))
 		return facetXTicks
-	})
+	}) : [arrUnique(data.dataFiltered.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))]
 
 	const plot = beginPlot({
 		widthTick: 50,
@@ -1073,12 +1079,12 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 		drawLine(plot.renderer, plot.spec.padAxis.l, yCoord, plot.totalWidth - plot.spec.padAxis.r, yCoord, color, color, thickness, [])
 	}
 
-	for (let xFacetIndex = 0; xFacetIndex < xFacetVals.length; xFacetIndex++) {
+	for (let xFacetIndex = 0; xFacetIndex < Math.max(xFacetVals.length, 1); xFacetIndex++) {
 		const xFacetVal = xFacetVals[xFacetIndex]
 		const xTicksForFacet = xTicksPerFacet[xFacetIndex]
 
 		for (let xTick of xTicksForFacet) {
-			const stripData = data.dataFiltered.filter(row => row[settings.xFacetBy] === xFacetVal && row[settings.xAxis] === xTick)
+			const stripData = data.dataFiltered.filter(row => (settings.xFacetBy === null ? true : row[settings.xFacetBy!] === xFacetVal) && row[settings.xAxis] === xTick)
 			const pids = arrUnique(stripData.map(row => row.__UNIQUEPID__))
 			const stripXCoord = plot.scaleXToPx(xTick, xFacetVal)
 
@@ -1219,7 +1225,7 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 
 const DEFAULT_DATA_VAR_NAMES: DataVarNames = {
 	uniquePairId: ["pid", "cohort", "vaccine", "serum_source", "virus", "testing_lab"],
-	timepoint: "timepoint", titre: "titre", testingLab: "testing_lab", virus: "virus"
+	timepoint: "timepoint", titre: "titre", virus: "virus"
 }
 const DEFAULT_TIMEPOINT_LABELS: TimepointLabels = {pre: "Pre-vax", post: "Post-vax"}
 
@@ -1351,7 +1357,7 @@ const main = async () => {
 	}
 
 	const plotSettings: PlotSettings = {
-		xFacetBy: data.varNames.testingLab, xAxis: data.varNames.virus, refTitre: 40, refRatio: 4, theme: "dark",
+		xFacetBy: null, xAxis: data.varNames.virus, refTitre: 40, refRatio: 4, theme: "dark",
 		opacities: {points: 0.5, lines: 0.1, boxplots: 1, counts: 1, refLine: 1, means: 1},
 		kind: "titres",
 	}
@@ -1470,13 +1476,15 @@ const main = async () => {
 		removeChildren(dataRelatedInputs)
 
 		const facetSwitch = addEl(dataRelatedInputs, createSwitch({
+			//@ts-ignore
 			init: plotSettings.xFacetBy,
 			opts: data.colnames,
 			onUpdate: (sel) => {
-				plotSettings.xFacetBy = sel
+				plotSettings.xFacetBy = <string | null>sel
 				regenPlot()
 			},
 			name: "Facet by",
+			singleNullable: true,
 		}))
 		facetSwitch.style.marginBottom = collapsibleSelectorSpacing
 
