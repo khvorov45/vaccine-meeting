@@ -863,7 +863,7 @@ const beginPlot = (spec: PlotSpec) => {
 		const facetCenter = (metrics.r + metrics.l) / 2
 		const facetGap = metrics.r + spec.padFacet / 2
 
-		const yOffset = 5
+		const yOffset = xFacetIndex % 2 === 0 ? 5 : 5 + CANVAS_FONT_HEIGHT
 		const sepThiccness = 2
 		drawText(renderer, `${xFacetVal ?? MISSING_STRING}`, facetCenter, yOffset, axisTextCol, 0, "top", "center")
 		if (xFacetIndex < spec.xFacetVals.length - 1) {
