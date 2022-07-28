@@ -242,6 +242,8 @@ type BoxplotStats = {
 	iqr: number,
 	mean: number,
 	meanSe: number,
+	meanLow: number,
+	meanHigh: number,
 }
 
 const getBoxplotStats = (arr: number[]): BoxplotStats | null => {
@@ -250,6 +252,8 @@ const getBoxplotStats = (arr: number[]): BoxplotStats | null => {
 		let arrSorted = arr.sort((x1, x2) => x1 - x2)
 		let q25 = arrSortedAscQuantile(arrSorted, 0.25)
 		let q75 = arrSortedAscQuantile(arrSorted, 0.75)
+		const mean = arrMean(arrSorted)
+		const meanSe = arrSd(arrSorted) / Math.sqrt(arr.length)
 		result = {
 			min: arrSorted[0],
 			max: arrSorted[arrSorted.length - 1],
@@ -257,8 +261,10 @@ const getBoxplotStats = (arr: number[]): BoxplotStats | null => {
 			q25: q25,
 			q75: q75,
 			iqr: q75 - q25,
-			mean: arrMean(arrSorted),
-			meanSe: arrSd(arrSorted) / Math.sqrt(arr.length),
+			mean: mean,
+			meanSe: meanSe,
+			meanLow: mean - 1.96 * meanSe,
+			meanHigh: mean + 1.96 * meanSe,
 		}
 	}
 	return result
@@ -969,9 +975,9 @@ const addBoxplot = (
 		drawDoubleLine(
 			plot.renderer,
 			boxCenter,
-			stats.mean + stats.meanSe * 1.96,
+			stats.meanLow,
 			boxCenter,
-			stats.mean - stats.meanSe * 1.96,
+			stats.meanHigh,
 			color,
 			altColor,
 			lineThiccness,
