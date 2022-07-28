@@ -330,6 +330,12 @@ const addEl = (parent: HTMLElement, child: HTMLElement) => {parent.appendChild(c
 const addDiv = (parent: HTMLElement) => addEl(parent, createDiv())
 const removeChildren = (el: HTMLElement) => {while (el.lastChild) {el.removeChild(el.lastChild)}}
 
+const createDivWithText = (text: string) => {
+	const div = createDiv()
+	div.textContent = text
+	return div
+}
+
 const switchOptionStyleAllCaps = (optEl: HTMLElement, optVal: string) => {
 	optEl.style.flexGrow = "1"
 	optEl.style.fontWeight = "bold"
@@ -347,6 +353,7 @@ type SwitchSpec<SingleOpt extends string | number, OptType extends SingleOpt | S
 	optContainerStyle?: (container: HTMLElement) => void,
 	optElements?: HTMLElement[],
 	horizontalGradient?: number | number[],
+	helpText?: string,
 }
 
 const createSwitch = <SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]>
@@ -365,13 +372,18 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 	}
 
 	if (collapsibleWithLabel) {
-		const label = addDiv(switchElement)
+		const labelContainer = addDiv(switchElement)
+		labelContainer.style.display = "flex"
+		labelContainer.style.justifyContent = "space-between"
+
+		const label = addDiv(labelContainer)
 		label.textContent = spec.name! + " ▼"
-		label.style.fontWeight = "bold"
-		label.style.letterSpacing = "2px"
+		// label.style.fontWeight = "bold"
+		label.style.fontSize = "large"
+		// label.style.letterSpacing = "2px"
 		label.style.cursor = "pointer"
 		label.style.paddingLeft = "5px"
-		label.style.textTransform = "uppercase"
+		//label.style.textTransform = "uppercase"
 
 		label.addEventListener("click", (event) => {
 			if (optContainerDisplayed) {
@@ -384,6 +396,42 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 			}
 			optContainerDisplayed = !optContainerDisplayed
 		})
+
+		if (spec.horizontalGradient !== undefined || multiple || spec.helpText !== undefined) {
+			const help = addDiv(labelContainer)
+			help.textContent = "?"
+			help.style.cursor = "pointer"
+			help.style.paddingLeft = "10px"
+			help.style.paddingRight = help.style.paddingLeft
+			help.style.position = "relative"
+
+			const helpText = addDiv(help)
+			if (spec.helpText !== undefined) {
+				addEl(helpText, createDivWithText(spec.helpText))
+			}
+			if (spec.horizontalGradient === undefined) {
+				addEl(helpText, createDivWithText("ctrl+click = select one"))
+				addEl(helpText, createDivWithText("shift+click = select all"))
+			} else {
+				addEl(helpText, createDivWithText("ctrl+click = zero"))
+				addEl(helpText, createDivWithText("shift+click = one"))
+			}
+			helpText.style.position = "absolute"
+			helpText.style.right = "0px"
+			helpText.style.backgroundColor = "var(--color-background2)"
+			helpText.style.width = "150px"
+			helpText.style.display = "none"
+			helpText.style.zIndex = "999"
+			helpText.style.padding = "5px"
+
+			help.addEventListener("click", (event) => {
+				if (helpText.style.display === "none") {
+					helpText.style.display = "block"
+				} else {
+					helpText.style.display = "none"
+				}
+			})
+		}
 	}
 
 	addEl(switchElement, optContainer)
@@ -1362,6 +1410,7 @@ const main = async () => {
 		name: "Elements",
 		optElementStyle: switchOptionStyleAllCaps,
 		horizontalGradient: [0.5, 0.1, 1, 1, 1, 1],
+		helpText: "Element transparency",
 	}))
 	opacitiesSwitch.style.marginBottom = collapsibleSelectorSpacing
 
@@ -1388,7 +1437,7 @@ const main = async () => {
 				plotSettings.xFacetBy = sel
 				regenPlot()
 			},
-			name: "facet by",
+			name: "Facet by",
 		}))
 		facetSwitch.style.marginBottom = collapsibleSelectorSpacing
 
@@ -1458,6 +1507,10 @@ const main = async () => {
 		addInputSep(dataRelatedInputs, "colnames")
 
 		for (let varName of Object.keys(data.varNames)) {
+			let helpText = undefined
+			if (varName === "uniquePairId") {
+				helpText = "Set of variables that uniquely identifies a pair (pre/post vax) of titres"
+			}
 			const el = addEl(dataRelatedInputs, createSwitch({
 				init: data.varNames[varName as keyof DataVarNames],
 				opts: data.colnames,
@@ -1479,6 +1532,7 @@ const main = async () => {
 					regenPlot()
 				},
 				name: varName,
+				helpText: helpText,
 			}))
 			el.style.marginBottom = collapsibleSelectorSpacing
 		}
