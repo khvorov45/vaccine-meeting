@@ -717,6 +717,8 @@ const beginPlot = (spec: PlotSpec) => {
 	canvas.height = totalHeight
 
 	const renderer = canvas.getContext("2d")!
+	const bgColor = spec.theme === "dark" ? "#07090c" : "#ffffff"
+	drawRect(renderer, {l: 0, t: 0, r: totalWidth, b: totalHeight}, bgColor)
 
 	const plotMetrics: Rect = {
 		t: spec.padAxis.t + spec.padData.t,
