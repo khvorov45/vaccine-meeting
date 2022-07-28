@@ -1611,11 +1611,10 @@ const main = async () => {
 
 main()
 
-// TODO(sen) Compare rises to 4 and vaccine rise
-// TODO(sen) Cohort vaccination split
-// TODO(sen) Combine age groups
-// TODO(sen) Combine labs
-// TODO(sen) Configurable virus combinations
+// TODO(sen) Configurable reference lines
+// TODO(sen) Highlight a virus
+// TODO(sen) Display GMT/GMR tables (corresponding to the means on the plots)
+// TODO(sen) Handle wide input
 
 // NOTE(sen) To make this a "module"
 export {}
