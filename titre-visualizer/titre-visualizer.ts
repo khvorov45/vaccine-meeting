@@ -679,7 +679,9 @@ type Plot = {
 	renderer: CanvasRenderingContext2D,
 	spec: PlotSpec,
 	scaleXToPx: (x: string | number, xFacetVal: (string | number)) => number,
+	scaleScaledXToPx: (x: number, facetIndex: number) => number,
 	scaleYToPx: (y: number) => number,
+	scaleScaledYToPx: (y: number) => number,
 	allXTicksXCoords: number[],
 	allYTicksYCoords: number[],
 	metrics: Rect,
@@ -747,26 +749,30 @@ const beginPlot = (spec: PlotSpec) => {
 		xFacetMetrics[0] = {l: plotMetrics.l, r: plotMetrics.r}
 	}
 
-	const scaleXToPx = (val: string | number, xFacetVal: string | number) => {
-		const facetIndex = Math.max(0, spec.xFacetVals.indexOf(xFacetVal))
+	const scaleScaledXToPx = (val: number, facetIndex: number) => {
 		const facetMetrics = xFacetMetrics[facetIndex]
 		const facetXMin = spec.scaledXMinPerFacet[facetIndex]
 		const facetXMax = spec.scaledXMaxPerFacet[facetIndex]
+		const result = scale(val, facetXMin, facetXMax, facetMetrics.l, facetMetrics.r,)
+		return result
+	}
 
+	const scaleXToPx = (val: string | number, xFacetVal: string | number) => {
+		const facetIndex = Math.max(0, spec.xFacetVals.indexOf(xFacetVal))
+		const result = scaleScaledXToPx(spec.scaleXData(val, facetIndex), facetIndex)
+		return result
+	}
+
+	const scaleScaledYToPx = (val: number) => {
 		const result = scale(
-			spec.scaleXData(val, facetIndex), facetXMin, facetXMax,
-			facetMetrics.l, facetMetrics.r,
+			val, spec.scaleYData(spec.yMin), spec.scaleYData(spec.yMax),
+			plotMetrics.b, plotMetrics.t,
 		)
-
 		return result
 	}
 
 	const scaleYToPx = (val: number) => {
-		let result = scale(
-			spec.scaleYData(val), spec.scaleYData(spec.yMin), spec.scaleYData(spec.yMax),
-			plotMetrics.b, plotMetrics.t,
-		)
-
+		const result = scaleScaledYToPx(spec.scaleYData(val))
 		return result
 	}
 
@@ -885,6 +891,7 @@ const beginPlot = (spec: PlotSpec) => {
 	const result: Plot = {
 		canvas: canvas, renderer: renderer, spec: spec,
 		scaleXToPx: scaleXToPx, scaleYToPx: scaleYToPx,
+		scaleScaledXToPx: scaleScaledXToPx, scaleScaledYToPx: scaleScaledYToPx,
 		allXTicksXCoords: allXTicksXCoords, allYTicksYCoords: allYTicksYCoords,
 		metrics: plotMetrics,
 		totalWidth: totalWidth,
@@ -915,23 +922,22 @@ const addBoxplot = (
 	let boxRight = xCoord
 	const boxCenter = xCoord - boxWidth / 2
 
-	let boxplotBody = {l: boxLeft, b: stats.q75, r: boxRight, t: stats.q25}
+	let boxplotBody = {l: boxLeft, b: plot.scaleScaledYToPx(stats.q25), r: boxRight, t: plot.scaleScaledYToPx(stats.q75)}
 
 	// NOTE(sen) Boxes
 	{
 		const alphaStr = colChannel255ToString(boxesAlpha)
 		const color = baseColor + alphaStr
 		const altColor = baseAltColor + alphaStr
-
 		drawRectOutline(plot.renderer, boxplotBody, color, lineThiccness)
 		drawRectOutline(plot.renderer, rectShrink(boxplotBody, lineThiccness), altColor, lineThiccness)
 
 		drawDoubleLine(
 			plot.renderer,
 			xCoord,
-			stats.q75,
+			plot.scaleScaledYToPx(stats.q75),
 			xCoord,
-			Math.min(stats.max, plot.metrics.b),
+			Math.max(plot.scaleScaledYToPx(stats.max), plot.metrics.t),
 			color,
 			altColor,
 			lineThiccness,
@@ -942,9 +948,9 @@ const addBoxplot = (
 		drawDoubleLine(
 			plot.renderer,
 			xCoord,
-			Math.max(stats.min, plot.metrics.t),
+			Math.min(plot.scaleScaledYToPx(stats.min), plot.metrics.b),
 			xCoord,
-			stats.q25,
+			plot.scaleScaledYToPx(stats.q25),
 			color,
 			altColor,
 			lineThiccness,
@@ -953,12 +959,13 @@ const addBoxplot = (
 		)
 
 		// NOTE(sen) Median
+		const medianYCoord = plot.scaleScaledYToPx(stats.median)
 		drawDoubleLine(
 			plot.renderer,
 			boxLeft - medianChonkiness,
-			stats.median,
+			medianYCoord,
 			boxRight,
-			stats.median,
+			medianYCoord,
 			color,
 			altColor,
 			lineThiccness,
@@ -975,15 +982,15 @@ const addBoxplot = (
 		drawDoubleLine(
 			plot.renderer,
 			boxCenter,
-			stats.meanLow,
+			plot.scaleScaledYToPx(stats.meanLow),
 			boxCenter,
-			stats.meanHigh,
+			plot.scaleScaledYToPx(stats.meanHigh),
 			color,
 			altColor,
 			lineThiccness,
 			[]
 		)
-		drawPoint(plot.renderer, boxCenter, stats.mean, 5, color, altColor)
+		drawPoint(plot.renderer, boxCenter, plot.scaleScaledYToPx(stats.mean), 5, color, altColor)
 	}
 }
 
@@ -1085,7 +1092,7 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 			// NOTE(sen) Points and lines connecting them
 			let preCount = 0
 			let postCount = 0
-			const ratioYCoords = []
+			const scaledRatios = []
 			for (let pid of pids) {
 				const pre = preData.filter(row => row.__UNIQUEPID__ === pid)
 				const post = postData.filter(row => row.__UNIQUEPID__ === pid)
@@ -1132,9 +1139,9 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 						drawLine(plot.renderer, preXCoord, preYCoords[0], postXCoord, postYCoords[0], preC, postC, lineSize, [])
 					}
 				} else if (preTitres.length === 1 && postTitres.length === 1) {
-					const ratio = postTitres[0] / preTitres[0]
-					const yCoord = plot.scaleYToPx(ratio) + jitterY
-					ratioYCoords.push(yCoord)
+					const scaledRatio = plot.spec.scaleYData(postTitres[0] / preTitres[0])
+					scaledRatios.push(scaledRatio)
+					const yCoord = plot.scaleScaledYToPx(scaledRatio) + jitterY
 					drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
 				}
 			}
@@ -1145,8 +1152,8 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 			const boxWidth = leftRightStep
 			const boxLineThiccness = 2
 			if (settings.kind === "titres") {
-				const preStats = getBoxplotStats(preData.map(row => plot.scaleYToPx(row[data.varNames.titre] as number)))
-				const postStats = getBoxplotStats(postData.map(row => plot.scaleYToPx(row[data.varNames.titre] as number)))
+				const preStats = getBoxplotStats(preData.map(row => plot.spec.scaleYData(row[data.varNames.titre] as number)))
+				const postStats = getBoxplotStats(postData.map(row => plot.spec.scaleYData(row[data.varNames.titre] as number)))
 
 				if (preStats !== null) {
 					addBoxplot(
@@ -1162,8 +1169,8 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 						settings.opacities.boxplots, settings.opacities.means,
 					)
 				}
-			} else if (ratioYCoords.length > 0) {
-				const ratioStats = getBoxplotStats(ratioYCoords)
+			} else if (scaledRatios.length > 0) {
+				const ratioStats = getBoxplotStats(scaledRatios)
 				if (ratioStats !== null) {
 					addBoxplot(
 						plot, ratioStats, stripXCoord, boxWidth,
@@ -1191,9 +1198,9 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 						yCoord,
 						postColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
 					)
-				} else if (ratioYCoords.length > 0) {
+				} else if (scaledRatios.length > 0) {
 					drawText(
-						plot.renderer, `${ratioYCoords.length}`,
+						plot.renderer, `${scaledRatios.length}`,
 						stripXCoord,
 						yCoord,
 						preColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
