@@ -1032,7 +1032,7 @@ const virusSort = (v1: string, v2: string) => {
 const getSorter = (varName: string, varNames: DataVarNames) => varName === varNames.virus ? virusSort : generalSort
 
 type PlotSettings = {
-	xFacetBy: string | null,
+	xFacets: string[],
 	xAxis: string,
 	refTitre: number,
 	refRatio: number,
@@ -1043,12 +1043,17 @@ type PlotSettings = {
 
 const createPlot = (data: Data, settings: PlotSettings) => {
 
-	const xFacetVals = settings.xFacetBy === null ? [] : arrUnique(data.dataFiltered.map(row => row[settings.xFacetBy!] as any)).sort(getSorter(settings.xFacetBy, data.varNames))
-	const xTicksPerFacet = settings.xFacetBy !== null ? xFacetVals.map(xFacetVal => {
-		const dataFacet = data.dataFiltered.filter(row => row[settings.xFacetBy!] === xFacetVal)
+	const facetLabelSep = "; "
+	const xFacetValsAll = expandGrid(settings.xFacets.map(xFacet => arrUnique(data.dataFiltered.map(row => row[xFacet] as any)).sort(getSorter(xFacet, data.varNames)))).map(vals => vals.join(facetLabelSep))
+	const xFacetVals: string[] = []
+	const xTicksPerFacet = xFacetValsAll.length > 0 ? xFacetValsAll.map(xFacetVal => {
+		const dataFacet = data.dataFiltered.filter(row => constructStringFromCols(row, settings.xFacets, facetLabelSep) === xFacetVal)
 		const facetXTicks = arrUnique(dataFacet.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))
+		if (dataFacet.length > 0) {
+			xFacetVals.push(xFacetVal)
+		}
 		return facetXTicks
-	}) : [arrUnique(data.dataFiltered.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))]
+	}).filter(arr => arr.length > 0) : [arrUnique(data.dataFiltered.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))]
 
 	const plot = beginPlot({
 		widthTick: 50,
@@ -1084,7 +1089,7 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 		const xTicksForFacet = xTicksPerFacet[xFacetIndex]
 
 		for (let xTick of xTicksForFacet) {
-			const stripData = data.dataFiltered.filter(row => (settings.xFacetBy === null ? true : row[settings.xFacetBy!] === xFacetVal) && row[settings.xAxis] === xTick)
+			const stripData = data.dataFiltered.filter(row => (settings.xFacets.length > 0 ? constructStringFromCols(row, settings.xFacets, facetLabelSep) === xFacetVal : true) && row[settings.xAxis] === xTick)
 			const pids = arrUnique(stripData.map(row => row.__UNIQUEPID__))
 			const stripXCoord = plot.scaleXToPx(xTick, xFacetVal)
 
@@ -1248,10 +1253,14 @@ const guessDataVarNames = (existingNames: string[]) => {
 	return varNames
 }
 
-const constructUniquePid = (row: Record<string, string | number>, uniquePairId: string[]) => {
+const constructStringFromCols = (row: Record<string, string | number>, uniquePairId: string[], sep?: string) => {
 	let result = ""
-	for (let pairId of uniquePairId) {
+	for (let pairIdIndex = 0; pairIdIndex < uniquePairId.length; pairIdIndex++) {
+		const pairId = uniquePairId[pairIdIndex]
 		result += `${row[pairId]}`
+		if (sep !== undefined && pairIdIndex !== uniquePairId.length - 1) {
+			result += sep
+		}
 	}
 	return result
 }
@@ -1280,7 +1289,7 @@ const parseData = (input: string): Data => {
 					}
 					row[name] = value
 				}
-				row.__UNIQUEPID__ = constructUniquePid(row, data.varNames.uniquePairId)
+				row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePairId)
 				data.dataFull.push(row)
 				data.dataFiltered.push(row)
 			}
@@ -1357,7 +1366,7 @@ const main = async () => {
 	}
 
 	const plotSettings: PlotSettings = {
-		xFacetBy: null, xAxis: data.varNames.virus, refTitre: 40, refRatio: 4, theme: "dark",
+		xFacets: [], xAxis: data.varNames.virus, refTitre: 40, refRatio: 4, theme: "dark",
 		opacities: {points: 0.5, lines: 0.1, boxplots: 1, counts: 1, refLine: 1, means: 1},
 		kind: "titres",
 	}
@@ -1476,11 +1485,10 @@ const main = async () => {
 		removeChildren(dataRelatedInputs)
 
 		const facetSwitch = addEl(dataRelatedInputs, createSwitch({
-			//@ts-ignore
-			init: plotSettings.xFacetBy,
+			init: plotSettings.xFacets,
 			opts: data.colnames,
 			onUpdate: (sel) => {
-				plotSettings.xFacetBy = <string | null>sel
+				plotSettings.xFacets = sel
 				regenPlot()
 			},
 			name: "Facet by",
@@ -1567,11 +1575,11 @@ const main = async () => {
 
 					if (varName == "uniquePairId") {
 						data.dataFull = data.dataFull.map(row => {
-							row.__UNIQUEPID__ = constructUniquePid(row, data.varNames.uniquePairId)
+							row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePairId)
 							return row
 						})
 						data.dataFiltered = data.dataFiltered.map(row => {
-							row.__UNIQUEPID__ = constructUniquePid(row, data.varNames.uniquePairId)
+							row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePairId)
 							return row
 						})
 					}
