@@ -925,7 +925,7 @@ const addBoxplot = (
 			xCoord,
 			stats.q75,
 			xCoord,
-			stats.max,
+			Math.min(stats.max, plot.metrics.b),
 			color,
 			altColor,
 			lineThiccness,
@@ -936,7 +936,7 @@ const addBoxplot = (
 		drawDoubleLine(
 			plot.renderer,
 			xCoord,
-			stats.min,
+			Math.max(stats.min, plot.metrics.t),
 			xCoord,
 			stats.q25,
 			color,
@@ -1016,8 +1016,10 @@ type PlotSettings = {
 	xFacetBy: string,
 	xAxis: string,
 	refTitre: number,
+	refRatio: number,
 	theme: Theme,
 	opacities: Opacities,
+	kind: PlotMode,
 }
 
 const createPlot = (data: Data, settings: PlotSettings) => {
@@ -1039,19 +1041,20 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 		padFacet: 80,
 		scaledXMinPerFacet: xTicksPerFacet.map(ticks => 0),
 		scaledXMaxPerFacet: xTicksPerFacet.map(ticks => ticks.length - 1),
-		yMin: 5,
-		yMax: 5120,
+		yMin: settings.kind === "titres" ? 5 : 0.25,
+		yMax: settings.kind === "titres" ? 5120 : 256,
 		xTicksPerFacet: xTicksPerFacet,
-		yTicks: [5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120],
+		yTicks: settings.kind === "titres" ? [5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120] :
+			[0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256],
 		xFacetVals: xFacetVals,
 		xLabel: "",
-		yLabel: "Titre",
+		yLabel: settings.kind === "titres" ? "Titre" : "Rises",
 		theme: settings.theme,
 	})
 
 	// NOTE(sen) Reference line
 	{
-		const yCoord = plot.scaleYToPx(settings.refTitre)
+		const yCoord = plot.scaleYToPx(settings.kind === "titres" ? settings.refTitre : settings.refRatio)
 		const color = plot.axisColor + colChannel255ToString(settings.opacities.refLine)
 		const thickness = 1
 		drawLine(plot.renderer, plot.spec.padAxis.l, yCoord, plot.totalWidth - plot.spec.padAxis.r, yCoord, color, color, thickness, [])
@@ -1076,6 +1079,7 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 			// NOTE(sen) Points and lines connecting them
 			let preCount = 0
 			let postCount = 0
+			const ratioYCoords = []
 			for (let pid of pids) {
 				const pre = preData.filter(row => row.__UNIQUEPID__ === pid)
 				const post = postData.filter(row => row.__UNIQUEPID__ === pid)
@@ -1091,47 +1095,53 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 				const jitterMaxY = plot.spec.heightTick / 4
 				const jitterY = randUnif(-jitterMaxY, jitterMaxY)
 
-				const preXCoord = stripXCoord - leftRightStep + jitterX
-				const postXCoord = stripXCoord + leftRightStep + jitterX
-
-				const preYCoords = preTitres.map(titre => plot.scaleYToPx(titre) + jitterY)
-				const postYCoords = postTitres.map(titre => plot.scaleYToPx(titre) + jitterY)
-
-				preCount += preYCoords.length
-				postCount += postYCoords.length
-
+				const pointSize = 2
 				const pointAlphaStr = colChannel255ToString(settings.opacities.points)
 				const lineAlphaStr = colChannel255ToString(settings.opacities.lines)
-
 				const preColorWithAlpha = preColor + pointAlphaStr
 				const postColorWithAlpha = postColor + pointAlphaStr
 
-				const pointSize = 2
-				const lineSize = 1
+				if (settings.kind === "titres") {
+					const preXCoord = stripXCoord - leftRightStep + jitterX
+					const postXCoord = stripXCoord + leftRightStep + jitterX
 
-				for (let preYCoord of preYCoords) {
-					drawPoint(plot.renderer, preXCoord, preYCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
-				}
-				for (let postYCoord of postYCoords) {
-					drawPoint(plot.renderer, postXCoord, postYCoord, pointSize, postColorWithAlpha, postColorWithAlpha)
-				}
+					const preYCoords = preTitres.map(titre => plot.scaleYToPx(titre) + jitterY)
+					const postYCoords = postTitres.map(titre => plot.scaleYToPx(titre) + jitterY)
 
-				if (preYCoords.length === 1 && postYCoords.length === 1) {
-					const preC = preColor + lineAlphaStr
-					const postC = postColor + lineAlphaStr
-					drawLine(plot.renderer, preXCoord, preYCoords[0], postXCoord, postYCoords[0], preC, postC, lineSize, [])
+					preCount += preYCoords.length
+					postCount += postYCoords.length
+
+					const lineSize = 1
+
+					for (let preYCoord of preYCoords) {
+						drawPoint(plot.renderer, preXCoord, preYCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
+					}
+					for (let postYCoord of postYCoords) {
+						drawPoint(plot.renderer, postXCoord, postYCoord, pointSize, postColorWithAlpha, postColorWithAlpha)
+					}
+
+					if (preYCoords.length === 1 && postYCoords.length === 1) {
+						const preC = preColor + lineAlphaStr
+						const postC = postColor + lineAlphaStr
+						drawLine(plot.renderer, preXCoord, preYCoords[0], postXCoord, postYCoords[0], preC, postC, lineSize, [])
+					}
+				} else if (preTitres.length === 1 && postTitres.length === 1) {
+					const ratio = postTitres[0] / preTitres[0]
+					const yCoord = plot.scaleYToPx(ratio) + jitterY
+					ratioYCoords.push(yCoord)
+					drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
 				}
 			}
 
 			const altColor = settings.theme === "dark" ? "#000000" : "#ffffff"
 
 			// NOTE(sen) Boxplots
-			{
+			const boxWidth = leftRightStep
+			const boxLineThiccness = 2
+			if (settings.kind === "titres") {
 				const preStats = getBoxplotStats(preData.map(row => plot.scaleYToPx(row[data.varNames.titre] as number)))
 				const postStats = getBoxplotStats(postData.map(row => plot.scaleYToPx(row[data.varNames.titre] as number)))
 
-				const boxWidth = leftRightStep
-				const boxLineThiccness = 2
 				if (preStats !== null) {
 					addBoxplot(
 						plot, preStats, stripXCoord - leftRightStep, boxWidth,
@@ -1146,24 +1156,43 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 						settings.opacities.boxplots, settings.opacities.means,
 					)
 				}
+			} else if (ratioYCoords.length > 0) {
+				const ratioStats = getBoxplotStats(ratioYCoords)
+				if (ratioStats !== null) {
+					addBoxplot(
+						plot, ratioStats, stripXCoord, boxWidth,
+						preColor, altColor, boxLineThiccness,
+						settings.opacities.boxplots, settings.opacities.means,
+					)
+				}
 			}
 
 			// NOTE(sen) Counts
 			{
 				const yCoord = plot.scaleYToPx(plot.spec.yTicks[plot.spec.yTicks.length - 1])
 				const alphaStr = colChannel255ToString(settings.opacities.counts)
-				drawText(
-					plot.renderer, `${preCount}`,
-					stripXCoord - leftRightStep,
-					yCoord,
-					preColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
-				)
-				drawText(
-					plot.renderer, `${postCount}`,
-					stripXCoord + leftRightStep,
-					yCoord,
-					postColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
-				)
+
+				if (settings.kind === "titres") {
+					drawText(
+						plot.renderer, `${preCount}`,
+						stripXCoord - leftRightStep,
+						yCoord,
+						preColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
+					)
+					drawText(
+						plot.renderer, `${postCount}`,
+						stripXCoord + leftRightStep,
+						yCoord,
+						postColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
+					)
+				} else if (ratioYCoords.length > 0) {
+					drawText(
+						plot.renderer, `${ratioYCoords.length}`,
+						stripXCoord,
+						yCoord,
+						preColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
+					)
+				}
 			}
 		}
 	}
@@ -1309,15 +1338,9 @@ const main = async () => {
 	}
 
 	const plotSettings: PlotSettings = {
-		xFacetBy: data.varNames.testingLab, xAxis: data.varNames.virus, refTitre: 40, theme: "dark",
-		opacities: {
-			points: 0.5,
-			lines: 0.1,
-			boxplots: 1,
-			counts: 1,
-			refLine: 1,
-			means: 1,
-		},
+		xFacetBy: data.varNames.testingLab, xAxis: data.varNames.virus, refTitre: 40, refRatio: 4, theme: "dark",
+		opacities: {points: 0.5, lines: 0.1, boxplots: 1, counts: 1, refLine: 1, means: 1},
+		kind: "titres",
 	}
 
 	document.documentElement.setAttribute("theme", plotSettings.theme)
@@ -1385,19 +1408,20 @@ const main = async () => {
 		}
 	}))
 
-	if (false) {
-		const modeSwitch = addEl(inputContainer, createSwitch({
-			init: <PlotMode[]>PLOT_MODES,
-			opts: <PlotMode[]>PLOT_MODES,
-			onUpdate: (plotModes) => {
-				// TODO(sen) Actually implement this
-			},
-			optElementStyle: switchOptionStyleAllCaps,
-		}))
-		modeSwitch.style.display = "flex"
-		modeSwitch.style.flexDirection = "row"
-		modeSwitch.style.marginBottom = "20px"
-	}
+	const modeSwitch = addEl(inputContainer, createSwitch({
+		init: plotSettings.kind,
+		opts: <PlotMode[]>PLOT_MODES,
+		onUpdate: (plotModes) => {
+			plotSettings.kind = plotSettings.kind === "titres" ? "rises" : "titres"
+			regenPlot()
+		},
+		optElementStyle: switchOptionStyleAllCaps,
+		optContainerStyle: (el) => {
+			el.style.display = "flex"
+			el.style.flexDirection = "row"
+			el.style.marginBottom = "20px"
+		}
+	}))
 
 	const collapsibleSelectorSpacing = "10px"
 
