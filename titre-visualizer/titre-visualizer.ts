@@ -1041,13 +1041,14 @@ type PlotSettings = {
 	kind: PlotMode,
 }
 
+const FACET_LABEL_SEP = "; "
+
 const createPlot = (data: Data, settings: PlotSettings) => {
 
-	const facetLabelSep = "; "
-	const xFacetValsAll = expandGrid(settings.xFacets.map(xFacet => arrUnique(data.dataFiltered.map(row => row[xFacet] as any)).sort(getSorter(xFacet, data.varNames)))).map(vals => vals.join(facetLabelSep))
+	const xFacetValsAll = expandGrid(settings.xFacets.map(xFacet => arrUnique(data.dataFiltered.map(row => row[xFacet] as any)).sort(getSorter(xFacet, data.varNames)))).map(vals => vals.join(FACET_LABEL_SEP))
 	const xFacetVals: string[] = []
 	const xTicksPerFacet = xFacetValsAll.length > 0 ? xFacetValsAll.map(xFacetVal => {
-		const dataFacet = data.dataFiltered.filter(row => constructStringFromCols(row, settings.xFacets, facetLabelSep) === xFacetVal)
+		const dataFacet = data.dataFiltered.filter(row => row.__XFACET__ === xFacetVal)
 		const facetXTicks = arrUnique(dataFacet.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))
 		if (dataFacet.length > 0) {
 			xFacetVals.push(xFacetVal)
@@ -1089,7 +1090,7 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 		const xTicksForFacet = xTicksPerFacet[xFacetIndex]
 
 		for (let xTick of xTicksForFacet) {
-			const stripData = data.dataFiltered.filter(row => (settings.xFacets.length > 0 ? constructStringFromCols(row, settings.xFacets, facetLabelSep) === xFacetVal : true) && row[settings.xAxis] === xTick)
+			const stripData = data.dataFiltered.filter(row => (settings.xFacets.length > 0 ? row.__XFACET__ === xFacetVal : true) && row[settings.xAxis] === xTick)
 			const pids = arrUnique(stripData.map(row => row.__UNIQUEPID__))
 			const stripXCoord = plot.scaleXToPx(xTick, xFacetVal)
 
@@ -1265,7 +1266,7 @@ const constructStringFromCols = (row: Record<string, string | number>, uniquePai
 	return result
 }
 
-const parseData = (input: string): Data => {
+const parseData = (input: string, xFacets: string[]): Data => {
 	const data: Data = {
 		dataFull: [], dataFiltered: [],
 		varNames: DEFAULT_DATA_VAR_NAMES,
@@ -1290,6 +1291,7 @@ const parseData = (input: string): Data => {
 					row[name] = value
 				}
 				row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePairId)
+				row.__XFACET__ = constructStringFromCols(row, xFacets, FACET_LABEL_SEP)
 				data.dataFull.push(row)
 				data.dataFiltered.push(row)
 			}
@@ -1381,7 +1383,7 @@ const main = async () => {
 
 	const onNewDataString = (contentsString: string) => {
 		if (contentsString.length > 0) {
-			data = parseData(contentsString)
+			data = parseData(contentsString, plotSettings.xFacets)
 			regenDataRelatedInputs()
 			regenPlot()
 		}
@@ -1489,6 +1491,8 @@ const main = async () => {
 			opts: data.colnames,
 			onUpdate: (sel) => {
 				plotSettings.xFacets = sel
+				data.dataFull = data.dataFull.map(row => {row.__XFACET__ = constructStringFromCols(row, plotSettings.xFacets, FACET_LABEL_SEP); return row})
+				data.dataFiltered = data.dataFiltered.map(row => {row.__XFACET__ = constructStringFromCols(row, plotSettings.xFacets, FACET_LABEL_SEP); return row})
 				regenPlot()
 			},
 			name: "Facet by",
