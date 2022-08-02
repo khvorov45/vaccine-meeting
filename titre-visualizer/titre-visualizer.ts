@@ -1398,11 +1398,15 @@ const main = async () => {
 
 	const fileInputHandler = (event: Event) => {
 		fileInputWholePage.style.visibility = "hidden"
-		let file = (<HTMLInputElement>event.target).files?.[0]
+		const el = <HTMLInputElement>event.target
+		const file = el.files?.[0]
 		if (file !== null && file !== undefined) {
 			fileInputLabel.innerHTML = file.name
 			file.text().then((string) => onNewDataString(string))
 		}
+
+		// NOTE(sen) The change/input event will not be fired for the same file twice otherwise
+		el.value = ""
 	}
 
 	const fileInput = <HTMLInputElement>addEl(fileInputContainer, createEl("input"))
