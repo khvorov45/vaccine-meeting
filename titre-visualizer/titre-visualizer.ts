@@ -1386,6 +1386,16 @@ const main = async () => {
 		removeChildren(plotParent)
 		const plot = createPlot(data, plotSettings)
 		addEl(plotParent, plot.canvas)
+		plot.canvas.addEventListener("click", (event) => {
+			const newRef = Math.exp(scale(event.offsetY, plot.metrics.b, plot.metrics.t, Math.log(plot.spec.yMin), Math.log(plot.spec.yMax)))
+			if (newRef >= plot.spec.yMin && newRef <= plot.spec.yMax) {
+				switch (plotSettings.kind) {
+				case "titres": {plotSettings.refTitre = newRef} break;
+				case "rises": {plotSettings.refRatio = newRef} break;
+				}
+				regenPlot()
+			}
+		})
 	}
 
 	const onNewDataString = (contentsString: string) => {
@@ -1477,7 +1487,7 @@ const main = async () => {
 		name: "Elements",
 		optElementStyle: switchOptionStyleAllCaps,
 		horizontalGradient: [0.5, 0.1, 1, 1, 1, 1],
-		helpText: "Element transparency",
+		helpText: "Element transparency. Click on the plot to change refline position",
 	}))
 	opacitiesSwitch.style.marginBottom = collapsibleSelectorSpacing
 
@@ -1622,7 +1632,6 @@ const main = async () => {
 
 main()
 
-// TODO(sen) Configurable reference lines
 // TODO(sen) Highlight a virus
 // TODO(sen) Display GMT/GMR tables (corresponding to the means on the plots)
 // TODO(sen) Handle wide input
