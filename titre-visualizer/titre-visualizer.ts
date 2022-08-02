@@ -1,3 +1,6 @@
+// @ts-ignore
+import {Papa} from "/papaparse.js"
+
 type Titres = any[]
 type Rises = any[]
 type CladeAverageTitres = any[]
@@ -1268,27 +1271,31 @@ const constructStringFromCols = (row: Record<string, string | number>, uniquePai
 
 const parseData = (input: string, xFacets: string[]): Data => {
 	const data: Data = {
-		dataFull: [], dataFiltered: [],
+		dataFull: [],
+		dataFiltered: [],
+		colnames: [],
 		varNames: DEFAULT_DATA_VAR_NAMES,
-		timepointLabels: DEFAULT_TIMEPOINT_LABELS, colnames: []
+		timepointLabels: DEFAULT_TIMEPOINT_LABELS,
 	}
 
-	if (input.length > 0) {
-		const lines = input.split(/\r?\n/).filter((line) => line !== "")
-		const linesSplit = lines.map((line) => line.split(","))
-		data.colnames = linesSplit[0]
+	const parseResult = Papa.parse(input, {skipEmptyLines: true})
 
+	if (parseResult.data.length > 0) {
+
+		data.colnames = parseResult.data[0]
 		data.varNames = guessDataVarNames(data.colnames)
 
-		if (linesSplit.length > 1) {
-			for (let values of linesSplit.slice(1)) {
+		if (parseResult.data.length > 1) {
+			for (let parsedRowIndex = 1; parsedRowIndex < parseResult.data.length; parsedRowIndex++) {
+				const parsedRow = parseResult.data[parsedRowIndex]
 				let row: Record<string, string | number> = {}
-				for (let [index, name] of data.colnames.entries()) {
-					let value: string | number = values[index]
-					if (name === data.varNames.titre) {
+				for (let colnameIndex = 0; colnameIndex < data.colnames.length; colnameIndex++) {
+					const colname = data.colnames[colnameIndex]
+					let value = parsedRow[colnameIndex]
+					if (colname === data.varNames.titre) {
 						value = parseFloat(value)
 					}
-					row[name] = value
+					row[colname] = value
 				}
 				row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePairId)
 				row.__XFACET__ = constructStringFromCols(row, xFacets, FACET_LABEL_SEP)
@@ -1297,7 +1304,7 @@ const parseData = (input: string, xFacets: string[]): Data => {
 			}
 		}
 
-		const allTimepointLabels = arrUnique(data.dataFull.map(row => row[data.varNames.timepoint])) as string[]
+		const allTimepointLabels = arrUnique(data.dataFull.map(row => row[data.varNames.timepoint])).filter(lbl => lbl !== undefined && lbl !== null) as string[]
 		for (let timepointLabel of allTimepointLabels) {
 			if (timepointLabel.toLowerCase().includes("pre")) {
 				data.timepointLabels.pre = timepointLabel
@@ -1615,7 +1622,6 @@ main()
 // TODO(sen) Highlight a virus
 // TODO(sen) Display GMT/GMR tables (corresponding to the means on the plots)
 // TODO(sen) Handle wide input
-// TODO(sen) Handle quotes in csv files
 // TODO(sen) Improve boxplot shading
 // TODO(sen) Better colnames guessing (especially the id part)
 

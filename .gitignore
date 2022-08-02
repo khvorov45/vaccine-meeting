@@ -7,5 +7,5 @@
 seasonal-flu-master
 *.sh
 *js.map
-*js
+titre-visualizer.js
 /data2022/2022_NH.*.txt
