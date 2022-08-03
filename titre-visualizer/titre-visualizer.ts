@@ -1,5 +1,7 @@
 // @ts-ignore
 import {Papa} from "/papaparse.js"
+// @ts-ignore
+import {VirtualizedList} from "/virtualized-list.js"
 
 type Titres = any[]
 type Rises = any[]
@@ -326,10 +328,36 @@ const colChangeSaturation = (col: string, satDelta: number) => {
 }
 
 const isGood = (n: any) => n !== null && n !== undefined && !isNaN(n)
+const isString = (val: any) => (typeof val === "string" || val instanceof String)
+const isNumber = (val: any) => (typeof val === "number")
 
 //
 // SECTION DOM
 //
+
+const getScrollbarWidths = () => {
+	let outer = document.createElement('div')
+	outer.style.visibility = "hidden"
+	outer.style.overflowY = "scroll"
+	document.body.appendChild(outer)
+
+	let inner = document.createElement('div')
+	outer.appendChild(inner)
+
+	let scrollbarWidthV = (outer.offsetWidth - inner.offsetWidth)
+	outer.removeChild(inner)
+
+	outer.style.overflowY = "hidden"
+	outer.style.overflowX = "scroll"
+
+	outer.appendChild(inner)
+	let scrollbarWidthH = outer.offsetHeight - inner.offsetHeight
+
+	outer.parentNode!.removeChild(outer);
+	return [scrollbarWidthH, scrollbarWidthV];
+}
+
+const SCROLLBAR_WIDTHS = getScrollbarWidths()
 
 const XMLNS = "http://www.w3.org/2000/svg"
 const createEl = (name: string) => document.createElement(name)
@@ -337,6 +365,11 @@ const createDiv = () => createEl("div")
 const addEl = (parent: HTMLElement, child: HTMLElement) => {parent.appendChild(child); return child}
 const addDiv = (parent: HTMLElement) => addEl(parent, createDiv())
 const removeChildren = (el: HTMLElement) => {while (el.lastChild) {el.removeChild(el.lastChild)}}
+
+const removeEl = (parent: HTMLElement, el: HTMLElement) => {
+	parent.removeChild(el)
+	return el
+}
 
 const createDivWithText = (text: string) => {
 	const div = createDiv()
@@ -1046,7 +1079,7 @@ type PlotSettings = {
 
 const FACET_LABEL_SEP = "; "
 
-const createPlot = (data: Data, settings: PlotSettings) => {
+const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 
 	const xFacetValsAll = expandGrid(settings.xFacets.map(xFacet => arrUnique(data.dataFiltered.map(row => row[xFacet] as any)).sort(getSorter(xFacet, data.varNames)))).map(vals => vals.join(FACET_LABEL_SEP))
 	const xFacetVals: string[] = []
@@ -1166,6 +1199,7 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 			// NOTE(sen) Boxplots
 			const boxWidth = leftRightStep
 			const boxLineThiccness = 2
+
 			if (settings.kind === "titres") {
 				const preStats = getBoxplotStats(preData.map(row => plot.spec.scaleYData(row[data.varNames.titre] as number)))
 				const postStats = getBoxplotStats(postData.map(row => plot.spec.scaleYData(row[data.varNames.titre] as number)))
@@ -1176,15 +1210,28 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 						preColor, altColor, boxLineThiccness,
 						settings.opacities.boxplots, settings.opacities.means,
 					)
+					const preStatsMod = preStats as any
+					preStatsMod.xFacetVal = xFacetVal
+					preStatsMod.xTick = xTick
+					preStatsMod.timepoint = "pre"
+					boxplotData.push(preStatsMod)
 				}
+
 				if (postStats !== null) {
 					addBoxplot(
 						plot, postStats, stripXCoord + leftRightStep, boxWidth,
 						postColor, altColor, boxLineThiccness,
 						settings.opacities.boxplots, settings.opacities.means,
 					)
+					const postStatsMod = postStats as any
+					postStatsMod.xFacetVal = xFacetVal
+					postStatsMod.xTick = xTick
+					postStatsMod.timepoint = "post"
+					boxplotData.push(postStatsMod)
 				}
+
 			} else if (scaledRatios.length > 0) {
+
 				const ratioStats = getBoxplotStats(scaledRatios)
 				if (ratioStats !== null) {
 					addBoxplot(
@@ -1192,6 +1239,10 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 						preColor, altColor, boxLineThiccness,
 						settings.opacities.boxplots, settings.opacities.means,
 					)
+					const ratioStatsMod = ratioStats as any
+					ratioStatsMod.xFacetVal = xFacetVal
+					ratioStatsMod.xTick = xTick
+					boxplotData.push(ratioStatsMod)
 				}
 			}
 
@@ -1226,6 +1277,401 @@ const createPlot = (data: Data, settings: PlotSettings) => {
 	}
 
 	return plot
+}
+
+//
+// SECTION Tables
+//
+
+const TABLE_ROW_HEIGHT_PX = 30
+const DOWNLOAD_CSV: { [key: string]: string } = {}
+
+let globalResizeListeners: any[] = []
+
+const clearPageListners = () => {
+	for (let listner of globalResizeListeners) {
+		window.removeEventListener("resize", listner)
+	}
+	globalResizeListeners = []
+}
+
+const createTableFilterRow = <T>(colSpec: {[key: string]: TableColSpecFinal<T>}, onInput: any) => {
+	let filterRow = createDiv()
+	applyTableHeaderRowStyle(filterRow)
+
+	let rowWidth = 0 //SCROLLBAR_WIDTHS[1]
+	let colnameIndex = 0
+	for (let colname of Object.keys(colSpec)) {
+		let colWidthPx = colSpec[colname].width
+		rowWidth += colWidthPx
+		let cellContainer = addDiv(filterRow)
+		applyCellContainerStyle(cellContainer, colWidthPx)
+		cellContainer.style.position = "relative"
+
+		let questionMarkWidth = 20
+
+		let cell = <HTMLInputElement>addEl(cellContainer, createEl("input"))
+		cell.type = "text"
+        cell.autocomplete = "off"
+        cell.placeholder = "Filter..."
+		cell.style.width = (colWidthPx - questionMarkWidth) + "px"
+		cell.style.boxSizing = "border-box"
+		cell.addEventListener("input", (event) => {
+			onInput(colname, (<HTMLTextAreaElement>event.target).value)
+		})
+
+		let questionMark = addDiv(cellContainer)
+		questionMark.style.padding = "2px"
+		questionMark.style.width = questionMarkWidth + "px"
+		questionMark.style.textAlign = "center"
+		questionMark.style.cursor = "pointer"
+		questionMark.textContent = "?"
+
+        let helpText = "Case-sensitive. Supports regular expressions (e.g. ^male). For numbers, you can type >x and <x (e.g. >40)"
+        let helpEl = createDiv()
+        helpEl.textContent = helpText
+        helpEl.style.position = "absolute"
+        helpEl.style.top = "100%"
+        helpEl.style.backgroundColor = "var(--color-background2)"
+        helpEl.style.padding = "10px"
+        helpEl.style.width = "200px"
+        helpEl.style.border = "1px solid var(--color-border)"
+        helpEl.style.zIndex = "999"
+        helpEl.style.whiteSpace = "normal"
+
+        if (colnameIndex == 0) {
+        	helpEl.style.left = "0px"
+        }
+		if (colnameIndex == Object.keys(colSpec).length - 1) {
+        	helpEl.style.right = "0px"
+        }
+
+        let helpVisible = false
+        questionMark.addEventListener("click", () => {
+        	if (helpVisible) {
+        		removeEl(cellContainer, helpEl)
+        	} else {
+        		addEl(cellContainer, helpEl)
+        	}
+        	helpVisible = !helpVisible
+        })
+
+        colnameIndex += 1
+	}
+
+	filterRow.style.width = rowWidth + "px"
+	return filterRow
+}
+
+const applyTableHeaderRowStyle = (node: HTMLElement) => {
+	node.style.display = "flex"
+	node.style.height = TABLE_ROW_HEIGHT_PX + "px"
+	node.style.backgroundColor = "var(--color-background2)"
+	//node.style.borderLeft = "1px solid var(--color-border)"
+	//node.style.borderRight = "1px solid var(--color-border)"
+	node.style.boxSizing = "border-box"
+}
+
+const applyCellContainerStyle = (node: HTMLElement, width: number) => {
+	node.style.display = "flex"
+	node.style.width = width.toFixed(0) + "px"
+	node.style.alignItems = "center"
+	node.style.justifyContent = "center"
+	node.style.whiteSpace = "nowrap"
+}
+
+const createTableHeaderRow = <T>(colSpec: {[key: string]: TableColSpecFinal<T>}) => {
+	let headerRow = createDiv()
+	applyTableHeaderRowStyle(headerRow)
+
+	let rowWidth = 0 //SCROLLBAR_WIDTHS[1]
+	for (let colname of Object.keys(colSpec)) {
+		let colWidthPx = colSpec[colname].width
+		rowWidth += colWidthPx
+		let cell = addDiv(headerRow)
+		applyCellContainerStyle(cell, colWidthPx)
+		cell.textContent = colname
+	}
+
+	headerRow.style.width = rowWidth + "px"
+	return headerRow
+}
+
+const createTableCell = (widthPx: number) => {
+	let cellElement = createEl("td")
+	cellElement.style.width = widthPx + "px"
+	cellElement.style.textAlign = "center"
+	cellElement.style.verticalAlign = "middle"
+	cellElement.style.whiteSpace = "nowrap"
+	return cellElement
+}
+
+const createTableCellString = (widthPx: number, string: string) => {
+	let cellElement = createTableCell(widthPx)
+	cellElement.textContent = string
+	if (string === MISSING_STRING) {
+		cellElement.style.color = "var(--color-text-muted)"
+	}
+	return cellElement
+}
+
+const createTableTitle = (title: string, downloadable: boolean) => {
+	let titleElement = createDiv()
+	titleElement.style.display = "flex"
+	titleElement.style.alignItems = "center"
+	titleElement.style.justifyContent = "center"
+	titleElement.style.backgroundColor = "var(--color-background2)"
+	titleElement.style.height = TABLE_ROW_HEIGHT_PX + "px"
+	titleElement.style.border = "1px solid var(--color-border)"
+	titleElement.style.boxSizing = "border-box"
+	titleElement.style.whiteSpace = "nowrap"
+	titleElement.textContent = title
+
+	if (downloadable) {
+		titleElement.style.cursor = "pointer"
+		titleElement.textContent += " ⇓ (download)"
+
+		titleElement.addEventListener("click", (event) => {
+			let csv = DOWNLOAD_CSV[title]
+			if (csv) {
+				let hidden = <HTMLLinkElement>createEl("a")
+				hidden.href = "data:text/csv;charset=utf-8," + encodeURI(csv)
+				hidden.target = "_blank"
+				// @ts-ignore
+				hidden.download = title + ".csv"
+				hidden.click()
+			} else {
+				console.error(`table '${title}' does not have a csv to download`)
+			}
+		})
+	}
+
+	return titleElement
+}
+
+const getTableBodyHeight = (tableHeight: number) => {
+	let result = tableHeight - TABLE_ROW_HEIGHT_PX * 3
+	return result
+}
+
+const createTableBodyContainer = (tableHeight: number) => {
+	let tableBodyContainer = createDiv()
+	tableBodyContainer.style.overflowY = "scroll"
+	tableBodyContainer.style.maxHeight = getTableBodyHeight(tableHeight) + "px"
+	tableBodyContainer.style.boxSizing = "border-box"
+	return tableBodyContainer
+}
+
+const getTableRowBackgroundColor = (rowIndex: number) => {
+	let result = "var(--color-background)"
+	if (rowIndex % 2 == 1) {
+		result = "var(--color-background2)"
+	}
+	return result
+}
+
+const createTableDataRow = (rowIndex: number) => {
+	let rowElement = createEl("tr")
+	rowElement.style.height = TABLE_ROW_HEIGHT_PX + "px"
+	rowElement.style.backgroundColor = getTableRowBackgroundColor(rowIndex)
+	return rowElement
+}
+
+type TableColSpec<RowType> = {
+	access?: ((row: RowType) => any) | string,
+	format?: (val: any) => string,
+	width?: number,
+	filter?: (row: RowType, val: any) => boolean,
+	filterValProcess?: (val: string) => string,
+}
+
+type TableColSpecFinal<RowType> = {
+	access: (row: RowType) => any,
+	format: (val: any) => string,
+	width: number,
+	filter: (row: RowType, val: string) => boolean,
+	filterVal: string,
+	filterValProcess: (val: string) => string,
+}
+
+const createTableElementFromAos = <RowType extends { [key: string]: any }>(
+	{aos, colSpecInit, defaults, title, forRow, getTableHeightInit, onFilterChange}: {
+		aos: RowType[],
+		colSpecInit: { [key: string]: TableColSpec<RowType> },
+		title: string,
+		defaults?: TableColSpec<RowType>,
+		forRow?: (row: RowType) => void,
+		getTableHeightInit?: () => number,
+		onFilterChange?: (filteredData: RowType[]) => void,
+	}
+) => {
+
+	let getTableHeight = getTableHeightInit ?? (() => window.innerHeight - SCROLLBAR_WIDTHS[0])
+
+	let table = createDiv()
+	table.style.maxWidth = "100%"
+	let titleElement = addEl(table, createTableTitle(title, true))
+	DOWNLOAD_CSV[title] = ""
+
+	let colnames = Object.keys(colSpecInit)
+	DOWNLOAD_CSV[title] += colnames.join(",") + "\n"
+
+	// NOTE(sen) Fill in missing spec entries
+	let colSpec: { [key: string]: TableColSpecFinal<RowType> } = {}
+	for (let colname of colnames) {
+		let spec = colSpec[colname]
+		let specInit = colSpecInit[colname]
+
+		let accessInit = specInit.access ?? defaults?.access ?? colname
+		if (isString(accessInit)) {
+			let colname = <string>accessInit
+			accessInit = (rowData) => rowData[colname]
+		}
+
+		let access = <(row: RowType) => any>accessInit
+		let format = (x: any) => {
+			let result = MISSING_STRING
+			if (x !== undefined && x !== null && x !== "undefined") {
+				let formatTest = specInit.format ?? defaults?.format
+				if (formatTest !== undefined && formatTest !== null) {
+					result = formatTest(x)
+				} else {
+					result = `${x}`
+				}
+			}
+			return result
+		}
+
+		colSpec[colname] = {
+			access: access,
+			format: format,
+			width: specInit.width ?? defaults?.width ?? 100,
+			filter: specInit.filter ?? defaults?.filter ?? ((row, val) => {
+				let data = access(row)
+				let formattedData = format(data)
+				let passed = true
+
+				if ((val.startsWith(">") || val.startsWith("<")) && isNumber(data)) {
+					let valNumber = parseFloat(val.slice(1))
+					if (!isNaN(valNumber)) {
+						switch (val[0]) {
+						case ">": {passed = data >= valNumber} break;
+						case "<": {passed = data <= valNumber} break;
+						}
+					}
+				} else {
+					try {
+						let re = new RegExp(val)
+						let reResult = formattedData.search(re)
+						passed = reResult !== -1
+					} catch (e) {
+						passed = formattedData.includes(val)
+					}
+				}
+
+				return passed
+			}),
+			filterVal: "",
+			filterValProcess: specInit.filterValProcess ?? defaults?.filterValProcess ?? ((x) => x),
+		}
+	}
+
+	let tableWidthPx = 0
+	for (let colname of colnames) {
+		tableWidthPx += colSpec[colname].width
+	}
+
+	let regenBody = () => {}
+
+	if (aos.length > 0) {
+
+		let hscrollContainer = addDiv(table)
+		hscrollContainer.style.overflowX = "scroll"
+		hscrollContainer.style.boxSizing = "border-box"
+		hscrollContainer.style.borderLeft = "1px solid var(--color-border)"
+		hscrollContainer.style.borderRight = "1px solid var(--color-border)"
+
+		let headerRow = addEl(hscrollContainer, createTableHeaderRow(colSpec))
+		addEl(hscrollContainer, createTableFilterRow(colSpec, (colname: string, filterVal: any) => {
+			colSpec[colname].filterVal = colSpec[colname].filterValProcess(filterVal)
+			aosFiltered = getAosFiltered()
+			virtualizedList.setRowCount(aosFiltered.length)
+		}))
+
+		let tableBodyHeight = getTableBodyHeight(getTableHeight())
+		let tableBodyContainer = addEl(hscrollContainer, createTableBodyContainer(getTableHeight()))
+		tableBodyContainer.style.width = tableWidthPx + "px"
+
+		const getAosFiltered = () => {
+			let aosFiltered: RowType[] = []
+			for (let rowIndex = 0; rowIndex < aos.length; rowIndex += 1) {
+				let rowData = aos[rowIndex]
+
+				let passedColFilters = true
+				for (let otherColname of colnames) {
+					let spec = colSpec[otherColname]
+					passedColFilters = passedColFilters && spec.filter(rowData, spec.filterVal)
+				}
+
+				if (passedColFilters) {
+					aosFiltered.push(rowData)
+				}
+			}
+			onFilterChange?.(aosFiltered)
+			return aosFiltered
+		}
+
+		let aosFiltered = getAosFiltered()
+
+		const virtualizedList = new VirtualizedList(tableBodyContainer, {
+			height: tableBodyHeight,
+			rowCount: aosFiltered.length,
+			renderRow: (rowIndex: number) => {
+				let rowData = aosFiltered[rowIndex]
+				let rowElement = createTableDataRow(rowIndex)
+
+				for (let colname of colnames) {
+					let spec = colSpec[colname]
+					let colData = spec.access(rowData)
+					let colDataFormatted = spec.format(colData)
+					let width = spec.width - SCROLLBAR_WIDTHS[1] / colnames.length
+					addEl(rowElement, createTableCellString(width, colDataFormatted))
+				}
+
+				return rowElement
+			},
+			estimatedRowHeight: TABLE_ROW_HEIGHT_PX,
+			rowHeight: TABLE_ROW_HEIGHT_PX,
+		});
+
+		regenBody = () => {
+			let newTableBodyHeight = getTableBodyHeight(getTableHeight())
+			if (newTableBodyHeight != tableBodyHeight) {
+				tableBodyHeight = newTableBodyHeight
+				tableBodyContainer.style.maxHeight = newTableBodyHeight + "px"
+				virtualizedList.resize(newTableBodyHeight)
+			}
+		}
+
+		for (let rowIndex = 0; rowIndex < aos.length; rowIndex += 1) {
+			let rowData = aos[rowIndex]
+
+			for (let colname of colnames) {
+				let spec = colSpec[colname]
+				let colData = spec.access(rowData)
+				let colDataFormatted = spec.format(colData)
+				DOWNLOAD_CSV[title] += "\"" + colDataFormatted + "\","
+			}
+
+			DOWNLOAD_CSV[title] += "\n"
+			forRow?.(rowData)
+		}
+	}
+
+	window.addEventListener("resize", regenBody)
+	globalResizeListeners.push(regenBody)
+
+	return table
 }
 
 //
@@ -1345,6 +1791,9 @@ const main = async () => {
 	plotParent.style.overflowX = "scroll"
 	plotParent.style.overflowY = "hidden"
 
+	const tableParent = addDiv(plotContainer)
+	tableParent.style.display = "flex"
+
 	const fileInputContainer = addDiv(inputContainer)
 	fileInputContainer.style.border = "1px dashed var(--color-fileSelectBorder)"
 	fileInputContainer.style.width = "100%"
@@ -1384,8 +1833,11 @@ const main = async () => {
 
 	const regenPlot = () => {
 		removeChildren(plotParent)
-		const plot = createPlot(data, plotSettings)
+		const plotBoxplotData: any[] = []
+		const plot = createPlot(data, plotSettings, plotBoxplotData)
 		addEl(plotParent, plot.canvas)
+		plotParent.style.height = plot.totalHeight + "px"
+
 		plot.canvas.addEventListener("click", (event) => {
 			const newRef = Math.exp(scale(event.offsetY, plot.metrics.b, plot.metrics.t, Math.log(plot.spec.yMin), Math.log(plot.spec.yMax)))
 			if (newRef >= plot.spec.yMin && newRef <= plot.spec.yMax) {
@@ -1396,6 +1848,40 @@ const main = async () => {
 				regenPlot()
 			}
 		})
+
+		let defFormat
+		switch (plotSettings.kind) {
+		case "titres": {defFormat = (x: number) => Math.exp(x).toFixed(0)} break;
+		case "rises": {defFormat = (x: number) => Math.exp(x).toFixed(2)} break;
+		}
+
+		const stringFormat = (x: string) => x
+
+		const cols: any = {}
+		if (plotSettings.kind === "titres") {
+			cols.timepoint = {format: stringFormat}
+		}
+		if (plotSettings.xFacets.length > 0) {
+			cols.xFacetVal = {format: stringFormat, width: 500}
+		}
+		cols[plotSettings.xAxis] = {format: stringFormat, width: 200, access: "xTick"}
+		cols.min = {}
+		cols.max = {}
+		cols.q25 = {}
+		cols.q75 = {}
+		cols.median = {}
+		cols.mean = {}
+		cols.meanLow95 = {access: "meanLow"}
+		cols.meanHigh95 = {access: "meanHigh"}
+
+		removeChildren(tableParent)
+		addEl(tableParent, createTableElementFromAos({
+			aos: plotBoxplotData,
+			colSpecInit: cols,
+			defaults: {format: defFormat},
+			title: "Stats",
+			getTableHeightInit: () => Math.max(window.innerHeight - plot.totalHeight - SCROLLBAR_WIDTHS[0], 300),
+		}))
 	}
 
 	const onNewDataString = (contentsString: string) => {
@@ -1633,6 +2119,8 @@ const main = async () => {
 main()
 
 // TODO(sen) Highlight a virus
+// TODO(sen) Detect excessive faceting
+// TODO(sen) Better colwidth for xfacet and xtick
 // TODO(sen) Display GMT/GMR tables (corresponding to the means on the plots)
 // TODO(sen) Handle wide input
 // TODO(sen) Improve boxplot shading

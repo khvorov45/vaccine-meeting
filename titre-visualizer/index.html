@@ -34,7 +34,8 @@
 
   /* Scrollbars */
   ::-webkit-scrollbar {
-    width: 7px;
+    width: 10px;
+    height: 10px;
   }
 
   ::-webkit-scrollbar-track,
@@ -55,6 +56,17 @@
     scrollbar-color: var(--color-border) var(--color-background);
     scrollbar-width: thin;
   }
+
+  input {
+    color: inherit;
+    background-color: inherit;
+  }
+
+  input:focus {
+    color: inherit;
+    background-color: inherit;
+  }
+
 
   /* Range input */
   input[type="range"] {
