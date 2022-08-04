@@ -61,25 +61,9 @@ const PLOT_ELEMENTS = PLOT_ELEMENTS_ as unknown as string[]
 type PlotElement = (typeof PLOT_ELEMENTS_)[number]
 type Opacities = Record<PlotElement, number>
 
-type DataVarNames = {
-	uniquePairId: string[],
-	timepoint: string,
-	titre: string,
-	virus: string,
-}
-
-type TimepointLabels = {
-	pre: string,
-	post: string,
-}
-
-type Data = {
-	dataFull: Record<string, string | number>[],
-	dataFiltered: Record<string, string | number>[],
-	varNames: DataVarNames,
-	timepointLabels: TimepointLabels,
-	colnames: string[],
-}
+const DATA_FORMATS_ = ["wide", "long"] as const
+const DATA_FORMATS = DATA_FORMATS_ as unknown as string[]
+type DataFormat = (typeof DATA_FORMATS_)[number]
 
 //
 // SECTION Math
@@ -330,6 +314,7 @@ const colChangeSaturation = (col: string, satDelta: number) => {
 const isGood = (n: any) => n !== null && n !== undefined && !isNaN(n)
 const isString = (val: any) => (typeof val === "string" || val instanceof String)
 const isNumber = (val: any) => (typeof val === "number")
+const isFractional = (val: any) => isGood(val) && isNumber(val) && Math.round(val) !== val
 
 //
 // SECTION DOM
@@ -1134,64 +1119,113 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 			const preColor = "#308A36"
 			const postColor = "#7FA438"
 
-			const preData = stripData.filter(row => row[data.varNames.timepoint] === data.timepointLabels.pre)
-			const postData = stripData.filter(row => row[data.varNames.timepoint] === data.timepointLabels.post)
+			const preXCoord = stripXCoord - leftRightStep
+			const postXCoord = stripXCoord + leftRightStep
+
+			const pointSize = 2
+			const lineSize = 1
+			const pointAlphaStr = colChannel255ToString(settings.opacities.points)
+			const lineAlphaStr = colChannel255ToString(settings.opacities.lines)
+			const preColorWithAlpha = preColor + pointAlphaStr
+			const postColorWithAlpha = postColor + pointAlphaStr
+			const preColorWithAlphaLine = preColor + lineAlphaStr
+			const postColorWithAlphaLine = postColor + lineAlphaStr
+
+			const adjacentDistance = plot.spec.widthTick - leftRightStep * 2
+			const jitterMaxX = adjacentDistance / 4
+			const jitterMaxY = plot.spec.heightTick / 4
 
 			// NOTE(sen) Points and lines connecting them
-			let preCount = 0
-			let postCount = 0
+			let scaledPreTitres: number[] = []
+			let scaledPostTitres: number[] = []
 			const scaledRatios = []
-			for (let pid of pids) {
-				const pre = preData.filter(row => row.__UNIQUEPID__ === pid)
-				const post = postData.filter(row => row.__UNIQUEPID__ === pid)
+			const varNames = data.varNames
+			switch (varNames.format) {
+			case "long": {
+				const preData = stripData.filter(row => row[varNames.timepoint] === varNames.timepointLabels.pre)
+				const postData = stripData.filter(row => row[varNames.timepoint] === varNames.timepointLabels.post)
+				for (let pid of pids) {
+					const pre = preData.filter(row => row.__UNIQUEPID__ === pid)
+					const post = postData.filter(row => row.__UNIQUEPID__ === pid)
 
-				const preTitres = pre.map(row => row[data.varNames.titre] as number)
-				const postTitres = post.map(row => row[data.varNames.titre] as number)
+					const preTitres = pre.map(row => row[varNames.titre] as number)
+					const postTitres = post.map(row => row[varNames.titre] as number)
 
-				const adjacentDistance = plot.spec.widthTick - leftRightStep * 2
+					const jitterX = randUnif(-jitterMaxX, jitterMaxX)
+					const jitterY = randUnif(-jitterMaxY, jitterMaxY)
 
-				const jitterMaxX = adjacentDistance / 4
-				const jitterX = randUnif(-jitterMaxX, jitterMaxX)
+					if (settings.kind === "titres") {
+						const preXCoordJit = preXCoord + jitterX
+						const postXCoordJit = postXCoord + jitterX
 
-				const jitterMaxY = plot.spec.heightTick / 4
-				const jitterY = randUnif(-jitterMaxY, jitterMaxY)
+						const preYTitresScaled = preTitres.map(titre => plot.spec.scaleYData(titre))
+						const postYTitresScaled = postTitres.map(titre => plot.spec.scaleYData(titre))
 
-				const pointSize = 2
-				const pointAlphaStr = colChannel255ToString(settings.opacities.points)
-				const lineAlphaStr = colChannel255ToString(settings.opacities.lines)
-				const preColorWithAlpha = preColor + pointAlphaStr
-				const postColorWithAlpha = postColor + pointAlphaStr
+						scaledPreTitres = scaledPreTitres.concat(preYTitresScaled)
+						scaledPostTitres = scaledPostTitres.concat(postYTitresScaled)
 
-				if (settings.kind === "titres") {
-					const preXCoord = stripXCoord - leftRightStep + jitterX
-					const postXCoord = stripXCoord + leftRightStep + jitterX
+						const preYCoords = preYTitresScaled.map(titre => plot.scaleScaledYToPx(titre) + jitterY)
+						const postYCoords = postYTitresScaled.map(titre => plot.scaleScaledYToPx(titre) + jitterY)
 
-					const preYCoords = preTitres.map(titre => plot.scaleYToPx(titre) + jitterY)
-					const postYCoords = postTitres.map(titre => plot.scaleYToPx(titre) + jitterY)
+						for (let preYCoord of preYCoords) {
+							drawPoint(plot.renderer, preXCoordJit, preYCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
+						}
+						for (let postYCoord of postYCoords) {
+							drawPoint(plot.renderer, postXCoordJit, postYCoord, pointSize, postColorWithAlpha, postColorWithAlpha)
+						}
 
-					preCount += preYCoords.length
-					postCount += postYCoords.length
-
-					const lineSize = 1
-
-					for (let preYCoord of preYCoords) {
-						drawPoint(plot.renderer, preXCoord, preYCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
+						if (preYCoords.length === 1 && postYCoords.length === 1) {
+							drawLine(plot.renderer, preXCoordJit, preYCoords[0], postXCoordJit, postYCoords[0], preColorWithAlphaLine, postColorWithAlphaLine, lineSize, [])
+						}
+					} else if (preTitres.length === 1 && postTitres.length === 1) {
+						const scaledRatio = plot.spec.scaleYData(postTitres[0] / preTitres[0])
+						scaledRatios.push(scaledRatio)
+						const yCoord = plot.scaleScaledYToPx(scaledRatio) + jitterY
+						drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
 					}
-					for (let postYCoord of postYCoords) {
-						drawPoint(plot.renderer, postXCoord, postYCoord, pointSize, postColorWithAlpha, postColorWithAlpha)
-					}
-
-					if (preYCoords.length === 1 && postYCoords.length === 1) {
-						const preC = preColor + lineAlphaStr
-						const postC = postColor + lineAlphaStr
-						drawLine(plot.renderer, preXCoord, preYCoords[0], postXCoord, postYCoords[0], preC, postC, lineSize, [])
-					}
-				} else if (preTitres.length === 1 && postTitres.length === 1) {
-					const scaledRatio = plot.spec.scaleYData(postTitres[0] / preTitres[0])
-					scaledRatios.push(scaledRatio)
-					const yCoord = plot.scaleScaledYToPx(scaledRatio) + jitterY
-					drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
 				}
+			} break
+
+			case "wide": {
+				for (let row of stripData) {
+					const preTitre = <number>row[varNames.preTitre]
+					const postTitre = <number>row[varNames.postTitre]
+
+					const scaledPreTitre = plot.spec.scaleYData(preTitre)
+					const scaledPostTitre = plot.spec.scaleYData(postTitre)
+
+					scaledPreTitres.push(scaledPreTitre)
+					scaledPostTitres.push(scaledPostTitre)
+
+					const preYCoord = plot.scaleScaledYToPx(scaledPreTitre)
+					const postYCoord = plot.scaleScaledYToPx(scaledPostTitre)
+
+					const jitterX = randUnif(-jitterMaxX, jitterMaxX)
+					const jitterY = randUnif(-jitterMaxY, jitterMaxY)
+
+					if (settings.kind === "titres") {
+						const preXCoordJit = preXCoord + jitterX
+						const postXCoordJit = postXCoord + jitterX
+						const preYCoordJit = preYCoord + jitterY
+						const postYCoordJit = postYCoord + jitterY
+
+						if (isGood(preTitre)) {
+							drawPoint(plot.renderer, preXCoordJit, preYCoordJit, pointSize, preColorWithAlpha, preColorWithAlpha)
+						}
+						if (isGood(postTitre)) {
+							drawPoint(plot.renderer, postXCoordJit, postYCoordJit, pointSize, postColorWithAlpha, postColorWithAlpha)
+						}
+						if (isGood(preTitre) && isGood(postTitre)) {
+							drawLine(plot.renderer, preXCoordJit, preYCoordJit, postXCoordJit, postYCoordJit, preColorWithAlphaLine, postColorWithAlphaLine, lineSize, [])
+						}
+					} else if (isGood(preTitre) && isGood(postTitre)) {
+						const scaledRatio = plot.spec.scaleYData(postTitre / preTitre)
+						scaledRatios.push(scaledRatio)
+						const yCoord = plot.scaleScaledYToPx(scaledRatio) + jitterY
+						drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
+					}
+				}
+			} break
 			}
 
 			const altColor = settings.theme === "dark" ? "#000000" : "#ffffff"
@@ -1201,8 +1235,8 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 			const boxLineThiccness = 2
 
 			if (settings.kind === "titres") {
-				const preStats = getBoxplotStats(preData.map(row => plot.spec.scaleYData(row[data.varNames.titre] as number)))
-				const postStats = getBoxplotStats(postData.map(row => plot.spec.scaleYData(row[data.varNames.titre] as number)))
+				const preStats = getBoxplotStats(scaledPreTitres)
+				const postStats = getBoxplotStats(scaledPostTitres)
 
 				if (preStats !== null) {
 					addBoxplot(
@@ -1253,13 +1287,13 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 
 				if (settings.kind === "titres") {
 					drawText(
-						plot.renderer, `${preCount}`,
+						plot.renderer, `${scaledPreTitres.length}`,
 						stripXCoord - leftRightStep,
 						yCoord,
 						preColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
 					)
 					drawText(
-						plot.renderer, `${postCount}`,
+						plot.renderer, `${scaledPostTitres.length}`,
 						stripXCoord + leftRightStep,
 						yCoord,
 						postColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
@@ -1678,26 +1712,94 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 // SECTION Data and main
 //
 
-const DEFAULT_DATA_VAR_NAMES: DataVarNames = {
-	uniquePairId: ["pid", "cohort", "vaccine", "serum_source", "virus", "testing_lab"],
-	timepoint: "timepoint", titre: "titre", virus: "virus"
+type TimepointLabels = {
+	pre: string,
+	post: string,
 }
-const DEFAULT_TIMEPOINT_LABELS: TimepointLabels = {pre: "Pre-vax", post: "Post-vax"}
+
+type DataVarNamesLong = {
+	format: "long",
+	virus: string,
+	uniquePairId: string[],
+	timepoint: string,
+	titre: string,
+	timepointLabels: TimepointLabels,
+}
+
+type DataVarNamesWide = {
+	format: "wide",
+	virus: string,
+	preTitre: string,
+	postTitre: string,
+}
+
+type DataVarNames = DataVarNamesLong | DataVarNamesWide
+
+type Data = {
+	dataFull: Record<string, string | number>[],
+	dataFiltered: Record<string, string | number>[],
+	varNames: DataVarNames,
+	colnames: string[],
+}
+
+const DEFAULT_DATA_VAR_NAMES: DataVarNamesLong = {
+	format: "long",
+	uniquePairId: ["pid", "cohort", "vaccine", "serum_source", "virus", "testing_lab"],
+	timepoint: "timepoint", titre: "titre", virus: "virus",
+	timepointLabels: {pre: "Pre-vax", post: "Post-vax"},
+}
+
+const DEFAULT_DATA_VAR_NAMES_WIDE: DataVarNamesWide = {
+	format: "wide", preTitre: "preTitre", postTitre: "postTitre", virus: "virus",
+}
 
 const guessDataVarNames = (existingNames: string[]) => {
-	const varNames = {...DEFAULT_DATA_VAR_NAMES}
-	varNames.uniquePairId = [...DEFAULT_DATA_VAR_NAMES.uniquePairId]
 
-	// NOTE(sen) Unique names
-	for (let testName of DEFAULT_DATA_VAR_NAMES.uniquePairId) {
-		if (!existingNames.includes(testName)) {
-			arrRemoveIndex(varNames.uniquePairId, varNames.uniquePairId.indexOf(testName))
+	const colsWithTitre: string[] = []
+	const colsWithVirus: string[] = []
+	for (let name of existingNames) {
+		const lowerName = name.toLowerCase()
+		if (lowerName.includes("titre") || lowerName.includes("titer")) {
+			colsWithTitre.push(name)
+		}
+		if (lowerName.includes("virus") || lowerName.includes("antigen")) {
+			colsWithVirus.push(name)
 		}
 	}
-	for (let existingName of existingNames) {
-		if (existingName.toLowerCase().endsWith("id") && !varNames.uniquePairId.includes(existingName)) {
-			varNames.uniquePairId.push(existingName)
+	const format = colsWithTitre.length > 1 ? "wide" : "long"
+
+	let varNames: DataVarNames
+
+	switch (format) {
+	case "wide": {
+		let preTitre = colsWithTitre[0]
+		let postTitre = colsWithTitre[1]
+		for (let name of colsWithTitre) {
+			const lowerName = name.toLowerCase()
+			if (lowerName.includes("pre")) {
+				preTitre = name
+			}
+			if (lowerName.includes("post")) {
+				postTitre = name
+			}
 		}
+		varNames = {format: "wide", preTitre: preTitre, postTitre: postTitre, virus: colsWithVirus[0]}
+	} break;
+
+	case "long": {
+		varNames = {...DEFAULT_DATA_VAR_NAMES}
+		varNames.virus = colsWithVirus[0]
+		for (let testName of varNames.uniquePairId) {
+			if (!existingNames.includes(testName)) {
+				arrRemoveIndex(varNames.uniquePairId, varNames.uniquePairId.indexOf(testName))
+			}
+		}
+		for (let existingName of existingNames) {
+			if (existingName.toLowerCase().endsWith("id") && !varNames.uniquePairId.includes(existingName)) {
+				varNames.uniquePairId.push(existingName)
+			}
+		}
+	} break;
 	}
 
 	return varNames
@@ -1721,10 +1823,9 @@ const parseData = (input: string, xFacets: string[]): Data => {
 		dataFiltered: [],
 		colnames: [],
 		varNames: DEFAULT_DATA_VAR_NAMES,
-		timepointLabels: DEFAULT_TIMEPOINT_LABELS,
 	}
 
-	const parseResult = Papa.parse(input, {skipEmptyLines: true})
+	const parseResult = Papa.parse(input, {skipEmptyLines: true, dynamicTyping: true})
 
 	if (parseResult.data.length > 0) {
 
@@ -1732,34 +1833,70 @@ const parseData = (input: string, xFacets: string[]): Data => {
 		data.varNames = guessDataVarNames(data.colnames)
 
 		if (parseResult.data.length > 1) {
+
+			let anyTitreIsFractional = false
+			let anyTitreIsBelow5 = false
+
+			const varNames = data.varNames
 			for (let parsedRowIndex = 1; parsedRowIndex < parseResult.data.length; parsedRowIndex++) {
 				const parsedRow = parseResult.data[parsedRowIndex]
-				let row: Record<string, string | number> = {}
-				for (let colnameIndex = 0; colnameIndex < data.colnames.length; colnameIndex++) {
-					const colname = data.colnames[colnameIndex]
-					let value = parsedRow[colnameIndex]
-					if (colname === data.varNames.titre) {
-						value = parseFloat(value)
+				if (parsedRow.findIndex((val: any) => val !== null && val !== undefined && val !== "") !== -1) {
+					let row: Record<string, string | number> = {}
+					for (let colnameIndex = 0; colnameIndex < data.colnames.length; colnameIndex++) {
+						const colname = data.colnames[colnameIndex]
+						let value = parsedRow[colnameIndex]
+						row[colname] = value
 					}
-					row[colname] = value
-				}
-				row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePairId)
-				row.__XFACET__ = constructStringFromCols(row, xFacets, FACET_LABEL_SEP)
-				data.dataFull.push(row)
-				data.dataFiltered.push(row)
-			}
-		}
+					row.__UNIQUEPID__ = data.varNames.format === "long" ? constructStringFromCols(row, data.varNames.uniquePairId) : `${parsedRowIndex}`
+					row.__XFACET__ = constructStringFromCols(row, xFacets, FACET_LABEL_SEP)
+					data.dataFull.push(row)
 
-		const allTimepointLabels = arrUnique(data.dataFull.map(row => row[data.varNames.timepoint])).filter(lbl => lbl !== undefined && lbl !== null) as string[]
-		for (let timepointLabel of allTimepointLabels) {
-			if (timepointLabel.toLowerCase().includes("pre")) {
-				data.timepointLabels.pre = timepointLabel
-			} else if (timepointLabel.toLowerCase().includes("post")) {
-				data.timepointLabels.post = timepointLabel
+					switch (varNames.format) {
+					case "long": {
+						const titre = row[varNames.titre]
+						anyTitreIsFractional = anyTitreIsFractional || isFractional(titre)
+						anyTitreIsBelow5 = anyTitreIsBelow5 || <number>titre < 5
+					} break
+
+					case "wide": {
+						const preTitre = row[varNames.preTitre]
+						const postTitre = row[varNames.postTitre]
+						anyTitreIsFractional = anyTitreIsFractional || isFractional(preTitre) || isFractional(postTitre)
+						anyTitreIsBelow5 = anyTitreIsBelow5 || <number>preTitre < 5 || <number>postTitre < 5
+					} break
+					}
+				}
+			}
+
+			const titreIsIndex = !anyTitreIsFractional && anyTitreIsBelow5
+			const titreIndexToOg = (val: number) => 5 * (2 ** val)
+
+			switch (varNames.format) {
+			case "long": {
+				if (titreIsIndex) {
+					data.dataFull = data.dataFull.map(row => {row[varNames.titre] = titreIndexToOg(<number>row[varNames.titre]); return row})
+				}
+
+				const allTimepointLabels = arrUnique(data.dataFull.map(row => row[varNames.timepoint])).filter(lbl => lbl !== undefined && lbl !== null) as string[]
+				for (let timepointLabel of allTimepointLabels) {
+					if (timepointLabel.toLowerCase().includes("pre")) {
+						varNames.timepointLabels.pre = timepointLabel
+					} else if (timepointLabel.toLowerCase().includes("post")) {
+						varNames.timepointLabels.post = timepointLabel
+					}
+				}
+			} break
+
+			case "wide": {
+				if (titreIsIndex) {
+					data.dataFull = data.dataFull.map(row => {row[varNames.postTitre] = titreIndexToOg(<number>row[varNames.postTitre]); row[varNames.preTitre] = 5 * (2 ** <number>row[varNames.preTitre]); return row})
+				}
+			} break
 			}
 		}
 	}
 
+	data.dataFiltered = [...data.dataFull]
 	return data
 }
 
@@ -1814,13 +1951,13 @@ const main = async () => {
 	fileInputLabel.style.lineHeight = fileInputContainer.style.height
 	fileInputLabel.style.fontWeight = "bold"
 	fileInputLabel.style.letterSpacing = "2px"
+	fileInputLabel.style.whiteSpace = "pre"
 
 	let data: Data = {
 		dataFull: [],
 		dataFiltered: [],
 		varNames: DEFAULT_DATA_VAR_NAMES,
-		timepointLabels: DEFAULT_TIMEPOINT_LABELS,
-		colnames: []
+		colnames: [],
 	}
 
 	const plotSettings: PlotSettings = {
@@ -1879,7 +2016,7 @@ const main = async () => {
 			aos: plotBoxplotData,
 			colSpecInit: cols,
 			defaults: {format: defFormat},
-			title: "Stats",
+			title: plotSettings.kind === "titres" ? "GMT" : "GMR",
 			getTableHeightInit: () => Math.max(window.innerHeight - plot.totalHeight - SCROLLBAR_WIDTHS[0], 300),
 		}))
 	}
@@ -1887,6 +2024,9 @@ const main = async () => {
 	const onNewDataString = (contentsString: string) => {
 		if (contentsString.length > 0) {
 			data = parseData(contentsString, plotSettings.xFacets)
+			if (!data.colnames.includes(plotSettings.xAxis)) {
+				plotSettings.xAxis = data.varNames.virus
+			}
 			regenDataRelatedInputs()
 			regenPlot()
 		}
@@ -2072,36 +2212,89 @@ const main = async () => {
 
 		addInputSep(dataRelatedInputs, "colnames")
 
-		for (let varName of Object.keys(data.varNames)) {
-			let helpText = undefined
-			if (varName === "uniquePairId") {
-				helpText = "Set of variables that uniquely identifies a pair (pre/post vax) of titres"
-			}
-			const el = addEl(dataRelatedInputs, createSwitch({
-				init: data.varNames[varName as keyof DataVarNames],
-				opts: data.colnames,
-				onUpdate: (sel) => {
-					// @ts-ignore
-					data.varNames[varName as keyof DataVarNames] = sel
-
-					if (varName == "uniquePairId") {
-						data.dataFull = data.dataFull.map(row => {
-							row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePairId)
-							return row
-						})
-						data.dataFiltered = data.dataFiltered.map(row => {
-							row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePairId)
-							return row
-						})
-					}
-
-					regenPlot()
-				},
-				name: varName,
-				helpText: helpText,
-			}))
-			el.style.marginBottom = collapsibleSelectorSpacing
+		let lastWideFormat = {...DEFAULT_DATA_VAR_NAMES_WIDE}
+		let lastLongFormat = {...DEFAULT_DATA_VAR_NAMES}
+		const varNames = data.varNames
+		switch (varNames.format) {
+		case "long": {
+			lastLongFormat = varNames
+			lastWideFormat.virus = varNames.virus
+		} break
+		case "wide": {
+			lastWideFormat = varNames
+			lastLongFormat.virus = varNames.virus
+		} break
 		}
+
+		const formatSwitch = addEl(dataRelatedInputs, createSwitch({
+			init: data.varNames.format,
+			opts: <DataFormat[]>DATA_FORMATS,
+			onUpdate: (dataFormat) => {
+				const varNames = data.varNames
+				switch (varNames.format) {
+				case "long": {
+					lastLongFormat = varNames
+					lastWideFormat.virus = varNames.virus
+					data.varNames = lastWideFormat
+				} break
+				case "wide": {
+					lastWideFormat = varNames
+					lastLongFormat.virus = varNames.virus
+					data.varNames = lastLongFormat
+				} break
+				}
+				regenPlot()
+				regenColnameInputs()
+			},
+			optElementStyle: switchOptionStyleAllCaps,
+			optContainerStyle: (el) => {
+				el.style.display = "flex"
+				el.style.flexDirection = "row"
+				el.style.marginBottom = "10px"
+			}
+		}))
+
+		const colnameInputsContainer = addDiv(dataRelatedInputs)
+
+		const regenColnameInputs = () => {
+			removeChildren(colnameInputsContainer)
+			for (let varName of Object.keys(data.varNames)) {
+				if (varName !== "format") {
+					let helpText = undefined
+					if (varName === "uniquePairId") {
+						helpText = "Set of variables that uniquely identifies a pair (pre/post vax) of titres"
+					}
+					const el = addEl(colnameInputsContainer, createSwitch({
+						init: data.varNames[varName as keyof DataVarNames],
+						opts: data.colnames,
+						onUpdate: (sel) => {
+							// @ts-ignore
+							data.varNames[varName as keyof DataVarNames] = sel
+
+							if (varName == "uniquePairId") {
+								data.dataFull = data.dataFull.map(row => {
+									// @ts-ignore
+									row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePairId)
+									return row
+								})
+								data.dataFiltered = data.dataFiltered.map(row => {
+									// @ts-ignore
+									row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePairId)
+									return row
+								})
+							}
+
+							regenPlot()
+						},
+						name: varName,
+						helpText: helpText,
+					}))
+					el.style.marginBottom = collapsibleSelectorSpacing
+				}
+			}
+		}
+
+		regenColnameInputs()
 	}
 
 	// NOTE(sen) Dev only for now
@@ -2119,6 +2312,7 @@ const main = async () => {
 main()
 
 // TODO(sen) Highlight a virus
+// TODO(sen) Better titre format detection (and switch)
 // TODO(sen) Detect excessive faceting
 // TODO(sen) Better colwidth for xfacet and xtick
 // TODO(sen) Display GMT/GMR tables (corresponding to the means on the plots)
