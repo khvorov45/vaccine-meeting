@@ -1234,6 +1234,16 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 			const boxWidth = leftRightStep
 			const boxLineThiccness = 2
 
+			const addVarsToBoxplotStats = (stats: BoxplotStats) => {
+				const statsMod = stats as any
+				const splitFacetVal = xFacetVal.split(FACET_LABEL_SEP)
+				for (let xFacetVarIndex = 0; xFacetVarIndex < settings.xFacets.length; xFacetVarIndex++) {
+					statsMod[settings.xFacets[xFacetVarIndex]] = splitFacetVal[xFacetVarIndex]
+				}
+				statsMod.xFacetVal = xFacetVal
+				statsMod.xTick = xTick
+			}
+
 			if (settings.kind === "titres") {
 				const preStats = getBoxplotStats(scaledPreTitres)
 				const postStats = getBoxplotStats(scaledPostTitres)
@@ -1244,11 +1254,9 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 						preColor, altColor, boxLineThiccness,
 						settings.opacities.boxplots, settings.opacities.means,
 					)
-					const preStatsMod = preStats as any
-					preStatsMod.xFacetVal = xFacetVal
-					preStatsMod.xTick = xTick
-					preStatsMod.timepoint = "pre"
-					boxplotData.push(preStatsMod)
+					addVarsToBoxplotStats(preStats)
+					;(<any>preStats).timepoint = "pre"
+					boxplotData.push(preStats)
 				}
 
 				if (postStats !== null) {
@@ -1257,11 +1265,9 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 						postColor, altColor, boxLineThiccness,
 						settings.opacities.boxplots, settings.opacities.means,
 					)
-					const postStatsMod = postStats as any
-					postStatsMod.xFacetVal = xFacetVal
-					postStatsMod.xTick = xTick
-					postStatsMod.timepoint = "post"
-					boxplotData.push(postStatsMod)
+					addVarsToBoxplotStats(postStats)
+					;(<any>postStats).timepoint = "post"
+					boxplotData.push(postStats)
 				}
 
 			} else if (scaledRatios.length > 0) {
@@ -1273,10 +1279,8 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 						preColor, altColor, boxLineThiccness,
 						settings.opacities.boxplots, settings.opacities.means,
 					)
-					const ratioStatsMod = ratioStats as any
-					ratioStatsMod.xFacetVal = xFacetVal
-					ratioStatsMod.xTick = xTick
-					boxplotData.push(ratioStatsMod)
+					addVarsToBoxplotStats(ratioStats)
+					boxplotData.push(ratioStats)
 				}
 			}
 
@@ -1998,18 +2002,18 @@ const main = async () => {
 		if (plotSettings.kind === "titres") {
 			cols.timepoint = {format: stringFormat}
 		}
-		if (plotSettings.xFacets.length > 0) {
-			cols.xFacetVal = {format: stringFormat, width: 500}
+		for (let xFacetVar of plotSettings.xFacets) {
+			cols[xFacetVar] = {format: stringFormat}
 		}
 		cols[plotSettings.xAxis] = {format: stringFormat, width: 200, access: "xTick"}
+		cols.mean = {}
+		cols.meanLow95 = {access: "meanLow"}
+		cols.meanHigh95 = {access: "meanHigh"}
 		cols.min = {}
 		cols.max = {}
 		cols.q25 = {}
 		cols.q75 = {}
 		cols.median = {}
-		cols.mean = {}
-		cols.meanLow95 = {access: "meanLow"}
-		cols.meanHigh95 = {access: "meanHigh"}
 
 		removeChildren(tableParent)
 		addEl(tableParent, createTableElementFromAos({
