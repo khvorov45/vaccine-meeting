@@ -2258,8 +2258,9 @@ const main = async () => {
 
 		const regenColnameInputs = () => {
 			removeChildren(colnameInputsContainer)
+
 			for (let varName of Object.keys(data.varNames)) {
-				if (varName !== "format") {
+				if (varName !== "format" && varName !== "timepointLabels") {
 					let helpText = undefined
 					if (varName === "uniquePairId") {
 						helpText = "Set of variables that uniquely identifies a pair (pre/post vax) of titres"
@@ -2271,7 +2272,7 @@ const main = async () => {
 							// @ts-ignore
 							data.varNames[varName as keyof DataVarNames] = sel
 
-							if (varName == "uniquePairId") {
+							if (varName === "uniquePairId") {
 								data.dataFull = data.dataFull.map(row => {
 									// @ts-ignore
 									row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePairId)
@@ -2284,6 +2285,10 @@ const main = async () => {
 								})
 							}
 
+							if (varName === "timepoint") {
+								regenTimepointLabelInputs()
+							}
+
 							regenPlot()
 						},
 						name: varName,
@@ -2292,21 +2297,60 @@ const main = async () => {
 					el.style.marginBottom = collapsibleSelectorSpacing
 				}
 			}
+
+			const timepointLabelInputContainer = addDiv(colnameInputsContainer)
+			const regenTimepointLabelInputs = () => {
+				const varNames = data.varNames
+				removeChildren(timepointLabelInputContainer)
+				if (varNames.format === "long") {
+					const allTimepoints = arrUnique(data.dataFiltered.map(row => row[varNames.timepoint]))
+					const preLab = addEl(timepointLabelInputContainer, createSwitch({
+						init: varNames.timepointLabels.pre,
+						opts: allTimepoints,
+						onUpdate: (sel) => {
+							varNames.timepointLabels.pre = sel
+							regenPlot()
+						},
+						name: "pre label",
+					}))
+					preLab.style.marginBottom = collapsibleSelectorSpacing
+					addEl(timepointLabelInputContainer, createSwitch({
+						init: varNames.timepointLabels.post,
+						opts: allTimepoints,
+						onUpdate: (sel) => {
+							varNames.timepointLabels.post = sel
+							regenPlot()
+						},
+						name: "post label",
+					}))
+				}
+			}
+			regenTimepointLabelInputs()
 		}
 
 		regenColnameInputs()
 	}
 
 	// NOTE(sen) Dev only for now
-	let fetchString = ""
-	try {
-		const resp = await fetch("/vis2022.csv")
-		if (resp.ok) {
-			fetchString = await resp.text()
-		}
-	} catch (e) {}
+	const fetchAndUpdate = async (path: string) => {
+		let fetchString = ""
+		try {
+			const resp = await fetch(path)
+			if (resp.ok) {
+				fetchString = await resp.text()
+			}
+		} catch (e) {}
+		onNewDataString(fetchString)
+	}
 
-	onNewDataString(fetchString)
+	fetchAndUpdate("/vis2022.csv")
+
+	window.addEventListener("keypress", (event: KeyboardEvent) => {
+		switch (event.key) {
+		case "1": {fetchAndUpdate("/vis2022.csv")} break
+		case "2": {fetchAndUpdate("/HI WHO22 full panel.csv")} break
+		}
+	})
 }
 
 main()
@@ -2315,8 +2359,6 @@ main()
 // TODO(sen) Better titre format detection (and switch)
 // TODO(sen) Detect excessive faceting
 // TODO(sen) Better colwidth for xfacet and xtick
-// TODO(sen) Display GMT/GMR tables (corresponding to the means on the plots)
-// TODO(sen) Handle wide input
 // TODO(sen) Improve boxplot shading
 // TODO(sen) Better colnames guessing (especially the id part)
 
