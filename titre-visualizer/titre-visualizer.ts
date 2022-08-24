@@ -2012,7 +2012,7 @@ const main = async () => {
 		const cols: any = {}
 		cols[plotSettings.xAxis] = {width: 200, access: "xTick"}
 		cols.mean = {format: logFormat}
-		cols.meanLow95 = {format: logFormat}
+		cols.meanLow95 = {format: logFormat, access: "meanLow"}
 		cols.meanHigh95 = {format: logFormat, access: "meanHigh"}
 		cols.min = {format: logFormat}
 		cols.max = {format: logFormat}
