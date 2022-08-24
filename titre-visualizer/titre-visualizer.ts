@@ -74,7 +74,7 @@ const arrSum = (arr: number[]) => arr.reduce((a, b) => a + b, 0)
 const arrMean = (arr: number[]) => arrSum(arr) / arr.length
 
 const arrCumSum = (arr: number[]) => {
-	let result = []
+	let result: number[] = []
 	let current = 0
 	for (let val of arr) {
 		current += val
@@ -163,7 +163,7 @@ const nextNestedArrIter = (iter: NestedArrIter) => {
 }
 
 const expandGrid = (input: any[][]): any[][] => {
-	const result = []
+	const result: any[] = []
 	for (const nestedArrIter = beginNestedArrIter(input);
 		!nestedArrIter.done;
 		nextNestedArrIter(nestedArrIter))
@@ -839,7 +839,7 @@ const beginPlot = (spec: PlotSpec) => {
 	const tickLength = 5
 	const tickToText = 5
 
-	const allXTicksXCoords = []
+	const allXTicksXCoords: number[] = []
 	for (let xFacetIndex = 0; xFacetIndex < Math.max(1, spec.xFacetVals.length); xFacetIndex++) {
 		const xFacetVal = spec.xFacetVals[xFacetIndex]
 		const xFacetTicks = spec.xTicksPerFacet[xFacetIndex]
@@ -868,7 +868,7 @@ const beginPlot = (spec: PlotSpec) => {
 	const gridCol = axisCol + "22"
 	const gridThiccness = 1
 
-	const allYTicksYCoords = []
+	const allYTicksYCoords: number[] = []
 	for (let yTick of spec.yTicks) {
 		let yCoord = scaleYToPx(yTick)
 		allYTicksYCoords.push(yCoord)
@@ -1111,7 +1111,24 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 		const xTicksForFacet = xTicksPerFacet[xFacetIndex]
 
 		for (let xTick of xTicksForFacet) {
-			const stripData = data.dataFiltered.filter(row => (settings.xFacets.length > 0 ? row.__XFACET__ === xFacetVal : true) && row[settings.xAxis] === xTick)
+			const stripData = data.dataFiltered.filter(row => {
+                let result = row[settings.xAxis] === xTick
+				if (settings.xFacets.length > 0) {
+					result = result && row.__XFACET__ === xFacetVal 
+				}
+
+				const varNames = data.varNames
+				switch (varNames.format) {
+				case "long": {
+					result = result && isGood(row[varNames.titre])
+				} break
+				case "wide": {
+					result = result && isGood(row[varNames.preTitre]) && isGood(row[varNames.postTitre])
+				} break
+				}
+
+				return result
+            })
 			const pids = arrUnique(stripData.map(row => row.__UNIQUEPID__))
 			const stripXCoord = plot.scaleXToPx(xTick, xFacetVal)
 
@@ -1138,7 +1155,7 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 			// NOTE(sen) Points and lines connecting them
 			let scaledPreTitres: number[] = []
 			let scaledPostTitres: number[] = []
-			const scaledRatios = []
+			const scaledRatios: number[] = []
 			const varNames = data.varNames
 			switch (varNames.format) {
 			case "long": {
@@ -1990,36 +2007,23 @@ const main = async () => {
 			}
 		})
 
-		let defFormat
-		switch (plotSettings.kind) {
-		case "titres": {defFormat = (x: number) => Math.exp(x).toFixed(0)} break;
-		case "rises": {defFormat = (x: number) => Math.exp(x).toFixed(2)} break;
-		}
-
-		const stringFormat = (x: string) => x
+		const logFormat = (x: number) => Math.exp(x).toFixed(0)
 
 		const cols: any = {}
-		if (plotSettings.kind === "titres") {
-			cols.timepoint = {format: stringFormat}
-		}
-		for (let xFacetVar of plotSettings.xFacets) {
-			cols[xFacetVar] = {format: stringFormat}
-		}
-		cols[plotSettings.xAxis] = {format: stringFormat, width: 200, access: "xTick"}
-		cols.mean = {}
-		cols.meanLow95 = {access: "meanLow"}
-		cols.meanHigh95 = {access: "meanHigh"}
-		cols.min = {}
-		cols.max = {}
-		cols.q25 = {}
-		cols.q75 = {}
-		cols.median = {}
+		cols[plotSettings.xAxis] = {width: 200, access: "xTick"}
+		cols.mean = {format: logFormat}
+		cols.meanLow95 = {format: logFormat}
+		cols.meanHigh95 = {format: logFormat, access: "meanHigh"}
+		cols.min = {format: logFormat}
+		cols.max = {format: logFormat}
+		cols.q25 = {format: logFormat}
+		cols.q75 = {format: logFormat}
+		cols.median = {format: logFormat}
 
 		removeChildren(tableParent)
 		addEl(tableParent, createTableElementFromAos({
 			aos: plotBoxplotData,
 			colSpecInit: cols,
-			defaults: {format: defFormat},
 			title: plotSettings.kind === "titres" ? "GMT" : "GMR",
 			getTableHeightInit: () => Math.max(window.innerHeight - plot.totalHeight - SCROLLBAR_WIDTHS[0], 300),
 		}))
@@ -2265,7 +2269,7 @@ const main = async () => {
 
 			for (let varName of Object.keys(data.varNames)) {
 				if (varName !== "format" && varName !== "timepointLabels") {
-					let helpText = undefined
+					let helpText: string | undefined = undefined
 					if (varName === "uniquePairId") {
 						helpText = "Set of variables that uniquely identifies a pair (pre/post vax) of titres"
 					}
@@ -2347,12 +2351,13 @@ const main = async () => {
 		onNewDataString(fetchString)
 	}
 
-	fetchAndUpdate("/vis2022.csv")
+	fetchAndUpdate("/pivot-wide.csv")
 
 	window.addEventListener("keypress", (event: KeyboardEvent) => {
 		switch (event.key) {
 		case "1": {fetchAndUpdate("/vis2022.csv")} break
 		case "2": {fetchAndUpdate("/HI WHO22 full panel.csv")} break
+		case "3": {fetchAndUpdate("/pivot-wide.csv")} break
 		}
 	})
 }
