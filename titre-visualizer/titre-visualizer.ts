@@ -56,7 +56,7 @@ const SUMMARY_TYPES_ = ["noSummary", "cladeAverage", "circulatingAverage"] as co
 const SUMMARY_TYPES = SUMMARY_TYPES_ as unknown as string[]
 type SummaryType = (typeof SUMMARY_TYPES_)[number]
 
-const PLOT_ELEMENTS_ = ["points", "lines", "boxplots", "counts", "refLine", "means"] as const
+const PLOT_ELEMENTS_ = ["points", "lines", "boxplots", "counts", "refLine", "means", "bars"] as const
 const PLOT_ELEMENTS = PLOT_ELEMENTS_ as unknown as string[]
 type PlotElement = (typeof PLOT_ELEMENTS_)[number]
 type Opacities = Record<PlotElement, number>
@@ -1021,6 +1021,23 @@ const addBoxplot = (
 	}
 }
 
+const addVBar = (
+	plot: Plot,
+	topYCoord: number,
+	xCoord: number,
+	width: number,
+	color: string,
+	alpha: number,
+) => {
+	const halfWidth = width / 2
+
+	drawRect(
+		plot.renderer, 
+		{l: xCoord - halfWidth, r: xCoord + halfWidth, t: topYCoord, b: plot.metrics.b}, 
+		color + colChannel255ToString(alpha)
+	)
+}
+
 const virusSort = (v1: string, v2: string) => {
 	let result = 0
 
@@ -1261,13 +1278,21 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 				statsMod.xTick = xTick
 			}
 
+			const boxPreXCoord = scaledPostTitres.length === 0 ? stripXCoord : preXCoord
+			const boxPostXCoord = scaledPreTitres.length === 0 ? stripXCoord : postXCoord
+
 			if (settings.kind === "titres") {
 				const preStats = getBoxplotStats(scaledPreTitres)
 				const postStats = getBoxplotStats(scaledPostTitres)
 
 				if (preStats !== null) {
+					addVBar(
+						plot, plot.scaleScaledYToPx(preStats.mean), 
+						boxPreXCoord, boxWidth, preColor, settings.opacities.bars
+					)
+
 					addBoxplot(
-						plot, preStats, stripXCoord - leftRightStep, boxWidth,
+						plot, preStats, boxPreXCoord, boxWidth,
 						preColor, altColor, boxLineThiccness,
 						settings.opacities.boxplots, settings.opacities.means,
 					)
@@ -1277,8 +1302,13 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 				}
 
 				if (postStats !== null) {
+					addVBar(
+						plot, plot.scaleScaledYToPx(postStats.mean), 
+						boxPostXCoord, boxWidth, postColor, settings.opacities.bars
+					)
+
 					addBoxplot(
-						plot, postStats, stripXCoord + leftRightStep, boxWidth,
+						plot, postStats, boxPostXCoord, boxWidth,
 						postColor, altColor, boxLineThiccness,
 						settings.opacities.boxplots, settings.opacities.means,
 					)
@@ -1291,6 +1321,10 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 
 				const ratioStats = getBoxplotStats(scaledRatios)
 				if (ratioStats !== null) {
+					addVBar(
+						plot, plot.scaleScaledYToPx(ratioStats.mean), 
+						stripXCoord, boxWidth, preColor, settings.opacities.bars
+					)
 					addBoxplot(
 						plot, ratioStats, stripXCoord, boxWidth,
 						preColor, altColor, boxLineThiccness,
@@ -1307,18 +1341,24 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 				const alphaStr = colChannel255ToString(settings.opacities.counts)
 
 				if (settings.kind === "titres") {
-					drawText(
-						plot.renderer, `${scaledPreTitres.length}`,
-						stripXCoord - leftRightStep,
-						yCoord,
-						preColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
-					)
-					drawText(
-						plot.renderer, `${scaledPostTitres.length}`,
-						stripXCoord + leftRightStep,
-						yCoord,
-						postColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
-					)
+
+					if (scaledPreTitres.length > 0) {
+						drawText(
+							plot.renderer, `${scaledPreTitres.length}`,
+							boxPreXCoord,
+							yCoord,
+							preColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
+						)
+					}
+
+					if (scaledPostTitres.length > 0) {
+						drawText(
+							plot.renderer, `${scaledPostTitres.length}`,
+							boxPostXCoord,
+							yCoord,
+							postColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
+						)
+					}
 				} else if (scaledRatios.length > 0) {
 					drawText(
 						plot.renderer, `${scaledRatios.length}`,
@@ -1983,7 +2023,7 @@ const main = async () => {
 
 	const plotSettings: PlotSettings = {
 		xFacets: [], xAxis: data.varNames.virus, refTitre: 40, refRatio: 4, theme: "dark",
-		opacities: {points: 0.5, lines: 0.1, boxplots: 1, counts: 1, refLine: 1, means: 1},
+		opacities: {points: 0.5, lines: 0.1, boxplots: 1, counts: 1, refLine: 1, means: 1, bars: 0},
 		kind: "titres",
 	}
 
@@ -2120,7 +2160,7 @@ const main = async () => {
 		},
 		name: "Elements",
 		optElementStyle: switchOptionStyleAllCaps,
-		horizontalGradient: [0.5, 0.1, 1, 1, 1, 1],
+		horizontalGradient: Object.values(plotSettings.opacities),
 		helpText: "Element transparency. Click on the plot to change refline position",
 	}))
 	opacitiesSwitch.style.marginBottom = collapsibleSelectorSpacing
@@ -2351,7 +2391,7 @@ const main = async () => {
 		onNewDataString(fetchString)
 	}
 
-	fetchAndUpdate("/pivot-wide.csv")
+	fetchAndUpdate("/vis2022.csv")
 
 	window.addEventListener("keypress", (event: KeyboardEvent) => {
 		switch (event.key) {
