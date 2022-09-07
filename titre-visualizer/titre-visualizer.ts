@@ -469,6 +469,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 		currentSel = [...currentSel]
 	}
 	const isSelected = (opt: SingleOpt) => {
+		// @ts-ignore
 		let result = (!multiple && opt === currentSel) ||
 			(multiple && arrLinSearch(<SingleOpt[]>currentSel, opt) !== -1)
 		return result
@@ -520,12 +521,14 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 
 				if (!multiple) {
 
+					// @ts-ignore
 					if (opt !== currentSel) {
 						for (let child of optContainer.childNodes) {
 							(<HTMLElement>child).style.backgroundColor = normalCol
 						}
 						optElement.style.backgroundColor = selectedCol
-						currentSel = <OptType>opt
+						// @ts-ignore
+						currentSel = opt
 					} else if (spec.singleNullable) {
 						optElement.style.backgroundColor = normalCol
 						//@ts-ignore
