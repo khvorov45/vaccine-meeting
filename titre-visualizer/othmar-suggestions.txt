@@ -1,0 +1,17 @@
+Hi Sheena and Arseniy,
+
+I like it!
+
+I think this is the way forward, not only because it saves me a lot of work (which is much appreciated, of course), but also because it is so flexible: if we wanted to show only a subset of viruses in the information meeting, this could be done with a few clicks (and can be changed last moment, if, say, John McC has a change of heart about inclusion of certain viruses…); I can do that in my Excel spreadsheets, but it’s more of a faff.
+
+ 
+
+Here are just a few thoughts to see whether other things could be incorporated into your system:
+
+I show relative GMTs, not absolute ones, because the absolute titres can vary very widely between labs (setting the reference/vaccine virus for each lab and panel to 100). Could this be done in the titrevisualizer?
+In my tables, I also calculate mean reductions relative to the reference/vaccine virus – this is based on the notion that we have this arbitrary cut-off of 50% reduction being ‘significant’. Reduction is not calculated directly from GMTs (and the relative GMT graphs don’t mirror the mean reduction tables), because I don’t use negative reductions (i.e. increases in titres relative to the reference are set to 0% reduction). I don’t know whether this makes sense, and I can see that someone might argue I should use negative reductions for increased titres, but this is how I have always done it. Happy to move on from this, we just need to explain that data are not directly comparable to previous VCMs.
+Other data in my tables, which we usually don’t even look at, are the percent of assays with ‘significant’ reductions. This measure is not really that important, I think, but what sometimes is useful to see is how many assays any given virus was tested in – we may have more confidence in data for a virus coming from 12 assays rather than for a virus that was tested with one panel in one lab only. I assume you could show, perhaps with colour or in some other way, the number of tests (panels) done on each virus.
+Could you group viruses by subclades and show overall mean GMTs or reductions by group?
+ 
+
+I attach my supplementary report from February so you don’t have to dig through your files to find examples of what I mean.

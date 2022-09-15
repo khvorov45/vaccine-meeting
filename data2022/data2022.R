@@ -62,10 +62,45 @@ vis2022 %>%
 	group_by(pid, cohort, vaccine, serum_source, virus, testing_lab, timepoint) %>%
 	filter(n() > 1)
 
-quick_summary(vis2022)
+vis2022_with_refs <- vis2022 %>%
+	mutate(
+		reference_egg = case_when(
+			subtype == "H1" ~ "A/Victoria/2570/2019e",
+			subtype == "H3" ~ "A/Cambodia/E0826360/2020e",
+			subtype == "B-vic" ~ "B/Washington/02/2019e",
+			subtype == "B-yam" ~ "B/Phuket/3073/2013e",
+		),
+		reference_cell = case_when(
+			subtype == "H1" & testing_lab == "VIDRL" ~ "A/Victoria/2570/2019",
+			subtype == "H1" ~ "A/Wisconsin/588/2019",
+			subtype == "H3" & testing_lab == "NIBSC" ~ "A/Cambodia/925256/2020",
+			subtype == "H3" ~ "A/Cambodia/E0826360/2020",
+			subtype == "B-vic" ~ "B/Washington/02/2019",
+			subtype == "B-yam" ~ "B/Phuket/3073/2013",
+		),
+	)
 
-write_csv(vis2022, "data2022/vis2022.csv")
-write_csv(vis2022, "titre-visualizer/vis2022.csv")
+quick_summary(vis2022_with_refs)
+
+vis2022_with_refs %>%
+	count(testing_lab, subtype, virus) %>%
+	filter(testing_lab == "VIDRL", subtype == "B-yam")
+
+vis2022_with_refs %>%
+	group_by(pid, cohort, vaccine, serum_source, testing_lab, timepoint, subtype) %>%
+	filter(!reference_cell %in% virus) %>%
+	group_by(reference_cell, .add = TRUE) %>%
+	summarise(viruses = paste0(virus, collapse = " "))
+
+unique(vis2022_with_refs %>% filter(subtype == "H3") %>% pull(virus))
+
+vis2022_with_refs %>%
+	filter(subtype == "H3") %>%
+	group_by(pid) %>%
+	filter(!"A/Cambodia/E0826360/2020" %in% virus)
+
+write_csv(vis2022_with_refs, "data2022/vis2022.csv")
+write_csv(vis2022_with_refs, "titre-visualizer/vis2022.csv")
 
 summarise_logmean <- function(vec) {
 	vec <- na.omit(vec)
