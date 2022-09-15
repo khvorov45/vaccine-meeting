@@ -2,6 +2,8 @@
 import {Papa} from "/papaparse.js"
 // @ts-ignore
 import {VirtualizedList} from "/virtualized-list.js"
+// @ts-ignore
+import * as Arr from "/array.js"
 
 type Titres = any[]
 type Rises = any[]
@@ -68,55 +70,6 @@ type DataFormat = (typeof DATA_FORMATS_)[number]
 //
 // SECTION Math
 //
-
-const arrAsc = (arr: number[]) => arr.sort((a, b) => a - b)
-const arrSum = (arr: number[]) => arr.reduce((a, b) => a + b, 0)
-const arrMean = (arr: number[]) => arrSum(arr) / arr.length
-
-const arrCumSum = (arr: number[]) => {
-	let result: number[] = []
-	let current = 0
-	for (let val of arr) {
-		current += val
-		result.push(current)
-	}
-	return result
-}
-
-const arrSd = (arr: number[]) => {
-	const mu = arrMean(arr)
-	const diffArr = arr.map((a) => (a - mu) ** 2)
-	return Math.sqrt(arrSum(diffArr) / (arr.length - 1))
-}
-
-const arrSortedAscQuantile = (sorted: number[], q: number) => {
-	const pos = (sorted.length - 1) * q
-	const base = Math.floor(pos)
-	const rest = pos - base
-	let result = sorted[base]
-	if (sorted[base + 1] !== undefined) {
-		result += rest * (sorted[base + 1] - sorted[base])
-	}
-	return result
-}
-
-const arrQuantile = (arr: number[], q: number) => arrSortedAscQuantile(arrAsc(arr), q)
-const arrSortedAscMin = (sorted: number[]) => sorted[0]
-const arrSortedAscMax = (sorted: number[]) => sorted[sorted.length - 1]
-const arrUnique = <T>(arr: T[]) => Array.from(new Set(arr))
-const arrRemoveIndex = (arr: any[], index: number) => arr.splice(index, 1)
-
-const arrLinSearch = <T>(arr: T[], item: T) => {
-	let result = -1
-	for (let index = 0; index < arr.length; index += 1) {
-		let elem = arr[index]
-		if (elem === item) {
-			result = index
-			break
-		}
-	}
-	return result
-}
 
 type NestedArrIter = {
 	arrIndices: number[],
@@ -238,14 +191,14 @@ const getBoxplotStats = (arr: number[]): BoxplotStats | null => {
 	let result: BoxplotStats | null = null
 	if (arr.length > 0) {
 		let arrSorted = arr.sort((x1, x2) => x1 - x2)
-		let q25 = arrSortedAscQuantile(arrSorted, 0.25)
-		let q75 = arrSortedAscQuantile(arrSorted, 0.75)
-		const mean = arrMean(arrSorted)
-		const meanSe = arrSd(arrSorted) / Math.sqrt(arr.length)
+		let q25 = Arr.sortedAscQuantile(arrSorted, 0.25)
+		let q75 = Arr.sortedAscQuantile(arrSorted, 0.75)
+		const mean = Arr.mean(arrSorted)
+		const meanSe = Arr.sd(arrSorted) / Math.sqrt(arr.length)
 		result = {
 			min: arrSorted[0],
 			max: arrSorted[arrSorted.length - 1],
-			median: arrSortedAscQuantile(arrSorted, 0.5),
+			median: Arr.sortedAscQuantile(arrSorted, 0.5),
 			q25: q25,
 			q75: q75,
 			iqr: q75 - q25,
@@ -471,7 +424,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 	const isSelected = (opt: SingleOpt) => {
 		// @ts-ignore
 		let result = (!multiple && opt === currentSel) ||
-			(multiple && arrLinSearch(<SingleOpt[]>currentSel, opt) !== -1)
+			(multiple && (<SingleOpt[]>currentSel).includes(opt))
 		return result
 	}
 
@@ -547,10 +500,10 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 						// @ts-ignore
 						currentSel = [...spec.opts]
 					} else {
-						let optIndex = arrLinSearch(<SingleOpt[]>currentSel, opt)
-						if (optIndex !== -1) {
+						const optIndex = (<SingleOpt[]>currentSel).indexOf(opt)
+						if (optIndex) {
 							optElement.style.backgroundColor = normalCol
-							arrRemoveIndex(<SingleOpt[]>currentSel, optIndex)
+							Arr.removeIndex(<SingleOpt[]>currentSel, optIndex)
 						} else {
 							optElement.style.backgroundColor = selectedCol;
 							(<SingleOpt[]>currentSel).push(opt)
@@ -1090,24 +1043,24 @@ const FACET_LABEL_SEP = "; "
 
 const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 
-	const xFacetValsAll = expandGrid(settings.xFacets.map(xFacet => arrUnique(data.dataFiltered.map(row => row[xFacet] as any)).sort(getSorter(xFacet, data.varNames)))).map(vals => vals.join(FACET_LABEL_SEP))
+	const xFacetValsAll = expandGrid(settings.xFacets.map(xFacet => Arr.unique(data.dataFiltered.map(row => row[xFacet] as any)).sort(getSorter(xFacet, data.varNames)))).map(vals => vals.join(FACET_LABEL_SEP))
 	const xFacetVals: string[] = []
 	const xTicksPerFacet = xFacetValsAll.length > 0 ? xFacetValsAll.map(xFacetVal => {
 		const dataFacet = data.dataFiltered.filter(row => row.__XFACET__ === xFacetVal)
-		const facetXTicks = arrUnique(dataFacet.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))
+		const facetXTicks = Arr.unique(dataFacet.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))
 		if (dataFacet.length > 0) {
 			xFacetVals.push(xFacetVal)
 		}
 		return facetXTicks
-	}).filter(arr => arr.length > 0) : [arrUnique(data.dataFiltered.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))]
+	}).filter(arr => arr.length > 0) : [Arr.unique(data.dataFiltered.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))]
 
 	const referenceTitres: Record<string, {pre: number | null, post: number | null}> = {}
 	const pidVirusTimepointTitres: Record<string, Record<string, {pre: number | null, post: number | null}>> = {}
 	if (settings.relative) {
-		const allpids = arrUnique(data.dataFull.map(row => row.__UNIQUEPID__))
+		const allpids = Arr.unique(data.dataFull.map(row => row.__UNIQUEPID__))
 		for (let pid of allpids) {
 			const pidData = data.dataFull.filter(row => row.__UNIQUEPID__ === pid)
-			const viruses = arrUnique(pidData.map(row => row[data.varNames.virus]))
+			const viruses = Arr.unique(pidData.map(row => row[data.varNames.virus]))
 			pidVirusTimepointTitres[pid] = {}
 			for (let virus of viruses) {
 				pidVirusTimepointTitres[pid][virus] = {pre: null, post: null}
@@ -1204,7 +1157,7 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 
 				return result
             })
-			const pids = arrUnique(stripData.map(row => row.__UNIQUEPID__))
+			const pids = Arr.unique(stripData.map(row => row.__UNIQUEPID__))
 			const stripXCoord = plot.scaleXToPx(xTick, xFacetVal)
 
 			const leftRightStep = plot.spec.widthTick / 4
@@ -1239,7 +1192,7 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 				for (let pid of pids) {
 					const pre = preData.filter(row => row.__UNIQUEPID__ === pid)
 					const post = postData.filter(row => row.__UNIQUEPID__ === pid)
-					const refViruses = arrUnique(arrUnique(pre.map(row => row[data.varNames.reference])).concat(arrUnique(post.map(row => row[data.varNames.reference]))))
+					const refViruses = Arr.unique(Arr.unique(pre.map(row => row[data.varNames.reference])).concat(Arr.unique(post.map(row => row[data.varNames.reference]))))
 
 					let preTitres = pre.map(row => row[varNames.titre] as number)
 					let postTitres = post.map(row => row[varNames.titre] as number)
@@ -1948,7 +1901,7 @@ const guessDataVarNames = (existingNames: string[]) => {
 		varNames.virus = colsWithVirus[0]
 		for (let testName of varNames.uniquePID) {
 			if (!existingNames.includes(testName)) {
-				arrRemoveIndex(varNames.uniquePID, varNames.uniquePID.indexOf(testName))
+				Arr.removeIndex(varNames.uniquePID, varNames.uniquePID.indexOf(testName))
 			}
 		}
 		for (let existingName of existingNames) {
@@ -2034,7 +1987,7 @@ const parseData = (input: string, xFacets: string[]): Data => {
 					data.dataFull = data.dataFull.map(row => {row[varNames.titre] = titreIndexToOg(<number>row[varNames.titre]); return row})
 				}
 
-				const allTimepointLabels = arrUnique(data.dataFull.map(row => row[varNames.timepoint])).filter(lbl => lbl !== undefined && lbl !== null) as string[]
+				const allTimepointLabels = Arr.unique(data.dataFull.map(row => row[varNames.timepoint])).filter((lbl: any) => lbl !== undefined && lbl !== null) as string[]
 				for (let timepointLabel of allTimepointLabels) {
 					if (timepointLabel.toLowerCase().includes("pre")) {
 						varNames.timepointLabels.pre = timepointLabel
@@ -2276,7 +2229,7 @@ const main = async () => {
 
 	const referenceSwitchContainer = addDiv(inputContainer)
 	const regenReferenceSwitch = () => {
-		const allViruses = arrUnique(data.dataFiltered.map(row => <string>row[data.varNames.virus])).sort(virusSort)
+		const allViruses = Arr.unique(data.dataFiltered.map(row => <string>row[data.varNames.virus])).sort(virusSort)
 		const referenceSwitch = createSwitch({
 			init: plotSettings.refVirus,
 			opts: allViruses,
@@ -2374,7 +2327,7 @@ const main = async () => {
 					dataFilteredOther = dataFilteredOther.filter(row => allowedVals.includes(row[otherColname]))
 				}
 			}
-			const visible = arrUnique(dataFilteredOther.map(row => row[colname]))
+			const visible = Arr.unique(dataFilteredOther.map(row => row[colname]))
 			const thisFilter = filters[colname]
 			for (let optIndex = 0; optIndex < thisFilter.all.length; optIndex++) {
 				const thisEl = thisFilter.optElements[optIndex]
@@ -2389,7 +2342,7 @@ const main = async () => {
 		}
 
 		for (let colname of data.colnames) {
-			const colUniqueVals = arrUnique(data.dataFull.map(row => row[colname] as any)).sort(getSorter(colname, data.varNames))
+			const colUniqueVals = Arr.unique(data.dataFull.map(row => row[colname] as any)).sort(getSorter(colname, data.varNames))
 			filters[colname] = {selected: colUniqueVals, all: [...colUniqueVals], optElements: []}
 			const el = addEl(dataRelatedInputs, createSwitch({
 				init: colUniqueVals,
@@ -2504,7 +2457,7 @@ const main = async () => {
 				const varNames = data.varNames
 				removeChildren(timepointLabelInputContainer)
 				if (varNames.format === "long") {
-					const allTimepoints = arrUnique(data.dataFiltered.map(row => row[varNames.timepoint]))
+					const allTimepoints = Arr.unique(data.dataFiltered.map(row => row[varNames.timepoint]))
 					const preLab = addEl(timepointLabelInputContainer, createSwitch({
 						init: varNames.timepointLabels.pre,
 						opts: allTimepoints,
