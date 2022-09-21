@@ -145,17 +145,11 @@ const randNorm = (mean: number, sd: number) => {
 	return result
 }
 
-const toRadians = (val: number) => val / 360 * 2 * Math.PI
-
 type Rect = {
 	l: number,
 	r: number,
 	t: number,
 	b: number,
-}
-
-const rectShrink = (rect: Rect, amount: number): Rect => {
-	return {l: rect.l + amount, r: rect.r - amount, t: rect.t + amount, b: rect.b - amount}
 }
 
 const scale = (value: number, valueMin: number, valueMax: number, scaleMin: number, scaleMax: number) => {
@@ -642,7 +636,7 @@ const drawText = (
 	renderer.textBaseline = baseline
 	renderer.textAlign = textAlign
 	renderer.translate(xCoord, yCoord)
-	renderer.rotate(toRadians(angle))
+	renderer.rotate(angle / 360 * 2 * Math.PI)
 
 	renderer.font = `${CANVAS_FONT_HEIGHT}px sans-serif`
 	if (outlineColor !== undefined) {
@@ -913,7 +907,9 @@ const addBoxplot = (
 		const color = baseColor + alphaStr
 		const altColor = baseAltColor + alphaStr
 		drawRectOutline(plot.renderer, boxplotBody, color, lineThiccness)
-		drawRectOutline(plot.renderer, rectShrink(boxplotBody, lineThiccness), altColor, lineThiccness)
+
+		const bodyOutline: Rect = {l: boxplotBody.l + lineThiccness, r: boxplotBody.r - lineThiccness, t: boxplotBody.t + lineThiccness, b: boxplotBody.b - lineThiccness}
+		drawRectOutline(plot.renderer, bodyOutline, altColor, lineThiccness)
 
 		drawDoubleLine(
 			plot.renderer,
