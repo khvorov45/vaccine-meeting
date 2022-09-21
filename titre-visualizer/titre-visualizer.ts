@@ -2132,7 +2132,7 @@ const main = async () => {
 	const plotSettings: PlotSettings = {
 		xFacets: [], xAxis: data.varNames.virus, refTitre: 40, refRatio: 4, refRelative: 0.5, theme: "dark",
 		opacities: {points: 0.5, lines: 0.1, boxplots: 1, counts: 1, refLine: 1, means: 1, bars: 0},
-		kind: "titres", relative: true, refVirus: "A/Victoria/2570/2019e", refType: "manual"
+		kind: "titres", relative: false, refVirus: "A/Victoria/2570/2019e", refType: "manual"
 	}
 
 	document.documentElement.setAttribute("theme", plotSettings.theme)
