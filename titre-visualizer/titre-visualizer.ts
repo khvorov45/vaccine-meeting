@@ -1,8 +1,5 @@
-// @ts-ignore
-import {Papa} from "/papaparse.js"
-// @ts-ignore
-import {VirtualizedList} from "/virtualized-list.js"
-
+import {Papa} from "./papaparse.js"
+import {VirtualizedList} from "./virtualized-list.js"
 import * as Arr from "./array.js"
 import * as NestArr from "./nested_array.js"
 

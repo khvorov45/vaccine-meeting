@@ -1,0 +1,1 @@
+live-server titre-visualizer --entry-file=index.html --ignore=*.ts,*.js.map,*.d.ts,*d.ts.map,array.js,nested_array.js
