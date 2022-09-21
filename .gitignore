@@ -13,3 +13,5 @@ array.js
 /.vscode
 *.txt
 *.js
+*.d.ts
+*.d.ts.map

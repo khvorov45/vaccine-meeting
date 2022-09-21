@@ -2,10 +2,9 @@
 import {Papa} from "/papaparse.js"
 // @ts-ignore
 import {VirtualizedList} from "/virtualized-list.js"
-// @ts-ignore
-import * as Arr from "/array.js"
-// @ts-ignore
-import * as NestArr from "/nested_array.js"
+
+import * as Arr from "./array.js"
+import * as NestArr from "./nested_array.js"
 
 type Titres = any[]
 type Rises = any[]
@@ -2138,7 +2137,7 @@ const main = async () => {
 			}
 			const viruses = Arr.unique(data.dataFull.map(x => x[data.varNames.virus]))
 			if (!viruses.includes(plotSettings.refVirus)) {
-				plotSettings.refVirus = viruses[0]
+				plotSettings.refVirus = <string>viruses[0]
 			}
 			regenDataRelatedInputs()
 			regenPlot()
