@@ -4,6 +4,8 @@ import {Papa} from "/papaparse.js"
 import {VirtualizedList} from "/virtualized-list.js"
 // @ts-ignore
 import * as Arr from "/array.js"
+// @ts-ignore
+import * as NestArr from "/nested_array"
 
 type Titres = any[]
 type Rises = any[]
@@ -70,62 +72,6 @@ type DataFormat = (typeof DATA_FORMATS_)[number]
 //
 // SECTION Math
 //
-
-type NestedArrIter = {
-	arrIndices: number[],
-	done: boolean,
-	nestedArr: any[][],
-}
-
-const beginNestedArrIter = (nestedArr: any[][]): NestedArrIter => {
-	let arrIndices = [] as number[]
-	for (let arrIndex = 0; arrIndex < nestedArr.length; arrIndex += 1) {
-		arrIndices.push(0)
-	}
-	return {
-		arrIndices: arrIndices,
-		done: false,
-		nestedArr: nestedArr,
-	}
-}
-
-const getCurrentNestedArrValues = (iter: NestedArrIter) => {
-	let facets = [] as any[]
-	for (let facetSetIndex = 0; facetSetIndex < iter.nestedArr.length; facetSetIndex += 1) {
-		const setValueIndex = iter.arrIndices[facetSetIndex]
-		facets.push(iter.nestedArr[facetSetIndex][setValueIndex])
-	}
-	return facets
-}
-
-const nextNestedArrIter = (iter: NestedArrIter) => {
-	let nestedArrCurrentSetIndex = iter.arrIndices.length - 1
-	while (true) {
-		if (nestedArrCurrentSetIndex == -1) {
-			iter.done = true
-			break
-		}
-		if (iter.arrIndices[nestedArrCurrentSetIndex] >= iter.nestedArr[nestedArrCurrentSetIndex].length - 1) {
-			iter.arrIndices[nestedArrCurrentSetIndex] = 0
-			nestedArrCurrentSetIndex -= 1
-		} else {
-			iter.arrIndices[nestedArrCurrentSetIndex] += 1
-			break
-		}
-	}
-}
-
-const expandGrid = (input: any[][]): any[][] => {
-	const result: any[] = []
-	for (const nestedArrIter = beginNestedArrIter(input);
-		!nestedArrIter.done;
-		nextNestedArrIter(nestedArrIter))
-	{
-		let nestedArrs = getCurrentNestedArrValues(nestedArrIter)
-		result.push(nestedArrs)
-	}
-	return result
-}
 
 const randUnif = (from: number, to: number) => {
 	let rand01 = Math.random()
@@ -1039,16 +985,16 @@ const FACET_LABEL_SEP = "; "
 
 const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 
-	const xFacetValsAll = expandGrid(settings.xFacets.map(xFacet => Arr.unique(data.dataFiltered.map(row => row[xFacet] as any)).sort(getSorter(xFacet, data.varNames)))).map(vals => vals.join(FACET_LABEL_SEP))
+	const xFacetValsAll = NestArr.expandGrid(settings.xFacets.map(xFacet => Arr.unique(data.dataFiltered.map(row => row[xFacet] as any)).sort(getSorter(xFacet, data.varNames)))).map((vals: any) => vals.join(FACET_LABEL_SEP))
 	const xFacetVals: string[] = []
-	const xTicksPerFacet = xFacetValsAll.length > 0 ? xFacetValsAll.map(xFacetVal => {
+	const xTicksPerFacet = xFacetValsAll.length > 0 ? xFacetValsAll.map((xFacetVal: any) => {
 		const dataFacet = data.dataFiltered.filter(row => row.__XFACET__ === xFacetVal)
 		const facetXTicks = Arr.unique(dataFacet.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))
 		if (dataFacet.length > 0) {
 			xFacetVals.push(xFacetVal)
 		}
 		return facetXTicks
-	}).filter(arr => arr.length > 0) : [Arr.unique(data.dataFiltered.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))]
+	}).filter((arr: any) => arr.length > 0) : [Arr.unique(data.dataFiltered.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))]
 
 	const referenceTitres: Record<string, {pre: number | null, post: number | null}> = {}
 	const pidVirusTimepointTitres: Record<string, Record<string, {pre: number | null, post: number | null}>> = {}
@@ -1109,8 +1055,8 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 		padAxis: {l: 100, t: 50, r: 50, b: 150},
 		padData: {l: 40, t: 20, r: 40, b: 20},
 		padFacet: 80,
-		scaledXMinPerFacet: xTicksPerFacet.map(ticks => 0),
-		scaledXMaxPerFacet: xTicksPerFacet.map(ticks => ticks.length - 1),
+		scaledXMinPerFacet: xTicksPerFacet.map((ticks: any) => 0),
+		scaledXMaxPerFacet: xTicksPerFacet.map((ticks: any) => ticks.length - 1),
 		yMin: settings.relative ? 0 : settings.kind === "titres" ? 5 : 0.25,
 		yMax: settings.relative ? 5 : settings.kind === "titres" ? 5120 : 256,
 		xTicksPerFacet: xTicksPerFacet,
