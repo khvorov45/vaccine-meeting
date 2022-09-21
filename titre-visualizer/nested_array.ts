@@ -4,7 +4,7 @@ type NestedArrIter = {
 	nestedArr: any[][],
 }
 
-const beginNestedArrIter = (nestedArr: any[][]): NestedArrIter => {
+export const beginNestedArrIter = (nestedArr: any[][]): NestedArrIter => {
 	let arrIndices = [] as number[]
 	for (let arrIndex = 0; arrIndex < nestedArr.length; arrIndex += 1) {
 		arrIndices.push(0)
@@ -16,7 +16,7 @@ const beginNestedArrIter = (nestedArr: any[][]): NestedArrIter => {
 	}
 }
 
-const getCurrentNestedArrValues = (iter: NestedArrIter) => {
+export const getCurrentNestedArrValues = (iter: NestedArrIter) => {
 	let facets = [] as any[]
 	for (let facetSetIndex = 0; facetSetIndex < iter.nestedArr.length; facetSetIndex += 1) {
 		const setValueIndex = iter.arrIndices[facetSetIndex]
@@ -25,7 +25,7 @@ const getCurrentNestedArrValues = (iter: NestedArrIter) => {
 	return facets
 }
 
-const nextNestedArrIter = (iter: NestedArrIter) => {
+export const nextNestedArrIter = (iter: NestedArrIter) => {
 	let nestedArrCurrentSetIndex = iter.arrIndices.length - 1
 	while (true) {
 		if (nestedArrCurrentSetIndex == -1) {
@@ -42,7 +42,7 @@ const nextNestedArrIter = (iter: NestedArrIter) => {
 	}
 }
 
-const expandGrid = (input: any[][]): any[][] => {
+export const expandGrid = (input: any[][]): any[][] => {
 	const result: any[] = []
 	for (const nestedArrIter = beginNestedArrIter(input);
 		!nestedArrIter.done;

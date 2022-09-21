@@ -5,7 +5,7 @@ import {VirtualizedList} from "/virtualized-list.js"
 // @ts-ignore
 import * as Arr from "/array.js"
 // @ts-ignore
-import * as NestArr from "/nested_array"
+import * as NestArr from "/nested_array.js"
 
 type Titres = any[]
 type Rises = any[]
