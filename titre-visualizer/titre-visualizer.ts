@@ -1197,7 +1197,7 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 					let preTitres = pre.map(row => row[varNames.titre] as number)
 					let postTitres = post.map(row => row[varNames.titre] as number)
 					if (settings.relative) {
-						if (refViruses.length === 1) {
+						if (settings.refType === "manual" || refViruses.length === 1) {
 							let reference = referenceTitres[pid]
 							if (settings.refType == "data") {
 								const refVirus = refViruses[0]
@@ -1261,45 +1261,80 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 			} break
 
 			case "wide": {
-				for (let row of stripData) {
-					const preTitre = <number>row[varNames.preTitre]
-					const postTitre = <number>row[varNames.postTitre]
-
-					// TODO(sen) Relative
-					// TODO(sen) Clip plot elements to plot area
-
-					const scaledPreTitre = plot.spec.scaleYData(preTitre)
-					const scaledPostTitre = plot.spec.scaleYData(postTitre)
-
-					scaledPreTitres.push(scaledPreTitre)
-					scaledPostTitres.push(scaledPostTitre)
-
-					const preYCoord = plot.scaleScaledYToPx(scaledPreTitre)
-					const postYCoord = plot.scaleScaledYToPx(scaledPostTitre)
-
-					const jitterX = randUnif(-jitterMaxX, jitterMaxX)
-					const jitterY = randUnif(-jitterMaxY, jitterMaxY)
-
-					if (settings.kind === "titres") {
-						const preXCoordJit = preXCoord + jitterX
-						const postXCoordJit = postXCoord + jitterX
-						const preYCoordJit = preYCoord + jitterY
-						const postYCoordJit = postYCoord + jitterY
-
-						if (isGood(preTitre)) {
-							drawPoint(plot.renderer, preXCoordJit, preYCoordJit, pointSize, preColorWithAlpha, preColorWithAlpha)
+				for (let pid of pids) {
+					const pidData = stripData.filter(row => row.__UNIQUEPID__ === pid)
+					const refViruses = Arr.unique(pidData.map(row => row[data.varNames.reference]))
+					for (let row of pidData) {
+						let preTitre: number | null = <number>row[varNames.preTitre]
+						let postTitre: number | null = <number>row[varNames.postTitre]
+	
+						// TODO(sen) Clip plot elements to plot area
+	
+						if (settings.relative) {
+							if (settings.refType === "manual" || refViruses.length === 1) {
+								let reference = referenceTitres[pid]
+								if (settings.refType == "data") {
+									const refVirus = refViruses[0]
+									reference = pidVirusTimepointTitres[pid][refVirus]
+								}
+								if (reference !== undefined) {
+									if (reference.pre !== null) {
+										preTitre = preTitre / <number>reference.pre
+									} else {
+										preTitre = null
+									}
+	
+									if (reference.post !== null) {
+										postTitre = postTitre / <number>reference.post
+									} else {
+										postTitre = null
+									}
+								} else {
+									preTitre = null
+									postTitre = null
+								}
+							} else {
+								preTitre = null
+								postTitre = null
+							}
 						}
-						if (isGood(postTitre)) {
-							drawPoint(plot.renderer, postXCoordJit, postYCoordJit, pointSize, postColorWithAlpha, postColorWithAlpha)
+
+						const jitterX = randUnif(-jitterMaxX, jitterMaxX)
+						const jitterY = randUnif(-jitterMaxY, jitterMaxY)
+						
+						if (settings.kind === "titres") {
+
+							let preXCoordJit = 0
+							let preYCoordJit = 0
+							if (isGood(preTitre)) {
+								const scaledPreTitre = plot.spec.scaleYData(<number>preTitre)
+								scaledPreTitres.push(scaledPreTitre)
+								const preYCoord = plot.scaleScaledYToPx(scaledPreTitre)
+								preXCoordJit = preXCoord + jitterX
+								preYCoordJit = preYCoord + jitterY
+								drawPoint(plot.renderer, preXCoordJit, preYCoordJit, pointSize, preColorWithAlpha, preColorWithAlpha)
+							}
+
+							let postXCoordJit = 0
+							let postYCoordJit = 0
+							if (isGood(postTitre)) {
+								const scaledPostTitre = plot.spec.scaleYData(<number>postTitre)
+								scaledPostTitres.push(scaledPostTitre)
+								const postYCoord = plot.scaleScaledYToPx(scaledPostTitre)
+								postXCoordJit = postXCoord + jitterX
+								postYCoordJit = postYCoord + jitterY
+								drawPoint(plot.renderer, postXCoordJit, postYCoordJit, pointSize, postColorWithAlpha, postColorWithAlpha)
+							}
+	
+							if (isGood(preTitre) && isGood(postTitre)) {
+								drawLine(plot.renderer, preXCoordJit, preYCoordJit, postXCoordJit, postYCoordJit, preColorWithAlphaLine, postColorWithAlphaLine, lineSize, [])
+							}
+						} else if (isGood(preTitre) && isGood(postTitre)) {
+							const scaledRatio = plot.spec.scaleYData(<number>postTitre / <number>preTitre)
+							scaledRatios.push(scaledRatio)
+							const yCoord = plot.scaleScaledYToPx(scaledRatio) + jitterY
+							drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
 						}
-						if (isGood(preTitre) && isGood(postTitre)) {
-							drawLine(plot.renderer, preXCoordJit, preYCoordJit, postXCoordJit, postYCoordJit, preColorWithAlphaLine, postColorWithAlphaLine, lineSize, [])
-						}
-					} else if (isGood(preTitre) && isGood(postTitre)) {
-						const scaledRatio = plot.spec.scaleYData(postTitre / preTitre)
-						scaledRatios.push(scaledRatio)
-						const yCoord = plot.scaleScaledYToPx(scaledRatio) + jitterY
-						drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
 					}
 				}
 			} break
@@ -1837,6 +1872,7 @@ type DataVarNamesWide = {
 	reference: string,
 	preTitre: string,
 	postTitre: string,
+	uniquePID: string[], // NOTE(sen) Need for relative titres
 }
 
 type DataVarNames = DataVarNamesLong | DataVarNamesWide
@@ -1857,6 +1893,10 @@ const DEFAULT_DATA_VAR_NAMES: DataVarNamesLong = {
 
 const DEFAULT_DATA_VAR_NAMES_WIDE: DataVarNamesWide = {
 	format: "wide", preTitre: "preTitre", postTitre: "postTitre", virus: "virus", reference: "reference_cell",
+	uniquePID: [
+		"year", "hemisphere", "flu_set", "test_type", "testing_lab", "location", 
+		"serum_lab", "cohort", "strain", "passage", "subject_id", "vaccine"
+	]
 }
 
 const guessDataVarNames = (existingNames: string[]) => {
@@ -1864,6 +1904,8 @@ const guessDataVarNames = (existingNames: string[]) => {
 	const colsWithTitre: string[] = []
 	const colsWithVirus: string[] = []
 	const colsWithReference: string[] = []
+	const colsWithStrain: string[] = []
+	const colsWithPassage: string[] = []
 	for (let name of existingNames) {
 		const lowerName = name.toLowerCase()
 		if (lowerName.includes("titre") || lowerName.includes("titer")) {
@@ -1874,6 +1916,12 @@ const guessDataVarNames = (existingNames: string[]) => {
 		}
 		if (lowerName.includes("reference")) {
 			colsWithReference.push(name)
+		}
+		if (lowerName.includes("strain")) {
+			colsWithStrain.push(name)
+		}
+		if (lowerName.includes("passage")) {
+			colsWithPassage.push(name)
 		}
 	}
 	const format = colsWithTitre.length > 1 ? "wide" : "long"
@@ -1893,7 +1941,18 @@ const guessDataVarNames = (existingNames: string[]) => {
 				postTitre = name
 			}
 		}
-		varNames = {format: "wide", preTitre: preTitre, postTitre: postTitre, virus: colsWithVirus[0], reference: colsWithReference[0]}
+
+		let uniquePidCols = []
+		for (let colname of existingNames) {
+			if (colname !== preTitre && colname !== postTitre && 
+				!colsWithVirus.includes(colname) && !colsWithReference.includes(colname) &&
+				!colsWithStrain.includes(colname) && !colsWithPassage.includes(colname))
+			{
+				uniquePidCols.push(colname)
+			}
+		}		
+		varNames = {format: "wide", preTitre: preTitre, postTitre: postTitre, 
+			virus: colsWithVirus[0], reference: colsWithReference[0], uniquePID: uniquePidCols}
 	} break;
 
 	case "long": {
@@ -1957,7 +2016,7 @@ const parseData = (input: string, xFacets: string[]): Data => {
 						let value = parsedRow[colnameIndex]
 						row[colname] = value
 					}
-					row.__UNIQUEPID__ = data.varNames.format === "long" ? constructStringFromCols(row, data.varNames.uniquePID) : `${parsedRowIndex}`
+					row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePID)
 					row.__XFACET__ = constructStringFromCols(row, xFacets, FACET_LABEL_SEP)
 					data.dataFull.push(row)
 
@@ -2073,7 +2132,7 @@ const main = async () => {
 	const plotSettings: PlotSettings = {
 		xFacets: [], xAxis: data.varNames.virus, refTitre: 40, refRatio: 4, refRelative: 0.5, theme: "dark",
 		opacities: {points: 0.5, lines: 0.1, boxplots: 1, counts: 1, refLine: 1, means: 1, bars: 0},
-		kind: "titres", relative: false, refVirus: "A/Victoria/2570/2019e", refType: "manual"
+		kind: "titres", relative: true, refVirus: "A/Victoria/2570/2019e", refType: "manual"
 	}
 
 	document.documentElement.setAttribute("theme", plotSettings.theme)
@@ -2134,6 +2193,10 @@ const main = async () => {
 			data = parseData(contentsString, plotSettings.xFacets)
 			if (!data.colnames.includes(plotSettings.xAxis)) {
 				plotSettings.xAxis = data.varNames.virus
+			}
+			const viruses = Arr.unique(data.dataFull.map(x => x[data.varNames.virus]))
+			if (!viruses.includes(plotSettings.refVirus)) {
+				plotSettings.refVirus = viruses[0]
 			}
 			regenDataRelatedInputs()
 			regenPlot()
@@ -2428,12 +2491,10 @@ const main = async () => {
 
 							if (varName === "uniquePID") {
 								data.dataFull = data.dataFull.map(row => {
-									// @ts-ignore
 									row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePID)
 									return row
 								})
 								data.dataFiltered = data.dataFiltered.map(row => {
-									// @ts-ignore
 									row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePID)
 									return row
 								})
@@ -2499,7 +2560,7 @@ const main = async () => {
 		onNewDataString(fetchString)
 	}
 
-	fetchAndUpdate("/vis2022.csv")
+	fetchAndUpdate("/vis2022sep.csv")
 
 	window.addEventListener("keypress", (event: KeyboardEvent) => {
 		switch (event.key) {
@@ -2507,6 +2568,8 @@ const main = async () => {
 		case "2": {fetchAndUpdate("/HI WHO22 full panel.csv")} break
 		case "3": {fetchAndUpdate("/pivot-wide.csv")} break
 		case "4": {fetchAndUpdate("/visualiserdata.csv")} break
+		case "5": {fetchAndUpdate("/2022_SH.titers.txt")} break
+		case "6": {fetchAndUpdate("/vis2022sep.csv")} break
 		}
 	})
 }
