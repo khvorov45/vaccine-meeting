@@ -1,7 +1,7 @@
 import {Papa} from "./papaparse.js"
 import {VirtualizedList} from "./virtualized-list.js"
-import * as Arr from "./array.js"
-import * as NestArr from "./nested_array.js"
+import * as Arr from "./array.ts"
+import * as NestArr from "./nested_array.ts"
 
 type Titres = any[]
 type Rises = any[]
