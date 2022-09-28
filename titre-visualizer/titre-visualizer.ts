@@ -2,47 +2,8 @@ import {Papa} from "./papaparse.js"
 import {VirtualizedList} from "./virtualized-list.js"
 import * as Arr from "./array.ts"
 import * as NestArr from "./nested_array.ts"
-
-type Titres = any[]
-type Rises = any[]
-type CladeAverageTitres = any[]
-type CladeAverageRises = any[]
-type CirculatingAverageTitres = any[]
-type CirculatingAverageRises = any[]
-type VaccineViruses = string[]
-type CladeFreqs = Record<string, number>
-type SubtypeClades = Record<string, string[]>
-type Filter = {elements: HTMLElement[], options: [], selected: string}
-type Filters = {subtype: Filter, serum_source: Filter, cohort: Filter,}
-
-type Colors = {
-	theme: string,
-	preVax: string,
-	postVax: string,
-	vaccinePreVax: string,
-	vaccinePostVax: string,
-	text: string,
-	axis: string,
-	thresholdLine: string,
-	grid: string,
-}
-
-type PlotSizes = {
-	plotHeight: number,
-	widthPerElement: number,
-	axisPadLeft: number,
-	axisPadBottom: number,
-	axisPadTop: number,
-	dataPadX: number,
-	dataPadY: number,
-	tickLength: number,
-	prePostDistance: number,
-	boxPlotWidth: number,
-	svgTextLineHeightGuess: number,
-}
-
-type PlotContainer = { element: HTMLElement, titres: HTMLElement, rises: HTMLElement }
-type PlotContainers = { noSummary: PlotContainer, cladeAverage: PlotContainer, circulatingAverage: PlotContainer }
+import * as Rand from "./rand.ts"
+import * as Color from "./color.ts"
 
 const THEMES_ = ["dark", "light"] as const
 const THEMES = THEMES_ as unknown as string[]
@@ -51,10 +12,6 @@ type Theme = (typeof THEMES_)[number]
 const PLOT_MODES_ = ["titres", "rises"] as const
 const PLOT_MODES = PLOT_MODES_ as unknown as string[]
 type PlotMode = (typeof PLOT_MODES_)[number]
-
-const SUMMARY_TYPES_ = ["noSummary", "cladeAverage", "circulatingAverage"] as const
-const SUMMARY_TYPES = SUMMARY_TYPES_ as unknown as string[]
-type SummaryType = (typeof SUMMARY_TYPES_)[number]
 
 const PLOT_ELEMENTS_ = ["points", "lines", "boxplots", "counts", "refLine", "means", "bars"] as const
 const PLOT_ELEMENTS = PLOT_ELEMENTS_ as unknown as string[]
@@ -68,24 +25,6 @@ type DataFormat = (typeof DATA_FORMATS_)[number]
 //
 // SECTION Math
 //
-
-const randUnif = (from: number, to: number) => {
-	let rand01 = Math.random()
-	let range = (to - from)
-	let randRange = rand01 * range
-	let result = from + randRange
-	return result
-}
-
-const randNorm = (mean: number, sd: number) => {
-	let u1 = 0
-	let u2 = 0
-	while (u1 === 0) { u1 = Math.random() }
-	while (u2 === 0) { u2 = Math.random() }
-	let randNorm01 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2)
-	let result = randNorm01 * sd + mean
-	return result
-}
 
 type Rect = {
 	l: number,
@@ -147,59 +86,6 @@ const getBoxplotStats = (arr: number[]): BoxplotStats | null => {
 	return result
 }
 
-const numberSort = (x: number, y: number) => (x - y)
-const generalSort = (x: any, y: any) => (x > y ? 1 : x < y ? -1 : 0)
-
-const desiredOrderSort = (ord: any[]) => {
-	return (a: any, b: any) => {
-		let result = 0
-		let ai = ord.indexOf(a)
-		let bi = ord.indexOf(b)
-		if (ai !== -1 || bi !== -1) {
-			if (ai === -1) {
-				result = 1
-			} else if (bi === -1) {
-				result = -1
-			} else if (ai > bi) {
-				result = 1
-			} else if (ai < bi) {
-				result = -1
-			}
-		}
-		return result
-	}
-}
-
-const colChannel255ToString = (channel: number) => {
-	if (channel <= 1) {
-		channel *= 255
-	}
-	return Math.round(channel).toString(16).padStart(2, "0")
-}
-
-const colChangeSaturation = (col: string, satDelta: number) => {
-	let alpha = col.slice(7, 9)
-	let red = parseInt(col.slice(1, 3), 16)
-	let green = parseInt(col.slice(3, 5), 16)
-	let blue = parseInt(col.slice(5, 7), 16)
-
-	let mean = (red + green + blue) / 3
-
-	red = (red - mean) * satDelta + mean
-	green = (green - mean) * satDelta + mean
-	blue = (blue - mean) * satDelta + mean
-
-	red = Math.max(Math.min(Math.round(red), 255), 0)
-	green = Math.max(Math.min(Math.round(green), 255), 0)
-	blue = Math.max(Math.min(Math.round(blue), 255), 0)
-
-	let redNew = colChannel255ToString(red)
-	let greenNew = colChannel255ToString(green)
-	let blueNew = colChannel255ToString(blue)
-
-	return "#" + redNew + greenNew + blueNew + alpha
-}
-
 const isGood = (n: any) => n !== null && n !== undefined && !isNaN(n)
 const isString = (val: any) => (typeof val === "string" || val instanceof String)
 const isNumber = (val: any) => (typeof val === "number")
@@ -233,7 +119,6 @@ const getScrollbarWidths = () => {
 
 const SCROLLBAR_WIDTHS = getScrollbarWidths()
 
-const XMLNS = "http://www.w3.org/2000/svg"
 const createEl = (name: string) => document.createElement(name)
 const createDiv = () => createEl("div")
 const addEl = (parent: HTMLElement, child: HTMLElement) => {parent.appendChild(child); return child}
@@ -486,10 +371,6 @@ const drawLine = (
 	color1: string, color2: string, thiccness: number, dashSegments: number[]
 ) => {
 	if ((x1 !== x2 || y1 !== y2) && isGood(x1) && isGood(x2) && isGood(y1) && isGood(y2)) {
-		// const grad = renderer.createLinearGradient(x1, y1, x2, y2)
-		// grad.addColorStop(0, color1)
-		// grad.addColorStop(1, color2)
-
 		renderer.strokeStyle = color1
 		renderer.beginPath()
 		renderer.moveTo(x1, y1)
@@ -544,28 +425,6 @@ const drawDoubleLine = (
 
 	drawLine(renderer, x1, y1, x2, y2, color, color, thiccness, dashSegments)
 	drawLine(renderer, x1 + dx, y1 + dy, x2 + dx, y2 + dy, color2, color2, thiccness, dashSegments)
-}
-
-const drawPath = (
-	renderer: CanvasRenderingContext2D,
-	yCoords: (number | null)[], xCoords: number[], color: string
-) => {
-	renderer.strokeStyle = color
-	renderer.beginPath()
-	let started = false
-	for (let pointIndex = 0; pointIndex < yCoords.length; pointIndex += 1) {
-		let xCoord = xCoords[pointIndex];
-		let yCoord = yCoords[pointIndex];
-		if (yCoord !== null) {
-			if (!started) {
-				renderer.moveTo(xCoord, yCoord)
-				started = true
-			} else {
-				renderer.lineTo(xCoord, yCoord)
-			}
-		}
-	}
-	renderer.stroke()
 }
 
 const drawText = (
@@ -788,8 +647,7 @@ const beginPlot = (spec: PlotSpec) => {
 	}
 
 	// NOTE(sen) Facet labels and separators
-	const facetSepColor = axisCol + colChannel255ToString(0.4)
-	const facetSepThiccness = 1
+	const facetSepColor = axisCol + Color.channel255ToString(0.4)
 	for (let xFacetIndex = 0; xFacetIndex < spec.xFacetVals.length; xFacetIndex++) {
 		const xFacetVal = spec.xFacetVals[xFacetIndex]
 		const metrics = xFacetMetrics[xFacetIndex]
@@ -845,7 +703,7 @@ const addBoxplot = (
 
 	// NOTE(sen) Boxes
 	{
-		const alphaStr = colChannel255ToString(boxesAlpha)
+		const alphaStr = Color.channel255ToString(boxesAlpha)
 		const color = baseColor + alphaStr
 		const altColor = baseAltColor + alphaStr
 		drawRectOutline(plot.renderer, boxplotBody, color, lineThiccness)
@@ -896,7 +754,7 @@ const addBoxplot = (
 
 	// NOTE(sen) Means
 	{
-		const alphaStr = colChannel255ToString(meansAlpha)
+		const alphaStr = Color.channel255ToString(meansAlpha)
 		const color = baseColor + alphaStr
 		const altColor = baseAltColor + alphaStr
 
@@ -928,7 +786,7 @@ const addVBar = (
 	drawRect(
 		plot.renderer,
 		{l: xCoord - halfWidth, r: xCoord + halfWidth, t: topYCoord, b: plot.metrics.b},
-		color + colChannel255ToString(alpha)
+		color + Color.channel255ToString(alpha)
 	)
 }
 
@@ -961,7 +819,7 @@ const virusSort = (v1: string, v2: string) => {
 	return result
 }
 
-const getSorter = (varName: string, varNames: DataVarNames) => varName === varNames.virus ? virusSort : generalSort
+const getSorter = (varName: string, varNames: DataVarNames) => varName === varNames.virus ? virusSort : Arr.generalSort
 
 type PlotSettings = {
 	xFacets: string[],
@@ -1067,7 +925,7 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 	// NOTE(sen) Reference line
 	{
 		const yCoord = plot.scaleYToPx(settings.relative ? settings.refRelative : settings.kind === "titres" ? settings.refTitre : settings.refRatio)
-		const color = plot.axisColor + colChannel255ToString(settings.opacities.refLine)
+		const color = plot.axisColor + Color.channel255ToString(settings.opacities.refLine)
 		const thickness = 1
 		drawLine(plot.renderer, plot.spec.padAxis.l, yCoord, plot.totalWidth - plot.spec.padAxis.r, yCoord, color, color, thickness, [])
 	}
@@ -1107,8 +965,8 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 
 			const pointSize = 2
 			const lineSize = 1
-			const pointAlphaStr = colChannel255ToString(settings.opacities.points)
-			const lineAlphaStr = colChannel255ToString(settings.opacities.lines)
+			const pointAlphaStr = Color.channel255ToString(settings.opacities.points)
+			const lineAlphaStr = Color.channel255ToString(settings.opacities.lines)
 			const preColorWithAlpha = preColor + pointAlphaStr
 			const postColorWithAlpha = postColor + pointAlphaStr
 			const preColorWithAlphaLine = preColor + lineAlphaStr
@@ -1163,8 +1021,8 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 						}
 					}
 
-					const jitterX = randUnif(-jitterMaxX, jitterMaxX)
-					const jitterY = randUnif(-jitterMaxY, jitterMaxY)
+					const jitterX = Rand.unif(-jitterMaxX, jitterMaxX)
+					const jitterY = Rand.unif(-jitterMaxY, jitterMaxY)
 
 					if (settings.kind === "titres") {
 						const preXCoordJit = preXCoord + jitterX
@@ -1237,8 +1095,8 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 							}
 						}
 
-						const jitterX = randUnif(-jitterMaxX, jitterMaxX)
-						const jitterY = randUnif(-jitterMaxY, jitterMaxY)
+						const jitterX = Rand.unif(-jitterMaxX, jitterMaxX)
+						const jitterY = Rand.unif(-jitterMaxY, jitterMaxY)
 						
 						if (settings.kind === "titres") {
 
@@ -1354,7 +1212,7 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 			// NOTE(sen) Counts
 			{
 				const yCoord = plot.scaleYToPx(plot.spec.yTicks[plot.spec.yTicks.length - 1])
-				const alphaStr = colChannel255ToString(settings.opacities.counts)
+				const alphaStr = Color.channel255ToString(settings.opacities.counts)
 
 				if (settings.kind === "titres") {
 
@@ -1398,13 +1256,6 @@ const TABLE_ROW_HEIGHT_PX = 30
 const DOWNLOAD_CSV: { [key: string]: string } = {}
 
 let globalResizeListeners: any[] = []
-
-const clearPageListners = () => {
-	for (let listner of globalResizeListeners) {
-		window.removeEventListener("resize", listner)
-	}
-	globalResizeListeners = []
-}
 
 const createTableFilterRow = <T>(colSpec: {[key: string]: TableColSpecFinal<T>}, onInput: any) => {
 	let filterRow = createDiv()
@@ -1621,7 +1472,7 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 
 	let table = createDiv()
 	table.style.maxWidth = "100%"
-	let titleElement = addEl(table, createTableTitle(title, true))
+	addEl(table, createTableTitle(title, true))
 	DOWNLOAD_CSV[title] = ""
 
 	let colnames = Object.keys(colSpecInit)
@@ -1630,7 +1481,6 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 	// NOTE(sen) Fill in missing spec entries
 	let colSpec: { [key: string]: TableColSpecFinal<RowType> } = {}
 	for (let colname of colnames) {
-		let spec = colSpec[colname]
 		let specInit = colSpecInit[colname]
 
 		let accessInit = specInit.access ?? defaults?.access ?? colname
@@ -1702,7 +1552,7 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 		hscrollContainer.style.borderLeft = "1px solid var(--color-border)"
 		hscrollContainer.style.borderRight = "1px solid var(--color-border)"
 
-		let headerRow = addEl(hscrollContainer, createTableHeaderRow(colSpec))
+		addEl(hscrollContainer, createTableHeaderRow(colSpec))
 		addEl(hscrollContainer, createTableFilterRow(colSpec, (colname: string, filterVal: any) => {
 			colSpec[colname].filterVal = colSpec[colname].filterValProcess(filterVal)
 			aosFiltered = getAosFiltered()
@@ -2178,7 +2028,7 @@ const main = async () => {
 	window.addEventListener("dragenter", () => fileInputWholePage.style.visibility = "visible")
 	fileInputWholePage.addEventListener("dragleave", () => fileInputWholePage.style.visibility = "hidden")
 
-	const themeSwitch = addEl(inputContainer, createSwitch({
+	addEl(inputContainer, createSwitch({
 		init: plotSettings.theme,
 		opts: <Theme[]>THEMES,
 		onUpdate: (opt) => {
@@ -2194,7 +2044,7 @@ const main = async () => {
 		}
 	}))
 
-	const modeSwitch = addEl(inputContainer, createSwitch({
+	addEl(inputContainer, createSwitch({
 		init: plotSettings.kind,
 		opts: <PlotMode[]>PLOT_MODES,
 		onUpdate: (plotModes) => {
@@ -2209,7 +2059,7 @@ const main = async () => {
 		}
 	}))
 
-	const relativeSwitch = addEl(inputContainer, createSwitch({
+	addEl(inputContainer, createSwitch({
 		init: plotSettings.relative ? "Rel" : "Abs",
 		opts: ["Abs", "Rel"],
 		onUpdate: (rel) => {
@@ -2381,7 +2231,7 @@ const main = async () => {
 		} break
 		}
 
-		const formatSwitch = addEl(dataRelatedInputs, createSwitch({
+		addEl(dataRelatedInputs, createSwitch({
 			init: data.varNames.format,
 			opts: <DataFormat[]>DATA_FORMATS,
 			onUpdate: (dataFormat) => {
