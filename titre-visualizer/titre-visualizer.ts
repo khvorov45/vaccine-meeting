@@ -28,9 +28,9 @@ type DataFormat = (typeof DATA_FORMATS_)[number]
 const getBoxplotStats = (arr: number[]): Plot.BoxplotStats | null => {
 	let result: Plot.BoxplotStats | null = null
 	if (arr.length > 0) {
-		let arrSorted = arr.sort((x1, x2) => x1 - x2)
-		let q25 = Arr.sortedAscQuantile(arrSorted, 0.25)
-		let q75 = Arr.sortedAscQuantile(arrSorted, 0.75)
+		const arrSorted = arr.sort((x1, x2) => x1 - x2)
+		const q25 = Arr.sortedAscQuantile(arrSorted, 0.25)
+		const q75 = Arr.sortedAscQuantile(arrSorted, 0.75)
 		const mean = Arr.mean(arrSorted)
 		const meanSe = Arr.sd(arrSorted) / Math.sqrt(arr.length)
 		result = {
@@ -59,22 +59,22 @@ const isFractional = (val: any) => isGood(val) && isNumber(val) && Math.round(va
 //
 
 const getScrollbarWidths = () => {
-	let outer = document.createElement('div')
+	const outer = document.createElement('div')
 	outer.style.visibility = "hidden"
 	outer.style.overflowY = "scroll"
 	document.body.appendChild(outer)
 
-	let inner = document.createElement('div')
+	const inner = document.createElement('div')
 	outer.appendChild(inner)
 
-	let scrollbarWidthV = (outer.offsetWidth - inner.offsetWidth)
+	const scrollbarWidthV = (outer.offsetWidth - inner.offsetWidth)
 	outer.removeChild(inner)
 
 	outer.style.overflowY = "hidden"
 	outer.style.overflowX = "scroll"
 
 	outer.appendChild(inner)
-	let scrollbarWidthH = outer.offsetHeight - inner.offsetHeight
+	const scrollbarWidthH = outer.offsetHeight - inner.offsetHeight
 
 	outer.parentNode!.removeChild(outer);
 	return [scrollbarWidthH, scrollbarWidthV];
@@ -149,7 +149,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 		label.style.paddingLeft = "5px"
 		//label.style.textTransform = "uppercase"
 
-		label.addEventListener("click", (event) => {
+		label.addEventListener("click", () => {
 			if (optContainerDisplayed) {
 				optContainerOldDisplay = optContainer.style.display
 				optContainer.style.display = "none"
@@ -188,7 +188,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 			helpText.style.zIndex = "999"
 			helpText.style.padding = "5px"
 
-			help.addEventListener("click", (event) => {
+			help.addEventListener("click", () => {
 				if (helpText.style.display === "none") {
 					helpText.style.display = "block"
 				} else {
@@ -202,12 +202,12 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 
 	let currentSel = spec.init
 	if (multiple) {
-		// @ts-ignore
+		// @ts-ignore TODO(sen) fix
 		currentSel = [...currentSel]
 	}
 	const isSelected = (opt: SingleOpt) => {
-		// @ts-ignore
-		let result = (!multiple && opt === currentSel) ||
+		// @ts-ignore TODO(sen) fix
+		const result = (!multiple && opt === currentSel) ||
 			(multiple && (<SingleOpt[]>currentSel).includes(opt))
 		return result
 	}
@@ -215,7 +215,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 	const allOptElements: HTMLElement[] = spec.optElements === undefined ? [] : spec.optElements
 	for (let optIndex = 0; optIndex < spec.opts.length; optIndex++) {
 		const opt = spec.opts[optIndex]
-		let optElement = addDiv(optContainer)
+		const optElement = addDiv(optContainer)
 		allOptElements.push(optElement)
 		optElement.style.paddingTop = "5px"
 		optElement.style.paddingBottom = "5px"
@@ -225,9 +225,9 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 		optElement.textContent = `${opt}`
 		spec.optElementStyle?.(optElement, opt)
 
-		let normalCol = "var(--color-background)"
-		let hoverCol = "var(--color-background2)"
-		let selectedCol = "var(--color-selected)"
+		const normalCol = "var(--color-background)"
+		const hoverCol = "var(--color-background2)"
+		const selectedCol = "var(--color-selected)"
 
 		if (spec.horizontalGradient === undefined) {
 			if (isSelected(opt)) {
@@ -236,39 +236,39 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 				optElement.style.backgroundColor = normalCol
 			}
 
-			optElement.addEventListener("mouseover", (event) => {
+			optElement.addEventListener("mouseover", () => {
 				if (!isSelected(opt)) {
 					optElement.style.backgroundColor = hoverCol
 				}
 			})
-			optElement.addEventListener("mouseout", (event) => {
+			optElement.addEventListener("mouseout", () => {
 				if (!isSelected(opt)) {
 					optElement.style.backgroundColor = normalCol
 				}
 			})
 		} else {
-			// @ts-ignore
+			// @ts-ignore TODO(sen) fix
 			const fromLeft = spec.horizontalGradient[optIndex]
 			const fromLeftPercent = Math.round(fromLeft * 100)
 			optElement.style.background = `linear-gradient(to right, ${selectedCol} ${fromLeftPercent}%, ${normalCol} ${fromLeftPercent}%)`
 		}
 
-		optElement.addEventListener("click", async (event) => {
+		optElement.addEventListener("click", (event) => {
 			if (spec.horizontalGradient === undefined) {
 
 				if (!multiple) {
 
-					// @ts-ignore
+					// @ts-ignore TODO(sen) fix
 					if (opt !== currentSel) {
-						for (let child of optContainer.childNodes) {
+						for (const child of optContainer.childNodes) {
 							(<HTMLElement>child).style.backgroundColor = normalCol
 						}
 						optElement.style.backgroundColor = selectedCol
-						// @ts-ignore
+						// @ts-ignore TODO(sen) fix
 						currentSel = opt
 					} else if (spec.singleNullable) {
 						optElement.style.backgroundColor = normalCol
-						//@ts-ignore
+						//@ts-ignore TODO(sen) fix
 						currentSel = null
 					}
 
@@ -277,11 +277,11 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 					if (event.ctrlKey) {
 						allOptElements.map(optEl => optEl.style.backgroundColor = normalCol)
 						optElement.style.backgroundColor = selectedCol;
-						// @ts-ignore
+						// @ts-ignore TODO(sen) fix
 						currentSel = [opt]
 					} else if (event.shiftKey) {
 						allOptElements.map(optEl => optEl.style.backgroundColor = selectedCol)
-						// @ts-ignore
+						// @ts-ignore TODO(sen) fix
 						currentSel = [...spec.opts]
 					} else {
 						const optIndex = (<SingleOpt[]>currentSel).indexOf(opt)
@@ -298,7 +298,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 				spec.onUpdate(currentSel)
 
 			} else {
-				// @ts-ignore
+				// @ts-ignore TODO(sen) fix
 				let fromLeft = event.offsetX / event.target!.offsetWidth
 				if (event.ctrlKey) {
 					fromLeft = 0
@@ -307,7 +307,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 				}
 				const fromLeftPercent = Math.round(fromLeft * 100)
 				optElement.style.background = `linear-gradient(to right, ${selectedCol} ${fromLeftPercent}%, ${normalCol} ${fromLeftPercent}%)`
-				// @ts-ignore
+				// @ts-ignore TODO(sen) fix
 				spec.onUpdate(opt, fromLeft)
 			}
 		})
@@ -332,9 +332,9 @@ const virusSort = (v1: string, v2: string) => {
 	}
 
 	if (result === 0) {
-		let yearPat = /(\d{4})e?$/
-		let year1 = yearPat.exec(v1)?.[1]
-		let year2 = yearPat.exec(v2)?.[1]
+		const yearPat = /(\d{4})e?$/
+		const year1 = yearPat.exec(v1)?.[1]
+		const year2 = yearPat.exec(v2)?.[1]
 		if (year1 !== undefined && year2 !== undefined) {
 			result = parseInt(year1) - parseInt(year2)
 		}
@@ -386,11 +386,11 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 	const pidVirusTimepointTitres: Record<string, Record<string, {pre: number | null, post: number | null}>> = {}
 	if (settings.relative) {
 		const allpids = Arr.unique(data.dataFull.map(row => row.__UNIQUEPID__))
-		for (let pid of allpids) {
+		for (const pid of allpids) {
 			const pidData = data.dataFull.filter(row => row.__UNIQUEPID__ === pid)
 			const viruses = Arr.unique(pidData.map(row => row[data.varNames.virus]))
 			pidVirusTimepointTitres[pid] = {}
-			for (let virus of viruses) {
+			for (const virus of viruses) {
 				pidVirusTimepointTitres[pid][virus] = {pre: null, post: null}
 				const pidVirusData = pidData.filter(row => row[data.varNames.virus] == virus)
 				let preTitres = []
@@ -441,8 +441,8 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 		padAxis: {l: 100, t: 50, r: 50, b: 150},
 		padData: {l: 40, t: 20, r: 40, b: 20},
 		padFacet: 80,
-		scaledXMinPerFacet: xTicksPerFacet.map((ticks: any) => 0),
-		scaledXMaxPerFacet: xTicksPerFacet.map((ticks: any) => ticks.length - 1),
+		scaledXMinPerFacet: xTicksPerFacet.map(() => 0),
+		scaledXMaxPerFacet: xTicksPerFacet.map((ticks: any[]) => ticks.length - 1),
 		yMin: settings.relative ? 0 : settings.kind === "titres" ? 5 : 0.25,
 		yMax: settings.relative ? 5 : settings.kind === "titres" ? 5120 : 256,
 		xTicksPerFacet: xTicksPerFacet,
@@ -459,14 +459,14 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 		const yCoord = plot.scaleYToPx(settings.relative ? settings.refRelative : settings.kind === "titres" ? settings.refTitre : settings.refRatio)
 		const color = plot.axisColor + Plot.colorChannel255ToString(settings.opacities.refLine)
 		const thickness = 1
-		Plot.drawLine(plot.renderer, plot.spec.padAxis.l, yCoord, plot.totalWidth - plot.spec.padAxis.r, yCoord, color, color, thickness, [])
+		Plot.drawLine(plot.renderer, plot.spec.padAxis.l, yCoord, plot.totalWidth - plot.spec.padAxis.r, yCoord, color, thickness, [])
 	}
 
 	for (let xFacetIndex = 0; xFacetIndex < Math.max(xFacetVals.length, 1); xFacetIndex++) {
 		const xFacetVal = xFacetVals[xFacetIndex]
 		const xTicksForFacet = xTicksPerFacet[xFacetIndex]
 
-		for (let xTick of xTicksForFacet) {
+		for (const xTick of xTicksForFacet) {
 			const stripData = data.dataFiltered.filter(row => {
                 let result = row[settings.xAxis] === xTick
 				if (settings.xFacets.length > 0) {
@@ -502,7 +502,6 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 			const preColorWithAlpha = preColor + pointAlphaStr
 			const postColorWithAlpha = postColor + pointAlphaStr
 			const preColorWithAlphaLine = preColor + lineAlphaStr
-			const postColorWithAlphaLine = postColor + lineAlphaStr
 
 			const adjacentDistance = plot.spec.widthTick - leftRightStep * 2
 			const jitterMaxX = adjacentDistance / 4
@@ -517,7 +516,7 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 			case "long": {
 				const preData = stripData.filter(row => row[varNames.timepoint] === varNames.timepointLabels.pre)
 				const postData = stripData.filter(row => row[varNames.timepoint] === varNames.timepointLabels.post)
-				for (let pid of pids) {
+				for (const pid of pids) {
 					const pre = preData.filter(row => row.__UNIQUEPID__ === pid)
 					const post = postData.filter(row => row.__UNIQUEPID__ === pid)
 					const refViruses = Arr.unique(Arr.unique(pre.map(row => row[data.varNames.reference])).concat(Arr.unique(post.map(row => row[data.varNames.reference]))))
@@ -569,30 +568,30 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 						const preYCoords = preYTitresScaled.map(titre => plot.scaleScaledYToPx(titre) + jitterY)
 						const postYCoords = postYTitresScaled.map(titre => plot.scaleScaledYToPx(titre) + jitterY)
 
-						for (let preYCoord of preYCoords) {
-							Plot.drawPoint(plot.renderer, preXCoordJit, preYCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
+						for (const preYCoord of preYCoords) {
+							Plot.drawPoint(plot.renderer, preXCoordJit, preYCoord, pointSize, preColorWithAlpha)
 						}
-						for (let postYCoord of postYCoords) {
-							Plot.drawPoint(plot.renderer, postXCoordJit, postYCoord, pointSize, postColorWithAlpha, postColorWithAlpha)
+						for (const postYCoord of postYCoords) {
+							Plot.drawPoint(plot.renderer, postXCoordJit, postYCoord, pointSize, postColorWithAlpha)
 						}
 
 						if (preYCoords.length === 1 && postYCoords.length === 1) {
-							Plot.drawLine(plot.renderer, preXCoordJit, preYCoords[0], postXCoordJit, postYCoords[0], preColorWithAlphaLine, postColorWithAlphaLine, lineSize, [])
+							Plot.drawLine(plot.renderer, preXCoordJit, preYCoords[0], postXCoordJit, postYCoords[0], preColorWithAlphaLine, lineSize, [])
 						}
 					} else if (preTitres.length === 1 && postTitres.length === 1) {
 						const scaledRatio = plot.spec.scaleYData(postTitres[0] / preTitres[0])
 						scaledRatios.push(scaledRatio)
 						const yCoord = plot.scaleScaledYToPx(scaledRatio) + jitterY
-						Plot.drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
+						Plot.drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha)
 					}
 				}
 			} break
 
 			case "wide": {
-				for (let pid of pids) {
+				for (const pid of pids) {
 					const pidData = stripData.filter(row => row.__UNIQUEPID__ === pid)
 					const refViruses = Arr.unique(pidData.map(row => row[data.varNames.reference]))
-					for (let row of pidData) {
+					for (const row of pidData) {
 						let preTitre: number | null = <number>row[varNames.preTitre]
 						let postTitre: number | null = <number>row[varNames.postTitre]
 	
@@ -640,7 +639,7 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 								const preYCoord = plot.scaleScaledYToPx(scaledPreTitre)
 								preXCoordJit = preXCoord + jitterX
 								preYCoordJit = preYCoord + jitterY
-								Plot.drawPoint(plot.renderer, preXCoordJit, preYCoordJit, pointSize, preColorWithAlpha, preColorWithAlpha)
+								Plot.drawPoint(plot.renderer, preXCoordJit, preYCoordJit, pointSize, preColorWithAlpha)
 							}
 
 							let postXCoordJit = 0
@@ -651,17 +650,17 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 								const postYCoord = plot.scaleScaledYToPx(scaledPostTitre)
 								postXCoordJit = postXCoord + jitterX
 								postYCoordJit = postYCoord + jitterY
-								Plot.drawPoint(plot.renderer, postXCoordJit, postYCoordJit, pointSize, postColorWithAlpha, postColorWithAlpha)
+								Plot.drawPoint(plot.renderer, postXCoordJit, postYCoordJit, pointSize, postColorWithAlpha)
 							}
 	
 							if (isGood(preTitre) && isGood(postTitre)) {
-								Plot.drawLine(plot.renderer, preXCoordJit, preYCoordJit, postXCoordJit, postYCoordJit, preColorWithAlphaLine, postColorWithAlphaLine, lineSize, [])
+								Plot.drawLine(plot.renderer, preXCoordJit, preYCoordJit, postXCoordJit, postYCoordJit, preColorWithAlphaLine, lineSize, [])
 							}
 						} else if (isGood(preTitre) && isGood(postTitre)) {
 							const scaledRatio = plot.spec.scaleYData(<number>postTitre / <number>preTitre)
 							scaledRatios.push(scaledRatio)
 							const yCoord = plot.scaleScaledYToPx(scaledRatio) + jitterY
-							Plot.drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha, preColorWithAlpha)
+							Plot.drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha)
 						}
 					}
 				}
@@ -787,24 +786,24 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 const TABLE_ROW_HEIGHT_PX = 30
 const DOWNLOAD_CSV: { [key: string]: string } = {}
 
-let globalResizeListeners: any[] = []
+const globalResizeListeners: any[] = []
 
 const createTableFilterRow = <T>(colSpec: {[key: string]: TableColSpecFinal<T>}, onInput: any) => {
-	let filterRow = createDiv()
+	const filterRow = createDiv()
 	applyTableHeaderRowStyle(filterRow)
 
 	let rowWidth = 0 //SCROLLBAR_WIDTHS[1]
 	let colnameIndex = 0
-	for (let colname of Object.keys(colSpec)) {
-		let colWidthPx = colSpec[colname].width
+	for (const colname of Object.keys(colSpec)) {
+		const colWidthPx = colSpec[colname].width
 		rowWidth += colWidthPx
-		let cellContainer = addDiv(filterRow)
+		const cellContainer = addDiv(filterRow)
 		applyCellContainerStyle(cellContainer, colWidthPx)
 		cellContainer.style.position = "relative"
 
-		let questionMarkWidth = 20
+		const questionMarkWidth = 20
 
-		let cell = <HTMLInputElement>addEl(cellContainer, createEl("input"))
+		const cell = <HTMLInputElement>addEl(cellContainer, createEl("input"))
 		cell.type = "text"
         cell.autocomplete = "off"
         cell.placeholder = "Filter..."
@@ -814,15 +813,15 @@ const createTableFilterRow = <T>(colSpec: {[key: string]: TableColSpecFinal<T>},
 			onInput(colname, (<HTMLTextAreaElement>event.target).value)
 		})
 
-		let questionMark = addDiv(cellContainer)
+		const questionMark = addDiv(cellContainer)
 		questionMark.style.padding = "2px"
 		questionMark.style.width = questionMarkWidth + "px"
 		questionMark.style.textAlign = "center"
 		questionMark.style.cursor = "pointer"
 		questionMark.textContent = "?"
 
-        let helpText = "Case-sensitive. Supports regular expressions (e.g. ^male). For numbers, you can type >x and <x (e.g. >40)"
-        let helpEl = createDiv()
+        const helpText = "Case-sensitive. Supports regular expressions (e.g. ^male). For numbers, you can type >x and <x (e.g. >40)"
+        const helpEl = createDiv()
         helpEl.textContent = helpText
         helpEl.style.position = "absolute"
         helpEl.style.top = "100%"
@@ -875,14 +874,14 @@ const applyCellContainerStyle = (node: HTMLElement, width: number) => {
 }
 
 const createTableHeaderRow = <T>(colSpec: {[key: string]: TableColSpecFinal<T>}) => {
-	let headerRow = createDiv()
+	const headerRow = createDiv()
 	applyTableHeaderRowStyle(headerRow)
 
 	let rowWidth = 0 //SCROLLBAR_WIDTHS[1]
-	for (let colname of Object.keys(colSpec)) {
-		let colWidthPx = colSpec[colname].width
+	for (const colname of Object.keys(colSpec)) {
+		const colWidthPx = colSpec[colname].width
 		rowWidth += colWidthPx
-		let cell = addDiv(headerRow)
+		const cell = addDiv(headerRow)
 		applyCellContainerStyle(cell, colWidthPx)
 		cell.textContent = colname
 	}
@@ -892,7 +891,7 @@ const createTableHeaderRow = <T>(colSpec: {[key: string]: TableColSpecFinal<T>})
 }
 
 const createTableCell = (widthPx: number) => {
-	let cellElement = createEl("td")
+	const cellElement = createEl("td")
 	cellElement.style.width = widthPx + "px"
 	cellElement.style.textAlign = "center"
 	cellElement.style.verticalAlign = "middle"
@@ -901,7 +900,7 @@ const createTableCell = (widthPx: number) => {
 }
 
 const createTableCellString = (widthPx: number, string: string) => {
-	let cellElement = createTableCell(widthPx)
+	const cellElement = createTableCell(widthPx)
 	cellElement.textContent = string
 	if (string === MISSING_STRING) {
 		cellElement.style.color = "var(--color-text-muted)"
@@ -910,7 +909,7 @@ const createTableCellString = (widthPx: number, string: string) => {
 }
 
 const createTableTitle = (title: string, downloadable: boolean) => {
-	let titleElement = createDiv()
+	const titleElement = createDiv()
 	titleElement.style.display = "flex"
 	titleElement.style.alignItems = "center"
 	titleElement.style.justifyContent = "center"
@@ -925,13 +924,13 @@ const createTableTitle = (title: string, downloadable: boolean) => {
 		titleElement.style.cursor = "pointer"
 		titleElement.textContent += " ⇓ (download)"
 
-		titleElement.addEventListener("click", (event) => {
-			let csv = DOWNLOAD_CSV[title]
+		titleElement.addEventListener("click", () => {
+			const csv = DOWNLOAD_CSV[title]
 			if (csv) {
-				let hidden = <HTMLLinkElement>createEl("a")
+				const hidden = <HTMLLinkElement>createEl("a")
 				hidden.href = "data:text/csv;charset=utf-8," + encodeURI(csv)
 				hidden.target = "_blank"
-				// @ts-ignore
+				// @ts-ignore TODO(sen) Fix
 				hidden.download = title + ".csv"
 				hidden.click()
 			} else {
@@ -944,12 +943,12 @@ const createTableTitle = (title: string, downloadable: boolean) => {
 }
 
 const getTableBodyHeight = (tableHeight: number) => {
-	let result = tableHeight - TABLE_ROW_HEIGHT_PX * 3
+	const result = tableHeight - TABLE_ROW_HEIGHT_PX * 3
 	return result
 }
 
 const createTableBodyContainer = (tableHeight: number) => {
-	let tableBodyContainer = createDiv()
+	const tableBodyContainer = createDiv()
 	tableBodyContainer.style.overflowY = "scroll"
 	tableBodyContainer.style.maxHeight = getTableBodyHeight(tableHeight) + "px"
 	tableBodyContainer.style.boxSizing = "border-box"
@@ -965,7 +964,7 @@ const getTableRowBackgroundColor = (rowIndex: number) => {
 }
 
 const createTableDataRow = (rowIndex: number) => {
-	let rowElement = createEl("tr")
+	const rowElement = createEl("tr")
 	rowElement.style.height = TABLE_ROW_HEIGHT_PX + "px"
 	rowElement.style.backgroundColor = getTableRowBackgroundColor(rowIndex)
 	return rowElement
@@ -1000,32 +999,32 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 	}
 ) => {
 
-	let getTableHeight = getTableHeightInit ?? (() => window.innerHeight - SCROLLBAR_WIDTHS[0])
+	const getTableHeight = getTableHeightInit ?? (() => window.innerHeight - SCROLLBAR_WIDTHS[0])
 
-	let table = createDiv()
+	const table = createDiv()
 	table.style.maxWidth = "100%"
 	addEl(table, createTableTitle(title, true))
 	DOWNLOAD_CSV[title] = ""
 
-	let colnames = Object.keys(colSpecInit)
+	const colnames = Object.keys(colSpecInit)
 	DOWNLOAD_CSV[title] += colnames.join(",") + "\n"
 
 	// NOTE(sen) Fill in missing spec entries
-	let colSpec: { [key: string]: TableColSpecFinal<RowType> } = {}
-	for (let colname of colnames) {
-		let specInit = colSpecInit[colname]
+	const colSpec: { [key: string]: TableColSpecFinal<RowType> } = {}
+	for (const colname of colnames) {
+		const specInit = colSpecInit[colname]
 
 		let accessInit = specInit.access ?? defaults?.access ?? colname
 		if (isString(accessInit)) {
-			let colname = <string>accessInit
+			const colname = <string>accessInit
 			accessInit = (rowData) => rowData[colname]
 		}
 
-		let access = <(row: RowType) => any>accessInit
-		let format = (x: any) => {
+		const access = <(row: RowType) => any>accessInit
+		const format = (x: any) => {
 			let result = MISSING_STRING
 			if (x !== undefined && x !== null && x !== "undefined") {
-				let formatTest = specInit.format ?? defaults?.format
+				const formatTest = specInit.format ?? defaults?.format
 				if (formatTest !== undefined && formatTest !== null) {
 					result = formatTest(x)
 				} else {
@@ -1040,12 +1039,12 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 			format: format,
 			width: specInit.width ?? defaults?.width ?? 100,
 			filter: specInit.filter ?? defaults?.filter ?? ((row, val) => {
-				let data = access(row)
-				let formattedData = format(data)
+				const data = access(row)
+				const formattedData = format(data)
 				let passed = true
 
 				if ((val.startsWith(">") || val.startsWith("<")) && isNumber(data)) {
-					let valNumber = parseFloat(val.slice(1))
+					const valNumber = parseFloat(val.slice(1))
 					if (!isNaN(valNumber)) {
 						switch (val[0]) {
 						case ">": {passed = data >= valNumber} break;
@@ -1054,10 +1053,10 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 					}
 				} else {
 					try {
-						let re = new RegExp(val)
-						let reResult = formattedData.search(re)
+						const re = new RegExp(val)
+						const reResult = formattedData.search(re)
 						passed = reResult !== -1
-					} catch (e) {
+					} catch (_error) {
 						passed = formattedData.includes(val)
 					}
 				}
@@ -1070,7 +1069,7 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 	}
 
 	let tableWidthPx = 0
-	for (let colname of colnames) {
+	for (const colname of colnames) {
 		tableWidthPx += colSpec[colname].width
 	}
 
@@ -1078,7 +1077,7 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 
 	if (aos.length > 0) {
 
-		let hscrollContainer = addDiv(table)
+		const hscrollContainer = addDiv(table)
 		hscrollContainer.style.overflowX = "scroll"
 		hscrollContainer.style.boxSizing = "border-box"
 		hscrollContainer.style.borderLeft = "1px solid var(--color-border)"
@@ -1092,17 +1091,17 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 		}))
 
 		let tableBodyHeight = getTableBodyHeight(getTableHeight())
-		let tableBodyContainer = addEl(hscrollContainer, createTableBodyContainer(getTableHeight()))
+		const tableBodyContainer = addEl(hscrollContainer, createTableBodyContainer(getTableHeight()))
 		tableBodyContainer.style.width = tableWidthPx + "px"
 
 		const getAosFiltered = () => {
-			let aosFiltered: RowType[] = []
+			const aosFiltered: RowType[] = []
 			for (let rowIndex = 0; rowIndex < aos.length; rowIndex += 1) {
-				let rowData = aos[rowIndex]
+				const rowData = aos[rowIndex]
 
 				let passedColFilters = true
-				for (let otherColname of colnames) {
-					let spec = colSpec[otherColname]
+				for (const otherColname of colnames) {
+					const spec = colSpec[otherColname]
 					passedColFilters = passedColFilters && spec.filter(rowData, spec.filterVal)
 				}
 
@@ -1120,14 +1119,14 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 			height: tableBodyHeight,
 			rowCount: aosFiltered.length,
 			renderRow: (rowIndex: number) => {
-				let rowData = aosFiltered[rowIndex]
-				let rowElement = createTableDataRow(rowIndex)
+				const rowData = aosFiltered[rowIndex]
+				const rowElement = createTableDataRow(rowIndex)
 
-				for (let colname of colnames) {
-					let spec = colSpec[colname]
-					let colData = spec.access(rowData)
-					let colDataFormatted = spec.format(colData)
-					let width = spec.width - SCROLLBAR_WIDTHS[1] / colnames.length
+				for (const colname of colnames) {
+					const spec = colSpec[colname]
+					const colData = spec.access(rowData)
+					const colDataFormatted = spec.format(colData)
+					const width = spec.width - SCROLLBAR_WIDTHS[1] / colnames.length
 					addEl(rowElement, createTableCellString(width, colDataFormatted))
 				}
 
@@ -1138,7 +1137,7 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 		});
 
 		regenBody = () => {
-			let newTableBodyHeight = getTableBodyHeight(getTableHeight())
+			const newTableBodyHeight = getTableBodyHeight(getTableHeight())
 			if (newTableBodyHeight != tableBodyHeight) {
 				tableBodyHeight = newTableBodyHeight
 				tableBodyContainer.style.maxHeight = newTableBodyHeight + "px"
@@ -1147,12 +1146,12 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 		}
 
 		for (let rowIndex = 0; rowIndex < aos.length; rowIndex += 1) {
-			let rowData = aos[rowIndex]
+			const rowData = aos[rowIndex]
 
-			for (let colname of colnames) {
-				let spec = colSpec[colname]
-				let colData = spec.access(rowData)
-				let colDataFormatted = spec.format(colData)
+			for (const colname of colnames) {
+				const spec = colSpec[colname]
+				const colData = spec.access(rowData)
+				const colDataFormatted = spec.format(colData)
 				DOWNLOAD_CSV[title] += "\"" + colDataFormatted + "\","
 			}
 
@@ -1161,7 +1160,7 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 		}
 	}
 
-	window.addEventListener("resize", regenBody)
+	globalThis.window.addEventListener("resize", regenBody)
 	globalResizeListeners.push(regenBody)
 
 	return table
@@ -1226,7 +1225,7 @@ const guessDataVarNames = (existingNames: string[]) => {
 	const colsWithReference: string[] = []
 	const colsWithStrain: string[] = []
 	const colsWithPassage: string[] = []
-	for (let name of existingNames) {
+	for (const name of existingNames) {
 		const lowerName = name.toLowerCase()
 		if (lowerName.includes("titre") || lowerName.includes("titer")) {
 			colsWithTitre.push(name)
@@ -1252,7 +1251,7 @@ const guessDataVarNames = (existingNames: string[]) => {
 	case "wide": {
 		let preTitre = colsWithTitre[0]
 		let postTitre = colsWithTitre[1]
-		for (let name of colsWithTitre) {
+		for (const name of colsWithTitre) {
 			const lowerName = name.toLowerCase()
 			if (lowerName.includes("pre")) {
 				preTitre = name
@@ -1262,8 +1261,8 @@ const guessDataVarNames = (existingNames: string[]) => {
 			}
 		}
 
-		let uniquePidCols = []
-		for (let colname of existingNames) {
+		const uniquePidCols = []
+		for (const colname of existingNames) {
 			if (colname !== preTitre && colname !== postTitre && 
 				!colsWithVirus.includes(colname) && !colsWithReference.includes(colname) &&
 				!colsWithStrain.includes(colname) && !colsWithPassage.includes(colname))
@@ -1278,12 +1277,12 @@ const guessDataVarNames = (existingNames: string[]) => {
 	case "long": {
 		varNames = {...DEFAULT_DATA_VAR_NAMES}
 		varNames.virus = colsWithVirus[0]
-		for (let testName of varNames.uniquePID) {
+		for (const testName of varNames.uniquePID) {
 			if (!existingNames.includes(testName)) {
 				Arr.removeIndex(varNames.uniquePID, varNames.uniquePID.indexOf(testName))
 			}
 		}
-		for (let existingName of existingNames) {
+		for (const existingName of existingNames) {
 			if (existingName.toLowerCase().endsWith("id") && !varNames.uniquePID.includes(existingName)) {
 				varNames.uniquePID.push(existingName)
 			}
@@ -1330,10 +1329,10 @@ const parseData = (input: string, xFacets: string[]): Data => {
 			for (let parsedRowIndex = 1; parsedRowIndex < parseResult.data.length; parsedRowIndex++) {
 				const parsedRow = parseResult.data[parsedRowIndex]
 				if (parsedRow.findIndex((val: any) => val !== null && val !== undefined && val !== "") !== -1) {
-					let row: Record<string, string | number> = {}
+					const row: Record<string, string | number> = {}
 					for (let colnameIndex = 0; colnameIndex < data.colnames.length; colnameIndex++) {
 						const colname = data.colnames[colnameIndex]
-						let value = parsedRow[colnameIndex]
+						const value = parsedRow[colnameIndex]
 						row[colname] = value
 					}
 					row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePID)
@@ -1367,7 +1366,7 @@ const parseData = (input: string, xFacets: string[]): Data => {
 				}
 
 				const allTimepointLabels = Arr.unique(data.dataFull.map(row => row[varNames.timepoint])).filter((lbl: any) => lbl !== undefined && lbl !== null) as string[]
-				for (let timepointLabel of allTimepointLabels) {
+				for (const timepointLabel of allTimepointLabels) {
 					if (timepointLabel.toLowerCase().includes("pre")) {
 						varNames.timepointLabels.pre = timepointLabel
 					} else if (timepointLabel.toLowerCase().includes("post")) {
@@ -1389,7 +1388,7 @@ const parseData = (input: string, xFacets: string[]): Data => {
 	return data
 }
 
-const main = async () => {
+const main = () => {
 	const mainEl = document.getElementById("main")!
 
 	const inputBarSize = 200
@@ -1485,7 +1484,7 @@ const main = async () => {
 		const logFormat = plotSettings.relative ? (x: number) => x.toFixed(2) : (x: number) => Math.exp(x).toFixed(0)
 
 		const cols: any = {}
-		for (let varname of plotSettings.xFacets) {cols[varname] = {}}
+		for (const varname of plotSettings.xFacets) {cols[varname] = {}}
 		cols[plotSettings.xAxis] = {width: 200, access: "xTick"}
 		if (plotSettings.kind === "titres") {
 			cols.timepoint = {}
@@ -1557,7 +1556,7 @@ const main = async () => {
 	fileInputWholePage.style.zIndex = "999"
 	fileInputWholePage.style.background = "gray"
 
-	window.addEventListener("dragenter", () => fileInputWholePage.style.visibility = "visible")
+	globalThis.window.addEventListener("dragenter", () => fileInputWholePage.style.visibility = "visible")
 	fileInputWholePage.addEventListener("dragleave", () => fileInputWholePage.style.visibility = "hidden")
 
 	addEl(inputContainer, createSwitch({
@@ -1579,7 +1578,7 @@ const main = async () => {
 	addEl(inputContainer, createSwitch({
 		init: plotSettings.kind,
 		opts: <PlotMode[]>PLOT_MODES,
-		onUpdate: (plotModes) => {
+		onUpdate: () => {
 			plotSettings.kind = plotSettings.kind === "titres" ? "rises" : "titres"
 			regenPlot()
 		},
@@ -1642,7 +1641,7 @@ const main = async () => {
 		init: <PlotElement[]>PLOT_ELEMENTS,
 		opts: <PlotElement[]>PLOT_ELEMENTS,
 		onUpdate: (el, fromLeft) => {
-			// @ts-ignore
+			// @ts-ignore TODO(sen) Fix
 			plotSettings.opacities[el] = fromLeft
 			regenPlot()
 		},
@@ -1704,7 +1703,7 @@ const main = async () => {
 
 		const updateVisible = (colname: string) => {
 			let dataFilteredOther = [...data.dataFull]
-			for (let otherColname of data.colnames) {
+			for (const otherColname of data.colnames) {
 				if (otherColname !== colname) {
 					const allowedVals = filters[otherColname].selected
 					dataFilteredOther = dataFilteredOther.filter(row => allowedVals.includes(row[otherColname]))
@@ -1724,7 +1723,7 @@ const main = async () => {
 			}
 		}
 
-		for (let colname of data.colnames) {
+		for (const colname of data.colnames) {
 			const colUniqueVals = Arr.unique(data.dataFull.map(row => row[colname] as any)).sort(getSorter(colname, data.varNames))
 			filters[colname] = {selected: colUniqueVals, all: [...colUniqueVals], optElements: []}
 			const el = addEl(dataRelatedInputs, createSwitch({
@@ -1733,7 +1732,7 @@ const main = async () => {
 				onUpdate: (sel) => {
 					filters[colname].selected = sel
 					data.dataFiltered = [...data.dataFull]
-					for (let otherColname of data.colnames) {
+					for (const otherColname of data.colnames) {
 						const allowedVals = filters[otherColname].selected
 						data.dataFiltered = data.dataFiltered.filter(row => allowedVals.includes(row[otherColname]))
 						updateVisible(otherColname)
@@ -1766,7 +1765,7 @@ const main = async () => {
 		addEl(dataRelatedInputs, createSwitch({
 			init: data.varNames.format,
 			opts: <DataFormat[]>DATA_FORMATS,
-			onUpdate: (dataFormat) => {
+			onUpdate: () => {
 				const varNames = data.varNames
 				switch (varNames.format) {
 				case "long": {
@@ -1796,7 +1795,7 @@ const main = async () => {
 		const regenColnameInputs = () => {
 			removeChildren(colnameInputsContainer)
 
-			for (let varName of Object.keys(data.varNames)) {
+			for (const varName of Object.keys(data.varNames)) {
 				if (varName !== "format" && varName !== "timepointLabels") {
 					let helpText: string | undefined = undefined
 					if (varName === "uniquePID") {
@@ -1806,7 +1805,7 @@ const main = async () => {
 						init: data.varNames[varName as keyof DataVarNames],
 						opts: data.colnames,
 						onUpdate: (sel) => {
-							// @ts-ignore
+							// @ts-ignore TODO(sen) Fix
 							data.varNames[varName as keyof DataVarNames] = sel
 
 							if (varName === "uniquePID") {
@@ -1876,13 +1875,13 @@ const main = async () => {
 			if (resp.ok) {
 				fetchString = await resp.text()
 			}
-		} catch (e) {}
+		} catch (_error) {/* NOTE(sen) Ignore */}
 		onNewDataString(fetchString)
 	}
 
 	fetchAndUpdate("/vis2022sep.csv")
 
-	window.addEventListener("keypress", (event: KeyboardEvent) => {
+	globalThis.window.addEventListener("keypress", (event: KeyboardEvent) => {
 		switch (event.key) {
 		case "1": {fetchAndUpdate("/vis2022.csv")} break
 		case "2": {fetchAndUpdate("/HI WHO22 full panel.csv")} break

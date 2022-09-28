@@ -4,5 +4,7 @@
     "lib": ["ES2017", "DOM", "DOM.Iterable"],
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true
-  }
+  },
+  "fmt": { "options": { "indentWidth": 4 } },
+  "lint": {"rules": {"exclude": ["no-explicit-any"]}}
 }

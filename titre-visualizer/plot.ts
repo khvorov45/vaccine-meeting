@@ -64,12 +64,12 @@ export const colorChannel255ToString = (channel: number) => {
 }
 
 export const colorChangeSaturation = (col: string, satDelta: number) => {
-	let alpha = col.slice(7, 9)
+	const alpha = col.slice(7, 9)
 	let red = parseInt(col.slice(1, 3), 16)
 	let green = parseInt(col.slice(3, 5), 16)
 	let blue = parseInt(col.slice(5, 7), 16)
 
-	let mean = (red + green + blue) / 3
+	const mean = (red + green + blue) / 3
 
 	red = (red - mean) * satDelta + mean
 	green = (green - mean) * satDelta + mean
@@ -79,16 +79,16 @@ export const colorChangeSaturation = (col: string, satDelta: number) => {
 	green = Math.max(Math.min(Math.round(green), 255), 0)
 	blue = Math.max(Math.min(Math.round(blue), 255), 0)
 
-	let redNew = colorChannel255ToString(red)
-	let greenNew = colorChannel255ToString(green)
-	let blueNew = colorChannel255ToString(blue)
+	const redNew = colorChannel255ToString(red)
+	const greenNew = colorChannel255ToString(green)
+	const blueNew = colorChannel255ToString(blue)
 
 	return "#" + redNew + greenNew + blueNew + alpha
 }
 
 export const drawPoint = (
 	renderer: CanvasRenderingContext2D, centerX: number, centerY: number, radius: number,
-	color: string, outlineColor: string,
+	color: string
 ) => {
 	const halfr = radius / 2
 	drawRect(renderer, {l: centerX - halfr, r: centerX + halfr, t: centerY - halfr, b: centerY + halfr}, color)
@@ -97,7 +97,7 @@ export const drawPoint = (
 export const drawLine = (
 	renderer: CanvasRenderingContext2D,
 	x1: number, y1: number, x2: number, y2: number,
-	color1: string, color2: string, thiccness: number, dashSegments: number[]
+	color1: string, thiccness: number, dashSegments: number[]
 ) => {
 	const isGood = (n: any) => n !== null && n !== undefined && !isNaN(n)
 	if ((x1 !== x2 || y1 !== y2) && isGood(x1) && isGood(x2) && isGood(y1) && isGood(y2)) {
@@ -105,7 +105,7 @@ export const drawLine = (
 		renderer.beginPath()
 		renderer.moveTo(x1, y1)
 		renderer.lineTo(x2, y2)
-		let oldLineWidth = renderer.lineWidth
+		const oldLineWidth = renderer.lineWidth
 		renderer.lineWidth = thiccness
 
 		renderer.setLineDash(dashSegments)
@@ -124,10 +124,10 @@ export const drawDoubleLine = (
 	flipShade?: boolean
 ) => {
 	const getLineShift = (x1: number, y1: number, x2: number, y2: number, thiccness: number) => {
-		let lineVec = {x: x2 - x1, y: y2 - y1}
-		let linePerpVec = {x: lineVec.y, y: lineVec.x}
-		let dx = linePerpVec.x / (linePerpVec.x + linePerpVec.y) * thiccness
-		let dy = linePerpVec.y / (linePerpVec.x + linePerpVec.y) * thiccness
+		const lineVec = {x: x2 - x1, y: y2 - y1}
+		const linePerpVec = {x: lineVec.y, y: lineVec.x}
+		const dx = linePerpVec.x / (linePerpVec.x + linePerpVec.y) * thiccness
+		const dy = linePerpVec.y / (linePerpVec.x + linePerpVec.y) * thiccness
 		return {dx: dx, dy: dy}
 	}
 
@@ -137,8 +137,8 @@ export const drawDoubleLine = (
 		dy = -dy
 	}
 
-	drawLine(renderer, x1, y1, x2, y2, color, color, thiccness, dashSegments)
-	drawLine(renderer, x1 + dx, y1 + dy, x2 + dx, y2 + dy, color2, color2, thiccness, dashSegments)
+	drawLine(renderer, x1, y1, x2, y2, color, thiccness, dashSegments)
+	drawLine(renderer, x1 + dx, y1 + dy, x2 + dx, y2 + dy, color2, thiccness, dashSegments)
 }
 
 export const drawPath = (
@@ -149,8 +149,8 @@ export const drawPath = (
 	renderer.beginPath()
 	let started = false
 	for (let pointIndex = 0; pointIndex < yCoords.length; pointIndex += 1) {
-		let xCoord = xCoords[pointIndex];
-		let yCoord = yCoords[pointIndex];
+		const xCoord = xCoords[pointIndex];
+		const yCoord = yCoords[pointIndex];
 		if (yCoord !== null) {
 			if (!started) {
 				renderer.moveTo(xCoord, yCoord)
@@ -169,11 +169,11 @@ export const drawRect = (renderer: CanvasRenderingContext2D, rect: Rect, color: 
 }
 
 export const drawRectOutline = (renderer: CanvasRenderingContext2D, rect: Rect, color: string, thiccness: number) => {
-	let halfThicc = thiccness / 2
-	drawLine(renderer, rect.l - halfThicc, rect.t, rect.r + halfThicc, rect.t, color, color, thiccness, [])
-	drawLine(renderer, rect.r, rect.t, rect.r, rect.b, color, color, thiccness, [])
-	drawLine(renderer, rect.l - halfThicc, rect.b, rect.r + halfThicc, rect.b, color, color, thiccness, [])
-	drawLine(renderer, rect.l, rect.t, rect.l, rect.b, color, color, thiccness, [])
+	const halfThicc = thiccness / 2
+	drawLine(renderer, rect.l - halfThicc, rect.t, rect.r + halfThicc, rect.t, color, thiccness, [])
+	drawLine(renderer, rect.r, rect.t, rect.r, rect.b, color, thiccness, [])
+	drawLine(renderer, rect.l - halfThicc, rect.b, rect.r + halfThicc, rect.b, color, thiccness, [])
+	drawLine(renderer, rect.l, rect.t, rect.l, rect.b, color, thiccness, [])
 }
 
 export const drawText = (
@@ -203,14 +203,14 @@ export const drawText = (
 
 export const scale = (value: number, valueMin: number, valueMax: number, scaleMin: number, scaleMax: number) => {
 	let result = scaleMin
-	let scaleRange = scaleMax - scaleMin
+	const scaleRange = scaleMax - scaleMin
 	if (scaleRange !== 0) {
 		result = scaleRange / 2 + scaleMin
-		let valueRange = valueMax - valueMin
+		const valueRange = valueMax - valueMin
 		if (valueRange !== 0) {
-			let value0 = value - valueMin
-			let valueNorm = value0 / valueRange
-			let valueScale0 = valueNorm * scaleRange
+			const value0 = value - valueMin
+			const valueNorm = value0 / valueRange
+			const valueScale0 = valueNorm * scaleRange
 			result = valueScale0 + scaleMin
 		}
 	}
@@ -291,13 +291,13 @@ export const beginPlot = (spec: PlotSpec) => {
 	drawLine(
 		renderer,
 		spec.padAxis.l, totalHeight - spec.padAxis.b, totalWidth - spec.padAxis.r, totalHeight - spec.padAxis.b,
-		axisCol, axisCol, axisThiccness, [],
+		axisCol, axisThiccness, [],
 	)
 
 	drawLine(
 		renderer,
 		spec.padAxis.l, totalHeight - spec.padAxis.b, spec.padAxis.l, spec.padAxis.t,
-		axisCol, axisCol, axisThiccness, [],
+		axisCol, axisThiccness, [],
 	)
 
 	// NOTE(sen) Axis labels
@@ -324,13 +324,12 @@ export const beginPlot = (spec: PlotSpec) => {
 		const xFacetVal = spec.xFacetVals[xFacetIndex]
 		const xFacetTicks = spec.xTicksPerFacet[xFacetIndex]
 
-		for (let xTick of xFacetTicks) {
+		for (const xTick of xFacetTicks) {
 			const xCoord = scaleXToPx(xTick, xFacetVal)
 			allXTicksXCoords.push(xCoord)
 			drawLine(
 				renderer,
-				xCoord, totalHeight - spec.padAxis.b, xCoord, totalHeight - spec.padAxis.b + tickLength,
-				axisCol, axisCol, axisThiccness, [],
+				xCoord, totalHeight - spec.padAxis.b, xCoord, totalHeight - spec.padAxis.b + tickLength, axisCol, axisThiccness, [],
 			)
 			drawText(
 				renderer,
@@ -349,8 +348,8 @@ export const beginPlot = (spec: PlotSpec) => {
 	const gridThiccness = 1
 
 	const allYTicksYCoords: number[] = []
-	for (let yTick of spec.yTicks) {
-		let yCoord = scaleYToPx(yTick)
+	for (const yTick of spec.yTicks) {
+		const yCoord = scaleYToPx(yTick)
 		allYTicksYCoords.push(yCoord)
 		drawRect(
 			renderer,
@@ -361,7 +360,7 @@ export const beginPlot = (spec: PlotSpec) => {
 		drawLine(
 			renderer,
 			spec.padAxis.l, yCoord, totalWidth - spec.padAxis.r, yCoord,
-			gridCol, gridCol, gridThiccness, [],
+			gridCol, gridThiccness, [],
 		)
 		drawText(
 			renderer,
@@ -389,7 +388,7 @@ export const beginPlot = (spec: PlotSpec) => {
 		if (xFacetIndex < spec.xFacetVals.length - 1) {
 			drawLine(
 				renderer, facetGap, yOffset, facetGap, totalHeight - spec.padAxis.b - axisThiccness,
-				facetSepColor, facetSepColor, sepThiccness, [],
+				facetSepColor, sepThiccness, [],
 			)
 		}
 	}
@@ -421,14 +420,14 @@ export const addBoxplot = (
 ) => {
 
 	totalBoxWidth = Math.max(totalBoxWidth, 0)
-	let boxWidth = totalBoxWidth * 3 / 4
-	let medianChonkiness = boxWidth / 4
+	const boxWidth = totalBoxWidth * 3 / 4
+	const medianChonkiness = boxWidth / 4
 
-	let boxLeft = xCoord - boxWidth
-	let boxRight = xCoord
+	const boxLeft = xCoord - boxWidth
+	const boxRight = xCoord
 	const boxCenter = xCoord - boxWidth / 2
 
-	let boxplotBody = {l: boxLeft, b: plot.scaleScaledYToPx(stats.q25), r: boxRight, t: plot.scaleScaledYToPx(stats.q75)}
+	const boxplotBody = {l: boxLeft, b: plot.scaleScaledYToPx(stats.q25), r: boxRight, t: plot.scaleScaledYToPx(stats.q75)}
 
 	// NOTE(sen) Boxes
 	{
@@ -498,7 +497,7 @@ export const addBoxplot = (
 			lineThiccness,
 			[]
 		)
-		drawPoint(plot.renderer, boxCenter, plot.scaleScaledYToPx(stats.mean), 5, color, altColor)
+		drawPoint(plot.renderer, boxCenter, plot.scaleScaledYToPx(stats.mean), 5, color)
 	}
 }
 

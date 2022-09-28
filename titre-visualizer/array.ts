@@ -3,9 +3,9 @@ export const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0)
 export const mean = (arr: number[]) => sum(arr) / arr.length
 
 export const cumSum = (arr: number[]) => {
-	let result: number[] = []
+	const result: number[] = []
 	let current = 0
-	for (let val of arr) {
+	for (const val of arr) {
 		current += val
 		result.push(current)
 	}
@@ -38,7 +38,7 @@ export const removeIndex = <T>(arr: T[], index: number) => arr.splice(index, 1)
 export const arrLinSearch = <T>(arr: T[], item: T) => {
 	let result = -1
 	for (let index = 0; index < arr.length; index += 1) {
-		let elem = arr[index]
+		const elem = arr[index]
 		if (elem === item) {
 			result = index
 			break
@@ -48,13 +48,13 @@ export const arrLinSearch = <T>(arr: T[], item: T) => {
 }
 
 export const generalSort = <T>(x: T, y: T) => (x > y ? 1 : x < y ? -1 : 0)
-export const numberSort = (x: number, y: number) => (x - y)
+export const numberSort = (x: number, y: number) => x - y
 
 export const desiredOrderSort = <T>(ord: T[]) => {
 	return (a: T, b: T) => {
 		let result = 0
-		let ai = ord.indexOf(a)
-		let bi = ord.indexOf(b)
+		const ai = ord.indexOf(a)
+		const bi = ord.indexOf(b)
 		if (ai !== -1 || bi !== -1) {
 			if (ai === -1) {
 				result = 1
@@ -69,14 +69,14 @@ export const desiredOrderSort = <T>(ord: T[]) => {
 		return result
 	}
 }
-type NestedArrIter = {
-	arrIndices: number[],
-	done: boolean,
-	nestedArr: any[][],
+type NestedArrIter<T> = {
+	arrIndices: number[]
+	done: boolean
+	nestedArr: T[][]
 }
 
-export const beginNestedArrIter = (nestedArr: any[][]): NestedArrIter => {
-	let arrIndices = [] as number[]
+export const beginNestedArrIter = <T>(nestedArr: T[][]): NestedArrIter<T> => {
+	const arrIndices = [] as number[]
 	for (let arrIndex = 0; arrIndex < nestedArr.length; arrIndex += 1) {
 		arrIndices.push(0)
 	}
@@ -87,8 +87,8 @@ export const beginNestedArrIter = (nestedArr: any[][]): NestedArrIter => {
 	}
 }
 
-export const getCurrentNestedArrValues = (iter: NestedArrIter) => {
-	let facets = [] as any[]
+export const getCurrentNestedArrValues = <T>(iter: NestedArrIter<T>) => {
+	const facets = [] as T[]
 	for (let facetSetIndex = 0; facetSetIndex < iter.nestedArr.length; facetSetIndex += 1) {
 		const setValueIndex = iter.arrIndices[facetSetIndex]
 		facets.push(iter.nestedArr[facetSetIndex][setValueIndex])
@@ -96,7 +96,7 @@ export const getCurrentNestedArrValues = (iter: NestedArrIter) => {
 	return facets
 }
 
-export const nextNestedArrIter = (iter: NestedArrIter) => {
+export const nextNestedArrIter = <T>(iter: NestedArrIter<T>) => {
 	let nestedArrCurrentSetIndex = iter.arrIndices.length - 1
 	while (true) {
 		if (nestedArrCurrentSetIndex == -1) {
@@ -113,13 +113,10 @@ export const nextNestedArrIter = (iter: NestedArrIter) => {
 	}
 }
 
-export const expandGrid = (input: any[][]): any[][] => {
-	const result: any[] = []
-	for (const nestedArrIter = beginNestedArrIter(input);
-		!nestedArrIter.done;
-		nextNestedArrIter(nestedArrIter))
-	{
-		let nestedArrs = getCurrentNestedArrValues(nestedArrIter)
+export const expandGrid = <T>(input: T[][]): T[][] => {
+	const result: T[][] = []
+	for (const nestedArrIter = beginNestedArrIter(input); !nestedArrIter.done; nextNestedArrIter(nestedArrIter)) {
+		const nestedArrs = getCurrentNestedArrValues(nestedArrIter)
 		result.push(nestedArrs)
 	}
 	return result
