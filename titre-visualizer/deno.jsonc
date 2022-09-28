@@ -1,10 +1,13 @@
 {
-  "$schema": "https://deno.land/x/deno@v1.25.2/cli/schemas/config-file.v1.json",
-  "compilerOptions": {
-    "lib": ["ES2017", "DOM", "DOM.Iterable"],
-    "noFallthroughCasesInSwitch": true,
-    "noUnusedLocals": true
-  },
-  "fmt": { "options": { "indentWidth": 4 } },
-  "lint": {"rules": {"exclude": ["no-explicit-any"]}}
+	"$schema": "https://deno.land/x/deno@v1.25.2/cli/schemas/config-file.v1.json",
+	"compilerOptions": {
+		"lib": ["ES2017", "DOM", "DOM.Iterable"],
+		"noFallthroughCasesInSwitch": true,
+		"noUnusedLocals": true
+	},
+	"fmt": { "options": { "indentWidth": 4 } },
+	"lint": {
+		"files": { "exclude": ["virtualized-list.js", "papaparse.js"] },
+		"rules": { "exclude": ["no-explicit-any"] }
+	}
 }

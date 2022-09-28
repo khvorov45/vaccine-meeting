@@ -1,59 +1,59 @@
 export const CANVAS_FONT_HEIGHT = 16
 
 export type Rect = {
-	l: number,
-	r: number,
-	t: number,
-	b: number,
+	l: number
+	r: number
+	t: number
+	b: number
 }
 
 export type Plot = {
-	canvas: HTMLCanvasElement,
-	renderer: CanvasRenderingContext2D,
-	spec: PlotSpec,
-	scaleXToPx: (x: string | number, xFacetVal: (string | number)) => number,
-	scaleScaledXToPx: (x: number, facetIndex: number) => number,
-	scaleYToPx: (y: number) => number,
-	scaleScaledYToPx: (y: number) => number,
-	allXTicksXCoords: number[],
-	allYTicksYCoords: number[],
-	metrics: Rect,
-	totalWidth: number,
-	totalHeight: number,
-	axisColor: string,
+	canvas: HTMLCanvasElement
+	renderer: CanvasRenderingContext2D
+	spec: PlotSpec
+	scaleXToPx: (x: string | number, xFacetVal: string | number) => number
+	scaleScaledXToPx: (x: number, facetIndex: number) => number
+	scaleYToPx: (y: number) => number
+	scaleScaledYToPx: (y: number) => number
+	allXTicksXCoords: number[]
+	allYTicksYCoords: number[]
+	metrics: Rect
+	totalWidth: number
+	totalHeight: number
+	axisColor: string
 }
 
 export type PlotSpec = {
-	widthTick: number,
-	heightTick: number,
-	scaleXData: (x: string | number, facetIndex: number) => number,
-	scaleYData: (y: number) => number,
-	padAxis: Rect,
-	padData: Rect,
-	padFacet: number,
-	scaledXMinPerFacet: number[],
-	scaledXMaxPerFacet: number[],
-	yMin: number,
-	yMax: number,
-	xTicksPerFacet: (string | number)[][],
-	yTicks: number[],
-	xFacetVals: (string | number)[],
-	xLabel: string,
-	yLabel: string,
-	theme: "dark" | "light",
+	widthTick: number
+	heightTick: number
+	scaleXData: (x: string | number, facetIndex: number) => number
+	scaleYData: (y: number) => number
+	padAxis: Rect
+	padData: Rect
+	padFacet: number
+	scaledXMinPerFacet: number[]
+	scaledXMaxPerFacet: number[]
+	yMin: number
+	yMax: number
+	xTicksPerFacet: (string | number)[][]
+	yTicks: number[]
+	xFacetVals: (string | number)[]
+	xLabel: string
+	yLabel: string
+	theme: "dark" | "light"
 }
 
 export type BoxplotStats = {
-	min: number,
-	max: number,
-	q25: number,
-	median: number,
-	q75: number,
-	iqr: number,
-	mean: number,
-	meanSe: number,
-	meanLow: number,
-	meanHigh: number,
+	min: number
+	max: number
+	q25: number
+	median: number
+	q75: number
+	iqr: number
+	mean: number
+	meanSe: number
+	meanLow: number
+	meanHigh: number
 }
 
 export const colorChannel255ToString = (channel: number) => {
@@ -87,17 +87,25 @@ export const colorChangeSaturation = (col: string, satDelta: number) => {
 }
 
 export const drawPoint = (
-	renderer: CanvasRenderingContext2D, centerX: number, centerY: number, radius: number,
+	renderer: CanvasRenderingContext2D,
+	centerX: number,
+	centerY: number,
+	radius: number,
 	color: string
 ) => {
 	const halfr = radius / 2
-	drawRect(renderer, {l: centerX - halfr, r: centerX + halfr, t: centerY - halfr, b: centerY + halfr}, color)
+	drawRect(renderer, { l: centerX - halfr, r: centerX + halfr, t: centerY - halfr, b: centerY + halfr }, color)
 }
 
 export const drawLine = (
 	renderer: CanvasRenderingContext2D,
-	x1: number, y1: number, x2: number, y2: number,
-	color1: string, thiccness: number, dashSegments: number[]
+	x1: number,
+	y1: number,
+	x2: number,
+	y2: number,
+	color1: string,
+	thiccness: number,
+	dashSegments: number[]
 ) => {
 	const isGood = (n: any) => n !== null && n !== undefined && !isNaN(n)
 	if ((x1 !== x2 || y1 !== y2) && isGood(x1) && isGood(x2) && isGood(y1) && isGood(y2)) {
@@ -119,19 +127,25 @@ export const drawLine = (
 
 export const drawDoubleLine = (
 	renderer: CanvasRenderingContext2D,
-	x1: number, y1: number, x2: number, y2: number,
-	color: string, color2: string, thiccness: number, dashSegments: number[],
+	x1: number,
+	y1: number,
+	x2: number,
+	y2: number,
+	color: string,
+	color2: string,
+	thiccness: number,
+	dashSegments: number[],
 	flipShade?: boolean
 ) => {
 	const getLineShift = (x1: number, y1: number, x2: number, y2: number, thiccness: number) => {
-		const lineVec = {x: x2 - x1, y: y2 - y1}
-		const linePerpVec = {x: lineVec.y, y: lineVec.x}
-		const dx = linePerpVec.x / (linePerpVec.x + linePerpVec.y) * thiccness
-		const dy = linePerpVec.y / (linePerpVec.x + linePerpVec.y) * thiccness
-		return {dx: dx, dy: dy}
+		const lineVec = { x: x2 - x1, y: y2 - y1 }
+		const linePerpVec = { x: lineVec.y, y: lineVec.x }
+		const dx = (linePerpVec.x / (linePerpVec.x + linePerpVec.y)) * thiccness
+		const dy = (linePerpVec.y / (linePerpVec.x + linePerpVec.y)) * thiccness
+		return { dx: dx, dy: dy }
 	}
 
-	let {dx, dy} = getLineShift(x1, y1, x2, y2, thiccness)
+	let { dx, dy } = getLineShift(x1, y1, x2, y2, thiccness)
 	if (flipShade) {
 		dx = -dx
 		dy = -dy
@@ -143,14 +157,16 @@ export const drawDoubleLine = (
 
 export const drawPath = (
 	renderer: CanvasRenderingContext2D,
-	yCoords: (number | null)[], xCoords: number[], color: string
+	yCoords: (number | null)[],
+	xCoords: number[],
+	color: string
 ) => {
 	renderer.strokeStyle = color
 	renderer.beginPath()
 	let started = false
 	for (let pointIndex = 0; pointIndex < yCoords.length; pointIndex += 1) {
-		const xCoord = xCoords[pointIndex];
-		const yCoord = yCoords[pointIndex];
+		const xCoord = xCoords[pointIndex]
+		const yCoord = yCoords[pointIndex]
 		if (yCoord !== null) {
 			if (!started) {
 				renderer.moveTo(xCoord, yCoord)
@@ -177,8 +193,14 @@ export const drawRectOutline = (renderer: CanvasRenderingContext2D, rect: Rect, 
 }
 
 export const drawText = (
-	renderer: CanvasRenderingContext2D, text: string, xCoord: number, yCoord: number,
-	color: string, angle: number, baseline: CanvasTextBaseline, textAlign: CanvasTextAlign,
+	renderer: CanvasRenderingContext2D,
+	text: string,
+	xCoord: number,
+	yCoord: number,
+	color: string,
+	angle: number,
+	baseline: CanvasTextBaseline,
+	textAlign: CanvasTextAlign,
 	outlineColor?: string
 ) => {
 	renderer.fillStyle = color
@@ -186,7 +208,7 @@ export const drawText = (
 	renderer.textBaseline = baseline
 	renderer.textAlign = textAlign
 	renderer.translate(xCoord, yCoord)
-	renderer.rotate(angle / 360 * 2 * Math.PI)
+	renderer.rotate((angle / 360) * 2 * Math.PI)
 
 	renderer.font = `${CANVAS_FONT_HEIGHT}px sans-serif`
 	if (outlineColor !== undefined) {
@@ -218,8 +240,8 @@ export const scale = (value: number, valueMin: number, valueMax: number, scaleMi
 }
 
 export const beginPlot = (spec: PlotSpec) => {
-
-	const plotAreaWidth = spec.widthTick * spec.xTicksPerFacet.reduce((acc, cur) => acc += cur.length, 0) +
+	const plotAreaWidth =
+		spec.widthTick * spec.xTicksPerFacet.reduce((acc, cur) => (acc += cur.length), 0) +
 		spec.padFacet * Math.max(0, spec.xFacetVals.length - 1)
 	const facetHeight = spec.heightTick * spec.yTicks.length
 	const plotAreaHeight = facetHeight
@@ -233,7 +255,7 @@ export const beginPlot = (spec: PlotSpec) => {
 
 	const renderer = canvas.getContext("2d")!
 	const bgColor = spec.theme === "dark" ? "#07090c" : "#ffffff"
-	drawRect(renderer, {l: 0, t: 0, r: totalWidth, b: totalHeight}, bgColor)
+	drawRect(renderer, { l: 0, t: 0, r: totalWidth, b: totalHeight }, bgColor)
 
 	const plotMetrics: Rect = {
 		t: spec.padAxis.t + spec.padData.t,
@@ -242,25 +264,25 @@ export const beginPlot = (spec: PlotSpec) => {
 		r: totalWidth - spec.padAxis.r - spec.padData.r,
 	}
 
-	const xFacetMetrics: {l: number, r: number}[] = []
+	const xFacetMetrics: { l: number; r: number }[] = []
 	if (spec.xFacetVals.length > 0) {
 		let prevFacetRightAndPad = plotMetrics.l
 		for (let xFacetIndex = 0; xFacetIndex < spec.xFacetVals.length; xFacetIndex++) {
 			const left = prevFacetRightAndPad
 			const ticksInFacet = spec.xTicksPerFacet[xFacetIndex].length
 			const right = left + ticksInFacet * spec.widthTick
-			xFacetMetrics.push({l: left, r: right})
+			xFacetMetrics.push({ l: left, r: right })
 			prevFacetRightAndPad = right + spec.padFacet
 		}
 	} else {
-		xFacetMetrics[0] = {l: plotMetrics.l, r: plotMetrics.r}
+		xFacetMetrics[0] = { l: plotMetrics.l, r: plotMetrics.r }
 	}
 
 	const scaleScaledXToPx = (val: number, facetIndex: number) => {
 		const facetMetrics = xFacetMetrics[facetIndex]
 		const facetXMin = spec.scaledXMinPerFacet[facetIndex]
 		const facetXMax = spec.scaledXMaxPerFacet[facetIndex]
-		const result = scale(val, facetXMin, facetXMax, facetMetrics.l, facetMetrics.r,)
+		const result = scale(val, facetXMin, facetXMax, facetMetrics.l, facetMetrics.r)
 		return result
 	}
 
@@ -271,10 +293,7 @@ export const beginPlot = (spec: PlotSpec) => {
 	}
 
 	const scaleScaledYToPx = (val: number) => {
-		const result = scale(
-			val, spec.scaleYData(spec.yMin), spec.scaleYData(spec.yMax),
-			plotMetrics.b, plotMetrics.t,
-		)
+		const result = scale(val, spec.scaleYData(spec.yMin), spec.scaleYData(spec.yMax), plotMetrics.b, plotMetrics.t)
 		return result
 	}
 
@@ -290,28 +309,48 @@ export const beginPlot = (spec: PlotSpec) => {
 
 	drawLine(
 		renderer,
-		spec.padAxis.l, totalHeight - spec.padAxis.b, totalWidth - spec.padAxis.r, totalHeight - spec.padAxis.b,
-		axisCol, axisThiccness, [],
+		spec.padAxis.l,
+		totalHeight - spec.padAxis.b,
+		totalWidth - spec.padAxis.r,
+		totalHeight - spec.padAxis.b,
+		axisCol,
+		axisThiccness,
+		[]
 	)
 
 	drawLine(
 		renderer,
-		spec.padAxis.l, totalHeight - spec.padAxis.b, spec.padAxis.l, spec.padAxis.t,
-		axisCol, axisThiccness, [],
+		spec.padAxis.l,
+		totalHeight - spec.padAxis.b,
+		spec.padAxis.l,
+		spec.padAxis.t,
+		axisCol,
+		axisThiccness,
+		[]
 	)
 
 	// NOTE(sen) Axis labels
 
 	const axisTextCol = axisCol
 	drawText(
-		renderer, spec.xLabel,
-		(plotMetrics.r - plotMetrics.l) / 2 + plotMetrics.l, totalHeight - 3,
-		axisTextCol, 0, "bottom", "center",
+		renderer,
+		spec.xLabel,
+		(plotMetrics.r - plotMetrics.l) / 2 + plotMetrics.l,
+		totalHeight - 3,
+		axisTextCol,
+		0,
+		"bottom",
+		"center"
 	)
 	drawText(
-		renderer, spec.yLabel,
-		3, (plotMetrics.b - plotMetrics.t) / 2 + plotMetrics.t,
-		axisTextCol, -90, "top", "center",
+		renderer,
+		spec.yLabel,
+		3,
+		(plotMetrics.b - plotMetrics.t) / 2 + plotMetrics.t,
+		axisTextCol,
+		-90,
+		"top",
+		"center"
 	)
 
 	// NOTE(sen) Ticks and grid
@@ -329,7 +368,13 @@ export const beginPlot = (spec: PlotSpec) => {
 			allXTicksXCoords.push(xCoord)
 			drawLine(
 				renderer,
-				xCoord, totalHeight - spec.padAxis.b, xCoord, totalHeight - spec.padAxis.b + tickLength, axisCol, axisThiccness, [],
+				xCoord,
+				totalHeight - spec.padAxis.b,
+				xCoord,
+				totalHeight - spec.padAxis.b + tickLength,
+				axisCol,
+				axisThiccness,
+				[]
 			)
 			drawText(
 				renderer,
@@ -339,7 +384,7 @@ export const beginPlot = (spec: PlotSpec) => {
 				axisTextCol,
 				-30,
 				"hanging",
-				"end",
+				"end"
 			)
 		}
 	}
@@ -353,15 +398,10 @@ export const beginPlot = (spec: PlotSpec) => {
 		allYTicksYCoords.push(yCoord)
 		drawRect(
 			renderer,
-			{l: spec.padAxis.l - tickLength, r: spec.padAxis.l,
-				t: yCoord - axisThiccness, b: yCoord},
+			{ l: spec.padAxis.l - tickLength, r: spec.padAxis.l, t: yCoord - axisThiccness, b: yCoord },
 			axisCol
 		)
-		drawLine(
-			renderer,
-			spec.padAxis.l, yCoord, totalWidth - spec.padAxis.r, yCoord,
-			gridCol, gridThiccness, [],
-		)
+		drawLine(renderer, spec.padAxis.l, yCoord, totalWidth - spec.padAxis.r, yCoord, gridCol, gridThiccness, [])
 		drawText(
 			renderer,
 			`${yTick}`,
@@ -370,7 +410,7 @@ export const beginPlot = (spec: PlotSpec) => {
 			axisTextCol,
 			0,
 			"middle",
-			"end",
+			"end"
 		)
 	}
 
@@ -387,17 +427,28 @@ export const beginPlot = (spec: PlotSpec) => {
 		drawText(renderer, `${xFacetVal ?? "(missing)"}`, facetCenter, yOffset, axisTextCol, 0, "top", "center")
 		if (xFacetIndex < spec.xFacetVals.length - 1) {
 			drawLine(
-				renderer, facetGap, yOffset, facetGap, totalHeight - spec.padAxis.b - axisThiccness,
-				facetSepColor, sepThiccness, [],
+				renderer,
+				facetGap,
+				yOffset,
+				facetGap,
+				totalHeight - spec.padAxis.b - axisThiccness,
+				facetSepColor,
+				sepThiccness,
+				[]
 			)
 		}
 	}
 
 	const result: Plot = {
-		canvas: canvas, renderer: renderer, spec: spec,
-		scaleXToPx: scaleXToPx, scaleYToPx: scaleYToPx,
-		scaleScaledXToPx: scaleScaledXToPx, scaleScaledYToPx: scaleScaledYToPx,
-		allXTicksXCoords: allXTicksXCoords, allYTicksYCoords: allYTicksYCoords,
+		canvas: canvas,
+		renderer: renderer,
+		spec: spec,
+		scaleXToPx: scaleXToPx,
+		scaleYToPx: scaleYToPx,
+		scaleScaledXToPx: scaleScaledXToPx,
+		scaleScaledYToPx: scaleScaledYToPx,
+		allXTicksXCoords: allXTicksXCoords,
+		allYTicksYCoords: allYTicksYCoords,
 		metrics: plotMetrics,
 		totalWidth: totalWidth,
 		totalHeight: totalHeight,
@@ -416,18 +467,22 @@ export const addBoxplot = (
 	baseAltColor: string,
 	lineThiccness: number,
 	boxesAlpha: number,
-	meansAlpha: number,
+	meansAlpha: number
 ) => {
-
 	totalBoxWidth = Math.max(totalBoxWidth, 0)
-	const boxWidth = totalBoxWidth * 3 / 4
+	const boxWidth = (totalBoxWidth * 3) / 4
 	const medianChonkiness = boxWidth / 4
 
 	const boxLeft = xCoord - boxWidth
 	const boxRight = xCoord
 	const boxCenter = xCoord - boxWidth / 2
 
-	const boxplotBody = {l: boxLeft, b: plot.scaleScaledYToPx(stats.q25), r: boxRight, t: plot.scaleScaledYToPx(stats.q75)}
+	const boxplotBody = {
+		l: boxLeft,
+		b: plot.scaleScaledYToPx(stats.q25),
+		r: boxRight,
+		t: plot.scaleScaledYToPx(stats.q75),
+	}
 
 	// NOTE(sen) Boxes
 	{
@@ -436,7 +491,12 @@ export const addBoxplot = (
 		const altColor = baseAltColor + alphaStr
 		drawRectOutline(plot.renderer, boxplotBody, color, lineThiccness)
 
-		const bodyOutline: Rect = {l: boxplotBody.l + lineThiccness, r: boxplotBody.r - lineThiccness, t: boxplotBody.t + lineThiccness, b: boxplotBody.b - lineThiccness}
+		const bodyOutline: Rect = {
+			l: boxplotBody.l + lineThiccness,
+			r: boxplotBody.r - lineThiccness,
+			t: boxplotBody.t + lineThiccness,
+			b: boxplotBody.b - lineThiccness,
+		}
 		drawRectOutline(plot.renderer, bodyOutline, altColor, lineThiccness)
 
 		drawDoubleLine(
@@ -449,7 +509,7 @@ export const addBoxplot = (
 			altColor,
 			lineThiccness,
 			[],
-			true,
+			true
 		)
 
 		drawDoubleLine(
@@ -462,7 +522,7 @@ export const addBoxplot = (
 			altColor,
 			lineThiccness,
 			[],
-			true,
+			true
 		)
 
 		// NOTE(sen) Median
@@ -501,18 +561,11 @@ export const addBoxplot = (
 	}
 }
 
-export const addVBar = (
-	plot: Plot,
-	topYCoord: number,
-	xCoord: number,
-	width: number,
-	color: string,
-	alpha: number,
-) => {
+export const addVBar = (plot: Plot, topYCoord: number, xCoord: number, width: number, color: string, alpha: number) => {
 	const halfWidth = width / 2
 	drawRect(
 		plot.renderer,
-		{l: xCoord - halfWidth, r: xCoord + halfWidth, t: topYCoord, b: plot.metrics.b},
+		{ l: xCoord - halfWidth, r: xCoord + halfWidth, t: topYCoord, b: plot.metrics.b },
 		color + colorChannel255ToString(alpha)
 	)
 }

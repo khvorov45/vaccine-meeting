@@ -1,25 +1,25 @@
-import {Papa} from "./papaparse.js"
-import {VirtualizedList} from "./virtualized-list.js"
+import { Papa } from "./papaparse.js"
+import { VirtualizedList } from "./virtualized-list.js"
 import * as Arr from "./array.ts"
 import * as Rand from "./rand.ts"
 import * as Plot from "./plot.ts"
 
 const THEMES_ = ["dark", "light"] as const
 const THEMES = THEMES_ as unknown as string[]
-type Theme = (typeof THEMES_)[number]
+type Theme = typeof THEMES_[number]
 
 const PLOT_MODES_ = ["titres", "rises"] as const
 const PLOT_MODES = PLOT_MODES_ as unknown as string[]
-type PlotMode = (typeof PLOT_MODES_)[number]
+type PlotMode = typeof PLOT_MODES_[number]
 
 const PLOT_ELEMENTS_ = ["points", "lines", "boxplots", "counts", "refLine", "means", "bars"] as const
 const PLOT_ELEMENTS = PLOT_ELEMENTS_ as unknown as string[]
-type PlotElement = (typeof PLOT_ELEMENTS_)[number]
+type PlotElement = typeof PLOT_ELEMENTS_[number]
 type Opacities = Record<PlotElement, number>
 
 const DATA_FORMATS_ = ["wide", "long"] as const
 const DATA_FORMATS = DATA_FORMATS_ as unknown as string[]
-type DataFormat = (typeof DATA_FORMATS_)[number]
+type DataFormat = typeof DATA_FORMATS_[number]
 
 //
 // SECTION Math
@@ -50,8 +50,8 @@ const getBoxplotStats = (arr: number[]): Plot.BoxplotStats | null => {
 }
 
 const isGood = (n: any) => n !== null && n !== undefined && !isNaN(n)
-const isString = (val: any) => (typeof val === "string" || val instanceof String)
-const isNumber = (val: any) => (typeof val === "number")
+const isString = (val: any) => typeof val === "string" || val instanceof String
+const isNumber = (val: any) => typeof val === "number"
 const isFractional = (val: any) => isGood(val) && isNumber(val) && Math.round(val) !== val
 
 //
@@ -59,15 +59,15 @@ const isFractional = (val: any) => isGood(val) && isNumber(val) && Math.round(va
 //
 
 const getScrollbarWidths = () => {
-	const outer = document.createElement('div')
+	const outer = document.createElement("div")
 	outer.style.visibility = "hidden"
 	outer.style.overflowY = "scroll"
 	document.body.appendChild(outer)
 
-	const inner = document.createElement('div')
+	const inner = document.createElement("div")
 	outer.appendChild(inner)
 
-	const scrollbarWidthV = (outer.offsetWidth - inner.offsetWidth)
+	const scrollbarWidthV = outer.offsetWidth - inner.offsetWidth
 	outer.removeChild(inner)
 
 	outer.style.overflowY = "hidden"
@@ -76,17 +76,24 @@ const getScrollbarWidths = () => {
 	outer.appendChild(inner)
 	const scrollbarWidthH = outer.offsetHeight - inner.offsetHeight
 
-	outer.parentNode!.removeChild(outer);
-	return [scrollbarWidthH, scrollbarWidthV];
+	outer.parentNode!.removeChild(outer)
+	return [scrollbarWidthH, scrollbarWidthV]
 }
 
 const SCROLLBAR_WIDTHS = getScrollbarWidths()
 
 const createEl = (name: string) => document.createElement(name)
 const createDiv = () => createEl("div")
-const addEl = (parent: HTMLElement, child: HTMLElement) => {parent.appendChild(child); return child}
+const addEl = (parent: HTMLElement, child: HTMLElement) => {
+	parent.appendChild(child)
+	return child
+}
 const addDiv = (parent: HTMLElement) => addEl(parent, createDiv())
-const removeChildren = (el: HTMLElement) => {while (el.lastChild) {el.removeChild(el.lastChild)}}
+const removeChildren = (el: HTMLElement) => {
+	while (el.lastChild) {
+		el.removeChild(el.lastChild)
+	}
+}
 
 const removeEl = (parent: HTMLElement, el: HTMLElement) => {
 	parent.removeChild(el)
@@ -108,20 +115,21 @@ const switchOptionStyleAllCaps = (optEl: HTMLElement, optVal: string) => {
 }
 
 type SwitchSpec<SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]> = {
-	init: OptType,
-	opts: SingleOpt[],
-	onUpdate: (opt: OptType, fromLeft?: number) => void,
-	name?: string,
-	optElementStyle?: (optEl: HTMLElement, optVal: SingleOpt) => void,
-	optContainerStyle?: (container: HTMLElement) => void,
-	optElements?: HTMLElement[],
-	horizontalGradient?: number | number[],
-	helpText?: string,
+	init: OptType
+	opts: SingleOpt[]
+	onUpdate: (opt: OptType, fromLeft?: number) => void
+	name?: string
+	optElementStyle?: (optEl: HTMLElement, optVal: SingleOpt) => void
+	optContainerStyle?: (container: HTMLElement) => void
+	optElements?: HTMLElement[]
+	horizontalGradient?: number | number[]
+	helpText?: string
 	singleNullable?: boolean
 }
 
-const createSwitch = <SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]>
-	(spec: SwitchSpec<SingleOpt, OptType>) => {
+const createSwitch = <SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]>(
+	spec: SwitchSpec<SingleOpt, OptType>
+) => {
 	const multiple = Array.isArray(spec.init)
 	const collapsibleWithLabel = spec.name !== undefined
 
@@ -207,8 +215,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 	}
 	const isSelected = (opt: SingleOpt) => {
 		// @ts-ignore TODO(sen) fix
-		const result = (!multiple && opt === currentSel) ||
-			(multiple && (<SingleOpt[]>currentSel).includes(opt))
+		const result = (!multiple && opt === currentSel) || (multiple && (<SingleOpt[]>currentSel).includes(opt))
 		return result
 	}
 
@@ -255,13 +262,12 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 
 		optElement.addEventListener("click", (event) => {
 			if (spec.horizontalGradient === undefined) {
-
 				if (!multiple) {
-
 					// @ts-ignore TODO(sen) fix
 					if (opt !== currentSel) {
 						for (const child of optContainer.childNodes) {
-							(<HTMLElement>child).style.backgroundColor = normalCol
+							const childHtml = child as HTMLElement
+							childHtml.style.backgroundColor = normalCol
 						}
 						optElement.style.backgroundColor = selectedCol
 						// @ts-ignore TODO(sen) fix
@@ -271,16 +277,14 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 						//@ts-ignore TODO(sen) fix
 						currentSel = null
 					}
-
 				} else if (multiple) {
-
 					if (event.ctrlKey) {
-						allOptElements.map(optEl => optEl.style.backgroundColor = normalCol)
-						optElement.style.backgroundColor = selectedCol;
+						allOptElements.map((optEl) => (optEl.style.backgroundColor = normalCol))
+						optElement.style.backgroundColor = selectedCol
 						// @ts-ignore TODO(sen) fix
 						currentSel = [opt]
 					} else if (event.shiftKey) {
-						allOptElements.map(optEl => optEl.style.backgroundColor = selectedCol)
+						allOptElements.map((optEl) => (optEl.style.backgroundColor = selectedCol))
 						// @ts-ignore TODO(sen) fix
 						currentSel = [...spec.opts]
 					} else {
@@ -289,14 +293,13 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 							optElement.style.backgroundColor = normalCol
 							Arr.removeIndex(<SingleOpt[]>currentSel, optIndex)
 						} else {
-							optElement.style.backgroundColor = selectedCol;
-							(<SingleOpt[]>currentSel).push(opt)
+							optElement.style.backgroundColor = selectedCol
+							;(<SingleOpt[]>currentSel).push(opt)
 						}
 					}
 				}
 
 				spec.onUpdate(currentSel)
-
 			} else {
 				// @ts-ignore TODO(sen) fix
 				let fromLeft = event.offsetX / event.target!.offsetWidth
@@ -351,85 +354,116 @@ const virusSort = (v1: string, v2: string) => {
 	return result
 }
 
-const getSorter = (varName: string, varNames: DataVarNames) => varName === varNames.virus ? virusSort : Arr.generalSort
+const getSorter = (varName: string, varNames: DataVarNames) =>
+	varName === varNames.virus ? virusSort : Arr.generalSort
 
 type PlotSettings = {
-	xFacets: string[],
-	xAxis: string,
-	refTitre: number,
-	refRatio: number,
-	refRelative: number,
-	theme: Theme,
-	opacities: Opacities,
-	kind: PlotMode,
-	relative: boolean,
-	refVirus: string,
-	refType: "manual" | "data",
+	xFacets: string[]
+	xAxis: string
+	refTitre: number
+	refRatio: number
+	refRelative: number
+	theme: Theme
+	opacities: Opacities
+	kind: PlotMode
+	relative: boolean
+	refVirus: string
+	refType: "manual" | "data"
 }
 
 const FACET_LABEL_SEP = "; "
 
 const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
-
-	const xFacetValsAll = Arr.expandGrid(settings.xFacets.map(xFacet => Arr.unique(data.dataFiltered.map(row => row[xFacet] as any)).sort(getSorter(xFacet, data.varNames)))).map((vals: any) => vals.join(FACET_LABEL_SEP))
+	const xFacetValsAll = Arr.expandGrid(
+		settings.xFacets.map((xFacet) =>
+			Arr.unique(data.dataFiltered.map((row) => row[xFacet] as any)).sort(getSorter(xFacet, data.varNames))
+		)
+	).map((vals: any) => vals.join(FACET_LABEL_SEP))
 	const xFacetVals: string[] = []
-	const xTicksPerFacet = xFacetValsAll.length > 0 ? xFacetValsAll.map((xFacetVal: any) => {
-		const dataFacet = data.dataFiltered.filter(row => row.__XFACET__ === xFacetVal)
-		const facetXTicks = Arr.unique(dataFacet.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))
-		if (dataFacet.length > 0) {
-			xFacetVals.push(xFacetVal)
-		}
-		return facetXTicks
-	}).filter((arr: any) => arr.length > 0) : [Arr.unique(data.dataFiltered.map(row => row[settings.xAxis] as any)).sort(getSorter(settings.xAxis, data.varNames))]
+	const xTicksPerFacet =
+		xFacetValsAll.length > 0
+			? xFacetValsAll
+					.map((xFacetVal: any) => {
+						const dataFacet = data.dataFiltered.filter((row) => row.__XFACET__ === xFacetVal)
+						const facetXTicks = Arr.unique(dataFacet.map((row) => row[settings.xAxis] as any)).sort(
+							getSorter(settings.xAxis, data.varNames)
+						)
+						if (dataFacet.length > 0) {
+							xFacetVals.push(xFacetVal)
+						}
+						return facetXTicks
+					})
+					.filter((arr: any) => arr.length > 0)
+			: [
+					Arr.unique(data.dataFiltered.map((row) => row[settings.xAxis] as any)).sort(
+						getSorter(settings.xAxis, data.varNames)
+					),
+			  ]
 
-	const referenceTitres: Record<string, {pre: number | null, post: number | null}> = {}
-	const pidVirusTimepointTitres: Record<string, Record<string, {pre: number | null, post: number | null}>> = {}
+	const referenceTitres: Record<string, { pre: number | null; post: number | null }> = {}
+	const pidVirusTimepointTitres: Record<string, Record<string, { pre: number | null; post: number | null }>> = {}
 	if (settings.relative) {
-		const allpids = Arr.unique(data.dataFull.map(row => row.__UNIQUEPID__))
+		const allpids = Arr.unique(data.dataFull.map((row) => row.__UNIQUEPID__))
 		for (const pid of allpids) {
-			const pidData = data.dataFull.filter(row => row.__UNIQUEPID__ === pid)
-			const viruses = Arr.unique(pidData.map(row => row[data.varNames.virus]))
+			const pidData = data.dataFull.filter((row) => row.__UNIQUEPID__ === pid)
+			const viruses = Arr.unique(pidData.map((row) => row[data.varNames.virus]))
 			pidVirusTimepointTitres[pid] = {}
 			for (const virus of viruses) {
-				pidVirusTimepointTitres[pid][virus] = {pre: null, post: null}
-				const pidVirusData = pidData.filter(row => row[data.varNames.virus] == virus)
+				pidVirusTimepointTitres[pid][virus] = { pre: null, post: null }
+				const pidVirusData = pidData.filter((row) => row[data.varNames.virus] == virus)
 				let preTitres = []
 				let postTitres = []
 				const varNames = data.varNames
 				switch (varNames.format) {
-					case "long": {
-						preTitres = pidVirusData.filter(row => row[varNames.timepoint] == varNames.timepointLabels.pre).map(row => row[varNames.titre])
-						postTitres = pidVirusData.filter(row => row[varNames.timepoint] == varNames.timepointLabels.post).map(row => row[varNames.titre])
-					} break
-					case "wide": {
-						preTitres = pidVirusData.map(row => row[varNames.preTitre])
-						postTitres = pidVirusData.map(row => row[varNames.postTitre])
-					} break
+					case "long":
+						preTitres = pidVirusData
+							.filter((row) => row[varNames.timepoint] == varNames.timepointLabels.pre)
+							.map((row) => row[varNames.titre])
+						postTitres = pidVirusData
+							.filter((row) => row[varNames.timepoint] == varNames.timepointLabels.post)
+							.map((row) => row[varNames.titre])
+						break
+					case "wide":
+						preTitres = pidVirusData.map((row) => row[varNames.preTitre])
+						postTitres = pidVirusData.map((row) => row[varNames.postTitre])
+						break
 				}
 				// TODO(sen) Some sort of warining here when length > 1
 				// that we couldn't uniquely identify an individual
-				if (preTitres.length === 1) {pidVirusTimepointTitres[pid][virus].pre = <number>preTitres[0]}
-				if (postTitres.length === 1) {pidVirusTimepointTitres[pid][virus].post = <number>postTitres[0]}
+				if (preTitres.length === 1) {
+					pidVirusTimepointTitres[pid][virus].pre = <number>preTitres[0]
+				}
+				if (postTitres.length === 1) {
+					pidVirusTimepointTitres[pid][virus].post = <number>postTitres[0]
+				}
 			}
-			const pidReferenceTitres = pidData.filter(row => row[data.varNames.virus] === settings.refVirus)
+			const pidReferenceTitres = pidData.filter((row) => row[data.varNames.virus] === settings.refVirus)
 			let preTitres = []
 			let postTitres = []
 			const varNames = data.varNames
 			switch (varNames.format) {
-				case "long": {
-					preTitres = pidReferenceTitres.filter(row => row[varNames.timepoint] == varNames.timepointLabels.pre).map(row => row[varNames.titre])
-					postTitres = pidReferenceTitres.filter(row => row[varNames.timepoint] == varNames.timepointLabels.post).map(row => row[varNames.titre])
-				} break
-				case "wide": {
-					preTitres = pidReferenceTitres.map(row => row[varNames.preTitre])
-					postTitres = pidReferenceTitres.map(row => row[varNames.postTitre])
-				} break
+				case "long":
+					preTitres = pidReferenceTitres
+						.filter((row) => row[varNames.timepoint] == varNames.timepointLabels.pre)
+						.map((row) => row[varNames.titre])
+					postTitres = pidReferenceTitres
+						.filter((row) => row[varNames.timepoint] == varNames.timepointLabels.post)
+						.map((row) => row[varNames.titre])
+					break
+				case "wide":
+					preTitres = pidReferenceTitres.map((row) => row[varNames.preTitre])
+					postTitres = pidReferenceTitres.map((row) => row[varNames.postTitre])
+					break
 			}
-			referenceTitres[pid] = {pre: null, post: null}
+			referenceTitres[pid] = { pre: null, post: null }
 			// TODO(sen) Some sort of warining here when length > 1
 			// that we couldn't uniquely identify an individual
-			if (preTitres.length === 1) {referenceTitres[pid].pre = <number>preTitres[0]}
-			if (postTitres.length === 1) {referenceTitres[pid].post = <number>postTitres[0]}
+			if (preTitres.length === 1) {
+				referenceTitres[pid].pre = <number>preTitres[0]
+			}
+			if (postTitres.length === 1) {
+				referenceTitres[pid].post = <number>postTitres[0]
+			}
 		}
 	}
 
@@ -438,16 +472,19 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 		heightTick: 30,
 		scaleXData: (xVal, xFacetIndex) => xTicksPerFacet[xFacetIndex].indexOf(xVal),
 		scaleYData: settings.relative ? (x) => x : Math.log,
-		padAxis: {l: 100, t: 50, r: 50, b: 150},
-		padData: {l: 40, t: 20, r: 40, b: 20},
+		padAxis: { l: 100, t: 50, r: 50, b: 150 },
+		padData: { l: 40, t: 20, r: 40, b: 20 },
 		padFacet: 80,
 		scaledXMinPerFacet: xTicksPerFacet.map(() => 0),
 		scaledXMaxPerFacet: xTicksPerFacet.map((ticks: any[]) => ticks.length - 1),
 		yMin: settings.relative ? 0 : settings.kind === "titres" ? 5 : 0.25,
 		yMax: settings.relative ? 5 : settings.kind === "titres" ? 5120 : 256,
 		xTicksPerFacet: xTicksPerFacet,
-		yTicks: settings.relative ? [0, 0.5, 1, 2, 3, 4, 5] : settings.kind === "titres" ? [5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120] :
-			[0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256],
+		yTicks: settings.relative
+			? [0, 0.5, 1, 2, 3, 4, 5]
+			: settings.kind === "titres"
+			? [5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120]
+			: [0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256],
 		xFacetVals: xFacetVals,
 		xLabel: "",
 		yLabel: settings.kind === "titres" ? "Titre" : "Rises",
@@ -456,10 +493,25 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 
 	// NOTE(sen) Reference line
 	{
-		const yCoord = plot.scaleYToPx(settings.relative ? settings.refRelative : settings.kind === "titres" ? settings.refTitre : settings.refRatio)
+		const yCoord = plot.scaleYToPx(
+			settings.relative
+				? settings.refRelative
+				: settings.kind === "titres"
+				? settings.refTitre
+				: settings.refRatio
+		)
 		const color = plot.axisColor + Plot.colorChannel255ToString(settings.opacities.refLine)
 		const thickness = 1
-		Plot.drawLine(plot.renderer, plot.spec.padAxis.l, yCoord, plot.totalWidth - plot.spec.padAxis.r, yCoord, color, thickness, [])
+		Plot.drawLine(
+			plot.renderer,
+			plot.spec.padAxis.l,
+			yCoord,
+			plot.totalWidth - plot.spec.padAxis.r,
+			yCoord,
+			color,
+			thickness,
+			[]
+		)
 	}
 
 	for (let xFacetIndex = 0; xFacetIndex < Math.max(xFacetVals.length, 1); xFacetIndex++) {
@@ -467,25 +519,25 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 		const xTicksForFacet = xTicksPerFacet[xFacetIndex]
 
 		for (const xTick of xTicksForFacet) {
-			const stripData = data.dataFiltered.filter(row => {
-                let result = row[settings.xAxis] === xTick
+			const stripData = data.dataFiltered.filter((row) => {
+				let result = row[settings.xAxis] === xTick
 				if (settings.xFacets.length > 0) {
 					result = result && row.__XFACET__ === xFacetVal
 				}
 
 				const varNames = data.varNames
 				switch (varNames.format) {
-				case "long": {
-					result = result && isGood(row[varNames.titre])
-				} break
-				case "wide": {
-					result = result && isGood(row[varNames.preTitre]) && isGood(row[varNames.postTitre])
-				} break
+					case "long":
+						result = result && isGood(row[varNames.titre])
+						break
+					case "wide":
+						result = result && isGood(row[varNames.preTitre]) && isGood(row[varNames.postTitre])
+						break
 				}
 
 				return result
-            })
-			const pids = Arr.unique(stripData.map(row => row.__UNIQUEPID__))
+			})
+			const pids = Arr.unique(stripData.map((row) => row.__UNIQUEPID__))
 			const stripXCoord = plot.scaleXToPx(xTick, xFacetVal)
 
 			const leftRightStep = plot.spec.widthTick / 4
@@ -513,158 +565,219 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 			const scaledRatios: number[] = []
 			const varNames = data.varNames
 			switch (varNames.format) {
-			case "long": {
-				const preData = stripData.filter(row => row[varNames.timepoint] === varNames.timepointLabels.pre)
-				const postData = stripData.filter(row => row[varNames.timepoint] === varNames.timepointLabels.post)
-				for (const pid of pids) {
-					const pre = preData.filter(row => row.__UNIQUEPID__ === pid)
-					const post = postData.filter(row => row.__UNIQUEPID__ === pid)
-					const refViruses = Arr.unique(Arr.unique(pre.map(row => row[data.varNames.reference])).concat(Arr.unique(post.map(row => row[data.varNames.reference]))))
+				case "long":
+					{
+						const preData = stripData.filter(
+							(row) => row[varNames.timepoint] === varNames.timepointLabels.pre
+						)
+						const postData = stripData.filter(
+							(row) => row[varNames.timepoint] === varNames.timepointLabels.post
+						)
+						for (const pid of pids) {
+							const pre = preData.filter((row) => row.__UNIQUEPID__ === pid)
+							const post = postData.filter((row) => row.__UNIQUEPID__ === pid)
+							const refViruses = Arr.unique(
+								Arr.unique(pre.map((row) => row[data.varNames.reference])).concat(
+									Arr.unique(post.map((row) => row[data.varNames.reference]))
+								)
+							)
 
-					let preTitres = pre.map(row => row[varNames.titre] as number)
-					let postTitres = post.map(row => row[varNames.titre] as number)
-					if (settings.relative) {
-						if (settings.refType === "manual" || refViruses.length === 1) {
-							let reference = referenceTitres[pid]
-							if (settings.refType == "data") {
-								const refVirus = refViruses[0]
-								reference = pidVirusTimepointTitres[pid][refVirus]
-							}
-							if (reference !== undefined) {
-								if (reference.pre !== null) {
-									preTitres = preTitres.map(titre => titre / <number>reference.pre)
+							let preTitres = pre.map((row) => row[varNames.titre] as number)
+							let postTitres = post.map((row) => row[varNames.titre] as number)
+							if (settings.relative) {
+								if (settings.refType === "manual" || refViruses.length === 1) {
+									let reference = referenceTitres[pid]
+									if (settings.refType == "data") {
+										const refVirus = refViruses[0]
+										reference = pidVirusTimepointTitres[pid][refVirus]
+									}
+									if (reference !== undefined) {
+										if (reference.pre !== null) {
+											preTitres = preTitres.map((titre) => titre / <number>reference.pre)
+										} else {
+											preTitres = []
+										}
+
+										if (reference.post !== null) {
+											postTitres = postTitres.map((titre) => titre / <number>reference.post)
+										} else {
+											postTitres = []
+										}
+									} else {
+										preTitres = []
+										postTitres = []
+									}
 								} else {
 									preTitres = []
-								}
-
-								if (reference.post !== null) {
-									postTitres = postTitres.map(titre => titre / <number>reference.post)
-								} else {
 									postTitres = []
 								}
-							} else {
-								preTitres = []
-								postTitres = []
 							}
-						} else {
-							preTitres = []
-							postTitres = []
-						}
-					}
 
-					const jitterX = Rand.unif(-jitterMaxX, jitterMaxX)
-					const jitterY = Rand.unif(-jitterMaxY, jitterMaxY)
+							const jitterX = Rand.unif(-jitterMaxX, jitterMaxX)
+							const jitterY = Rand.unif(-jitterMaxY, jitterMaxY)
 
-					if (settings.kind === "titres") {
-						const preXCoordJit = preXCoord + jitterX
-						const postXCoordJit = postXCoord + jitterX
+							if (settings.kind === "titres") {
+								const preXCoordJit = preXCoord + jitterX
+								const postXCoordJit = postXCoord + jitterX
 
-						const preYTitresScaled = preTitres.map(titre => plot.spec.scaleYData(titre))
-						const postYTitresScaled = postTitres.map(titre => plot.spec.scaleYData(titre))
+								const preYTitresScaled = preTitres.map((titre) => plot.spec.scaleYData(titre))
+								const postYTitresScaled = postTitres.map((titre) => plot.spec.scaleYData(titre))
 
-						scaledPreTitres = scaledPreTitres.concat(preYTitresScaled)
-						scaledPostTitres = scaledPostTitres.concat(postYTitresScaled)
+								scaledPreTitres = scaledPreTitres.concat(preYTitresScaled)
+								scaledPostTitres = scaledPostTitres.concat(postYTitresScaled)
 
-						const preYCoords = preYTitresScaled.map(titre => plot.scaleScaledYToPx(titre) + jitterY)
-						const postYCoords = postYTitresScaled.map(titre => plot.scaleScaledYToPx(titre) + jitterY)
+								const preYCoords = preYTitresScaled.map(
+									(titre) => plot.scaleScaledYToPx(titre) + jitterY
+								)
+								const postYCoords = postYTitresScaled.map(
+									(titre) => plot.scaleScaledYToPx(titre) + jitterY
+								)
 
-						for (const preYCoord of preYCoords) {
-							Plot.drawPoint(plot.renderer, preXCoordJit, preYCoord, pointSize, preColorWithAlpha)
-						}
-						for (const postYCoord of postYCoords) {
-							Plot.drawPoint(plot.renderer, postXCoordJit, postYCoord, pointSize, postColorWithAlpha)
-						}
-
-						if (preYCoords.length === 1 && postYCoords.length === 1) {
-							Plot.drawLine(plot.renderer, preXCoordJit, preYCoords[0], postXCoordJit, postYCoords[0], preColorWithAlphaLine, lineSize, [])
-						}
-					} else if (preTitres.length === 1 && postTitres.length === 1) {
-						const scaledRatio = plot.spec.scaleYData(postTitres[0] / preTitres[0])
-						scaledRatios.push(scaledRatio)
-						const yCoord = plot.scaleScaledYToPx(scaledRatio) + jitterY
-						Plot.drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha)
-					}
-				}
-			} break
-
-			case "wide": {
-				for (const pid of pids) {
-					const pidData = stripData.filter(row => row.__UNIQUEPID__ === pid)
-					const refViruses = Arr.unique(pidData.map(row => row[data.varNames.reference]))
-					for (const row of pidData) {
-						let preTitre: number | null = <number>row[varNames.preTitre]
-						let postTitre: number | null = <number>row[varNames.postTitre]
-	
-						// TODO(sen) Clip plot elements to plot area
-	
-						if (settings.relative) {
-							if (settings.refType === "manual" || refViruses.length === 1) {
-								let reference = referenceTitres[pid]
-								if (settings.refType == "data") {
-									const refVirus = refViruses[0]
-									reference = pidVirusTimepointTitres[pid][refVirus]
+								for (const preYCoord of preYCoords) {
+									Plot.drawPoint(plot.renderer, preXCoordJit, preYCoord, pointSize, preColorWithAlpha)
 								}
-								if (reference !== undefined) {
-									if (reference.pre !== null) {
-										preTitre = preTitre / <number>reference.pre
+								for (const postYCoord of postYCoords) {
+									Plot.drawPoint(
+										plot.renderer,
+										postXCoordJit,
+										postYCoord,
+										pointSize,
+										postColorWithAlpha
+									)
+								}
+
+								if (preYCoords.length === 1 && postYCoords.length === 1) {
+									Plot.drawLine(
+										plot.renderer,
+										preXCoordJit,
+										preYCoords[0],
+										postXCoordJit,
+										postYCoords[0],
+										preColorWithAlphaLine,
+										lineSize,
+										[]
+									)
+								}
+							} else if (preTitres.length === 1 && postTitres.length === 1) {
+								const scaledRatio = plot.spec.scaleYData(postTitres[0] / preTitres[0])
+								scaledRatios.push(scaledRatio)
+								const yCoord = plot.scaleScaledYToPx(scaledRatio) + jitterY
+								Plot.drawPoint(
+									plot.renderer,
+									stripXCoord + jitterX,
+									yCoord,
+									pointSize,
+									preColorWithAlpha
+								)
+							}
+						}
+					}
+					break
+
+				case "wide":
+					for (const pid of pids) {
+						const pidData = stripData.filter((row) => row.__UNIQUEPID__ === pid)
+						const refViruses = Arr.unique(pidData.map((row) => row[data.varNames.reference]))
+						for (const row of pidData) {
+							let preTitre: number | null = <number>row[varNames.preTitre]
+							let postTitre: number | null = <number>row[varNames.postTitre]
+
+							// TODO(sen) Clip plot elements to plot area
+
+							if (settings.relative) {
+								if (settings.refType === "manual" || refViruses.length === 1) {
+									let reference = referenceTitres[pid]
+									if (settings.refType == "data") {
+										const refVirus = refViruses[0]
+										reference = pidVirusTimepointTitres[pid][refVirus]
+									}
+									if (reference !== undefined) {
+										if (reference.pre !== null) {
+											preTitre = preTitre / <number>reference.pre
+										} else {
+											preTitre = null
+										}
+
+										if (reference.post !== null) {
+											postTitre = postTitre / <number>reference.post
+										} else {
+											postTitre = null
+										}
 									} else {
 										preTitre = null
-									}
-	
-									if (reference.post !== null) {
-										postTitre = postTitre / <number>reference.post
-									} else {
 										postTitre = null
 									}
 								} else {
 									preTitre = null
 									postTitre = null
 								}
-							} else {
-								preTitre = null
-								postTitre = null
-							}
-						}
-
-						const jitterX = Rand.unif(-jitterMaxX, jitterMaxX)
-						const jitterY = Rand.unif(-jitterMaxY, jitterMaxY)
-						
-						if (settings.kind === "titres") {
-
-							let preXCoordJit = 0
-							let preYCoordJit = 0
-							if (isGood(preTitre)) {
-								const scaledPreTitre = plot.spec.scaleYData(<number>preTitre)
-								scaledPreTitres.push(scaledPreTitre)
-								const preYCoord = plot.scaleScaledYToPx(scaledPreTitre)
-								preXCoordJit = preXCoord + jitterX
-								preYCoordJit = preYCoord + jitterY
-								Plot.drawPoint(plot.renderer, preXCoordJit, preYCoordJit, pointSize, preColorWithAlpha)
 							}
 
-							let postXCoordJit = 0
-							let postYCoordJit = 0
-							if (isGood(postTitre)) {
-								const scaledPostTitre = plot.spec.scaleYData(<number>postTitre)
-								scaledPostTitres.push(scaledPostTitre)
-								const postYCoord = plot.scaleScaledYToPx(scaledPostTitre)
-								postXCoordJit = postXCoord + jitterX
-								postYCoordJit = postYCoord + jitterY
-								Plot.drawPoint(plot.renderer, postXCoordJit, postYCoordJit, pointSize, postColorWithAlpha)
+							const jitterX = Rand.unif(-jitterMaxX, jitterMaxX)
+							const jitterY = Rand.unif(-jitterMaxY, jitterMaxY)
+
+							if (settings.kind === "titres") {
+								let preXCoordJit = 0
+								let preYCoordJit = 0
+								if (isGood(preTitre)) {
+									const scaledPreTitre = plot.spec.scaleYData(<number>preTitre)
+									scaledPreTitres.push(scaledPreTitre)
+									const preYCoord = plot.scaleScaledYToPx(scaledPreTitre)
+									preXCoordJit = preXCoord + jitterX
+									preYCoordJit = preYCoord + jitterY
+									Plot.drawPoint(
+										plot.renderer,
+										preXCoordJit,
+										preYCoordJit,
+										pointSize,
+										preColorWithAlpha
+									)
+								}
+
+								let postXCoordJit = 0
+								let postYCoordJit = 0
+								if (isGood(postTitre)) {
+									const scaledPostTitre = plot.spec.scaleYData(<number>postTitre)
+									scaledPostTitres.push(scaledPostTitre)
+									const postYCoord = plot.scaleScaledYToPx(scaledPostTitre)
+									postXCoordJit = postXCoord + jitterX
+									postYCoordJit = postYCoord + jitterY
+									Plot.drawPoint(
+										plot.renderer,
+										postXCoordJit,
+										postYCoordJit,
+										pointSize,
+										postColorWithAlpha
+									)
+								}
+
+								if (isGood(preTitre) && isGood(postTitre)) {
+									Plot.drawLine(
+										plot.renderer,
+										preXCoordJit,
+										preYCoordJit,
+										postXCoordJit,
+										postYCoordJit,
+										preColorWithAlphaLine,
+										lineSize,
+										[]
+									)
+								}
+							} else if (isGood(preTitre) && isGood(postTitre)) {
+								const scaledRatio = plot.spec.scaleYData(<number>postTitre / <number>preTitre)
+								scaledRatios.push(scaledRatio)
+								const yCoord = plot.scaleScaledYToPx(scaledRatio) + jitterY
+								Plot.drawPoint(
+									plot.renderer,
+									stripXCoord + jitterX,
+									yCoord,
+									pointSize,
+									preColorWithAlpha
+								)
 							}
-	
-							if (isGood(preTitre) && isGood(postTitre)) {
-								Plot.drawLine(plot.renderer, preXCoordJit, preYCoordJit, postXCoordJit, postYCoordJit, preColorWithAlphaLine, lineSize, [])
-							}
-						} else if (isGood(preTitre) && isGood(postTitre)) {
-							const scaledRatio = plot.spec.scaleYData(<number>postTitre / <number>preTitre)
-							scaledRatios.push(scaledRatio)
-							const yCoord = plot.scaleScaledYToPx(scaledRatio) + jitterY
-							Plot.drawPoint(plot.renderer, stripXCoord + jitterX, yCoord, pointSize, preColorWithAlpha)
 						}
 					}
-				}
-			} break
+					break
 			}
 
 			const altColor = settings.theme === "dark" ? "#000000" : "#ffffff"
@@ -692,14 +805,24 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 
 				if (preStats !== null) {
 					Plot.addVBar(
-						plot, plot.scaleScaledYToPx(preStats.mean),
-						boxPreXCoord, boxWidth, preColor, settings.opacities.bars
+						plot,
+						plot.scaleScaledYToPx(preStats.mean),
+						boxPreXCoord,
+						boxWidth,
+						preColor,
+						settings.opacities.bars
 					)
 
 					Plot.addBoxplot(
-						plot, preStats, boxPreXCoord, boxWidth,
-						preColor, altColor, boxLineThiccness,
-						settings.opacities.boxplots, settings.opacities.means,
+						plot,
+						preStats,
+						boxPreXCoord,
+						boxWidth,
+						preColor,
+						altColor,
+						boxLineThiccness,
+						settings.opacities.boxplots,
+						settings.opacities.means
 					)
 					addVarsToBoxplotStats(preStats)
 					;(<any>preStats).timepoint = "pre"
@@ -708,32 +831,50 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 
 				if (postStats !== null) {
 					Plot.addVBar(
-						plot, plot.scaleScaledYToPx(postStats.mean),
-						boxPostXCoord, boxWidth, postColor, settings.opacities.bars
+						plot,
+						plot.scaleScaledYToPx(postStats.mean),
+						boxPostXCoord,
+						boxWidth,
+						postColor,
+						settings.opacities.bars
 					)
 
 					Plot.addBoxplot(
-						plot, postStats, boxPostXCoord, boxWidth,
-						postColor, altColor, boxLineThiccness,
-						settings.opacities.boxplots, settings.opacities.means,
+						plot,
+						postStats,
+						boxPostXCoord,
+						boxWidth,
+						postColor,
+						altColor,
+						boxLineThiccness,
+						settings.opacities.boxplots,
+						settings.opacities.means
 					)
 					addVarsToBoxplotStats(postStats)
 					;(<any>postStats).timepoint = "post"
 					boxplotData.push(postStats)
 				}
-
 			} else if (scaledRatios.length > 0) {
-
 				const ratioStats = getBoxplotStats(scaledRatios)
 				if (ratioStats !== null) {
 					Plot.addVBar(
-						plot, plot.scaleScaledYToPx(ratioStats.mean),
-						stripXCoord, boxWidth, preColor, settings.opacities.bars
+						plot,
+						plot.scaleScaledYToPx(ratioStats.mean),
+						stripXCoord,
+						boxWidth,
+						preColor,
+						settings.opacities.bars
 					)
 					Plot.addBoxplot(
-						plot, ratioStats, stripXCoord, boxWidth,
-						preColor, altColor, boxLineThiccness,
-						settings.opacities.boxplots, settings.opacities.means,
+						plot,
+						ratioStats,
+						stripXCoord,
+						boxWidth,
+						preColor,
+						altColor,
+						boxLineThiccness,
+						settings.opacities.boxplots,
+						settings.opacities.means
 					)
 					addVarsToBoxplotStats(ratioStats)
 					boxplotData.push(ratioStats)
@@ -746,30 +887,44 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 				const alphaStr = Plot.colorChannel255ToString(settings.opacities.counts)
 
 				if (settings.kind === "titres") {
-
 					if (scaledPreTitres.length > 0) {
 						Plot.drawText(
-							plot.renderer, `${scaledPreTitres.length}`,
+							plot.renderer,
+							`${scaledPreTitres.length}`,
 							boxPreXCoord,
 							yCoord,
-							preColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
+							preColor + alphaStr,
+							-90,
+							"middle",
+							"center",
+							altColor + alphaStr
 						)
 					}
 
 					if (scaledPostTitres.length > 0) {
 						Plot.drawText(
-							plot.renderer, `${scaledPostTitres.length}`,
+							plot.renderer,
+							`${scaledPostTitres.length}`,
 							boxPostXCoord,
 							yCoord,
-							postColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
+							postColor + alphaStr,
+							-90,
+							"middle",
+							"center",
+							altColor + alphaStr
 						)
 					}
 				} else if (scaledRatios.length > 0) {
 					Plot.drawText(
-						plot.renderer, `${scaledRatios.length}`,
+						plot.renderer,
+						`${scaledRatios.length}`,
 						stripXCoord,
 						yCoord,
-						preColor + alphaStr, -90, "middle", "center", altColor + alphaStr,
+						preColor + alphaStr,
+						-90,
+						"middle",
+						"center",
+						altColor + alphaStr
 					)
 				}
 			}
@@ -788,7 +943,7 @@ const DOWNLOAD_CSV: { [key: string]: string } = {}
 
 const globalResizeListeners: any[] = []
 
-const createTableFilterRow = <T>(colSpec: {[key: string]: TableColSpecFinal<T>}, onInput: any) => {
+const createTableFilterRow = <T>(colSpec: { [key: string]: TableColSpecFinal<T> }, onInput: any) => {
 	const filterRow = createDiv()
 	applyTableHeaderRowStyle(filterRow)
 
@@ -805,9 +960,9 @@ const createTableFilterRow = <T>(colSpec: {[key: string]: TableColSpecFinal<T>},
 
 		const cell = <HTMLInputElement>addEl(cellContainer, createEl("input"))
 		cell.type = "text"
-        cell.autocomplete = "off"
-        cell.placeholder = "Filter..."
-		cell.style.width = (colWidthPx - questionMarkWidth) + "px"
+		cell.autocomplete = "off"
+		cell.placeholder = "Filter..."
+		cell.style.width = colWidthPx - questionMarkWidth + "px"
 		cell.style.boxSizing = "border-box"
 		cell.addEventListener("input", (event) => {
 			onInput(colname, (<HTMLTextAreaElement>event.target).value)
@@ -820,36 +975,37 @@ const createTableFilterRow = <T>(colSpec: {[key: string]: TableColSpecFinal<T>},
 		questionMark.style.cursor = "pointer"
 		questionMark.textContent = "?"
 
-        const helpText = "Case-sensitive. Supports regular expressions (e.g. ^male). For numbers, you can type >x and <x (e.g. >40)"
-        const helpEl = createDiv()
-        helpEl.textContent = helpText
-        helpEl.style.position = "absolute"
-        helpEl.style.top = "100%"
-        helpEl.style.backgroundColor = "var(--color-background2)"
-        helpEl.style.padding = "10px"
-        helpEl.style.width = "200px"
-        helpEl.style.border = "1px solid var(--color-border)"
-        helpEl.style.zIndex = "999"
-        helpEl.style.whiteSpace = "normal"
+		const helpText =
+			"Case-sensitive. Supports regular expressions (e.g. ^male). For numbers, you can type >x and <x (e.g. >40)"
+		const helpEl = createDiv()
+		helpEl.textContent = helpText
+		helpEl.style.position = "absolute"
+		helpEl.style.top = "100%"
+		helpEl.style.backgroundColor = "var(--color-background2)"
+		helpEl.style.padding = "10px"
+		helpEl.style.width = "200px"
+		helpEl.style.border = "1px solid var(--color-border)"
+		helpEl.style.zIndex = "999"
+		helpEl.style.whiteSpace = "normal"
 
-        if (colnameIndex == 0) {
-        	helpEl.style.left = "0px"
-        }
+		if (colnameIndex == 0) {
+			helpEl.style.left = "0px"
+		}
 		if (colnameIndex == Object.keys(colSpec).length - 1) {
-        	helpEl.style.right = "0px"
-        }
+			helpEl.style.right = "0px"
+		}
 
-        let helpVisible = false
-        questionMark.addEventListener("click", () => {
-        	if (helpVisible) {
-        		removeEl(cellContainer, helpEl)
-        	} else {
-        		addEl(cellContainer, helpEl)
-        	}
-        	helpVisible = !helpVisible
-        })
+		let helpVisible = false
+		questionMark.addEventListener("click", () => {
+			if (helpVisible) {
+				removeEl(cellContainer, helpEl)
+			} else {
+				addEl(cellContainer, helpEl)
+			}
+			helpVisible = !helpVisible
+		})
 
-        colnameIndex += 1
+		colnameIndex += 1
 	}
 
 	filterRow.style.width = rowWidth + "px"
@@ -873,7 +1029,7 @@ const applyCellContainerStyle = (node: HTMLElement, width: number) => {
 	node.style.whiteSpace = "nowrap"
 }
 
-const createTableHeaderRow = <T>(colSpec: {[key: string]: TableColSpecFinal<T>}) => {
+const createTableHeaderRow = <T>(colSpec: { [key: string]: TableColSpecFinal<T> }) => {
 	const headerRow = createDiv()
 	applyTableHeaderRowStyle(headerRow)
 
@@ -971,34 +1127,39 @@ const createTableDataRow = (rowIndex: number) => {
 }
 
 type TableColSpec<RowType> = {
-	access?: ((row: RowType) => any) | string,
-	format?: (val: any) => string,
-	width?: number,
-	filter?: (row: RowType, val: any) => boolean,
-	filterValProcess?: (val: string) => string,
+	access?: ((row: RowType) => any) | string
+	format?: (val: any) => string
+	width?: number
+	filter?: (row: RowType, val: any) => boolean
+	filterValProcess?: (val: string) => string
 }
 
 type TableColSpecFinal<RowType> = {
-	access: (row: RowType) => any,
-	format: (val: any) => string,
-	width: number,
-	filter: (row: RowType, val: string) => boolean,
-	filterVal: string,
-	filterValProcess: (val: string) => string,
+	access: (row: RowType) => any
+	format: (val: any) => string
+	width: number
+	filter: (row: RowType, val: string) => boolean
+	filterVal: string
+	filterValProcess: (val: string) => string
 }
 
-const createTableElementFromAos = <RowType extends { [key: string]: any }>(
-	{aos, colSpecInit, defaults, title, forRow, getTableHeightInit, onFilterChange}: {
-		aos: RowType[],
-		colSpecInit: { [key: string]: TableColSpec<RowType> },
-		title: string,
-		defaults?: TableColSpec<RowType>,
-		forRow?: (row: RowType) => void,
-		getTableHeightInit?: () => number,
-		onFilterChange?: (filteredData: RowType[]) => void,
-	}
-) => {
-
+const createTableElementFromAos = <RowType extends { [key: string]: any }>({
+	aos,
+	colSpecInit,
+	defaults,
+	title,
+	forRow,
+	getTableHeightInit,
+	onFilterChange,
+}: {
+	aos: RowType[]
+	colSpecInit: { [key: string]: TableColSpec<RowType> }
+	title: string
+	defaults?: TableColSpec<RowType>
+	forRow?: (row: RowType) => void
+	getTableHeightInit?: () => number
+	onFilterChange?: (filteredData: RowType[]) => void
+}) => {
 	const getTableHeight = getTableHeightInit ?? (() => window.innerHeight - SCROLLBAR_WIDTHS[0])
 
 	const table = createDiv()
@@ -1038,31 +1199,38 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 			access: access,
 			format: format,
 			width: specInit.width ?? defaults?.width ?? 100,
-			filter: specInit.filter ?? defaults?.filter ?? ((row, val) => {
-				const data = access(row)
-				const formattedData = format(data)
-				let passed = true
+			filter:
+				specInit.filter ??
+				defaults?.filter ??
+				((row, val) => {
+					const data = access(row)
+					const formattedData = format(data)
+					let passed = true
 
-				if ((val.startsWith(">") || val.startsWith("<")) && isNumber(data)) {
-					const valNumber = parseFloat(val.slice(1))
-					if (!isNaN(valNumber)) {
-						switch (val[0]) {
-						case ">": {passed = data >= valNumber} break;
-						case "<": {passed = data <= valNumber} break;
+					if ((val.startsWith(">") || val.startsWith("<")) && isNumber(data)) {
+						const valNumber = parseFloat(val.slice(1))
+						if (!isNaN(valNumber)) {
+							switch (val[0]) {
+								case ">":
+									passed = data >= valNumber
+									break
+								case "<":
+									passed = data <= valNumber
+									break
+							}
+						}
+					} else {
+						try {
+							const re = new RegExp(val)
+							const reResult = formattedData.search(re)
+							passed = reResult !== -1
+						} catch (_error) {
+							passed = formattedData.includes(val)
 						}
 					}
-				} else {
-					try {
-						const re = new RegExp(val)
-						const reResult = formattedData.search(re)
-						passed = reResult !== -1
-					} catch (_error) {
-						passed = formattedData.includes(val)
-					}
-				}
 
-				return passed
-			}),
+					return passed
+				}),
 			filterVal: "",
 			filterValProcess: specInit.filterValProcess ?? defaults?.filterValProcess ?? ((x) => x),
 		}
@@ -1076,7 +1244,6 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 	let regenBody = () => {}
 
 	if (aos.length > 0) {
-
 		const hscrollContainer = addDiv(table)
 		hscrollContainer.style.overflowX = "scroll"
 		hscrollContainer.style.boxSizing = "border-box"
@@ -1084,11 +1251,14 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 		hscrollContainer.style.borderRight = "1px solid var(--color-border)"
 
 		addEl(hscrollContainer, createTableHeaderRow(colSpec))
-		addEl(hscrollContainer, createTableFilterRow(colSpec, (colname: string, filterVal: any) => {
-			colSpec[colname].filterVal = colSpec[colname].filterValProcess(filterVal)
-			aosFiltered = getAosFiltered()
-			virtualizedList.setRowCount(aosFiltered.length)
-		}))
+		addEl(
+			hscrollContainer,
+			createTableFilterRow(colSpec, (colname: string, filterVal: any) => {
+				colSpec[colname].filterVal = colSpec[colname].filterValProcess(filterVal)
+				aosFiltered = getAosFiltered()
+				virtualizedList.setRowCount(aosFiltered.length)
+			})
+		)
 
 		let tableBodyHeight = getTableBodyHeight(getTableHeight())
 		const tableBodyContainer = addEl(hscrollContainer, createTableBodyContainer(getTableHeight()))
@@ -1134,7 +1304,7 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 			},
 			estimatedRowHeight: TABLE_ROW_HEIGHT_PX,
 			rowHeight: TABLE_ROW_HEIGHT_PX,
-		});
+		})
 
 		regenBody = () => {
 			const newTableBodyHeight = getTableBodyHeight(getTableHeight())
@@ -1152,7 +1322,7 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 				const spec = colSpec[colname]
 				const colData = spec.access(rowData)
 				const colDataFormatted = spec.format(colData)
-				DOWNLOAD_CSV[title] += "\"" + colDataFormatted + "\","
+				DOWNLOAD_CSV[title] += '"' + colDataFormatted + '",'
 			}
 
 			DOWNLOAD_CSV[title] += "\n"
@@ -1171,55 +1341,71 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>(
 //
 
 type TimepointLabels = {
-	pre: string,
-	post: string,
+	pre: string
+	post: string
 }
 
 type DataVarNamesLong = {
-	format: "long",
-	virus: string,
-	reference: string,
-	uniquePID: string[],
-	timepoint: string,
-	titre: string,
-	timepointLabels: TimepointLabels,
+	format: "long"
+	virus: string
+	reference: string
+	uniquePID: string[]
+	timepoint: string
+	titre: string
+	timepointLabels: TimepointLabels
 }
 
 type DataVarNamesWide = {
-	format: "wide",
-	virus: string,
-	reference: string,
-	preTitre: string,
-	postTitre: string,
-	uniquePID: string[], // NOTE(sen) Need for relative titres
+	format: "wide"
+	virus: string
+	reference: string
+	preTitre: string
+	postTitre: string
+	uniquePID: string[] // NOTE(sen) Need for relative titres
 }
 
 type DataVarNames = DataVarNamesLong | DataVarNamesWide
 
 type Data = {
-	dataFull: Record<string, string | number>[],
-	dataFiltered: Record<string, string | number>[],
-	varNames: DataVarNames,
-	colnames: string[],
+	dataFull: Record<string, string | number>[]
+	dataFiltered: Record<string, string | number>[]
+	varNames: DataVarNames
+	colnames: string[]
 }
 
 const DEFAULT_DATA_VAR_NAMES: DataVarNamesLong = {
 	format: "long",
 	uniquePID: ["pid", "cohort", "vaccine", "serum_source", "testing_lab"],
-	timepoint: "timepoint", titre: "titre", virus: "virus", reference: "reference_cell",
-	timepointLabels: {pre: "Pre-vax", post: "Post-vax"},
+	timepoint: "timepoint",
+	titre: "titre",
+	virus: "virus",
+	reference: "reference_cell",
+	timepointLabels: { pre: "Pre-vax", post: "Post-vax" },
 }
 
 const DEFAULT_DATA_VAR_NAMES_WIDE: DataVarNamesWide = {
-	format: "wide", preTitre: "preTitre", postTitre: "postTitre", virus: "virus", reference: "reference_cell",
+	format: "wide",
+	preTitre: "preTitre",
+	postTitre: "postTitre",
+	virus: "virus",
+	reference: "reference_cell",
 	uniquePID: [
-		"year", "hemisphere", "flu_set", "test_type", "testing_lab", "location", 
-		"serum_lab", "cohort", "strain", "passage", "subject_id", "vaccine"
-	]
+		"year",
+		"hemisphere",
+		"flu_set",
+		"test_type",
+		"testing_lab",
+		"location",
+		"serum_lab",
+		"cohort",
+		"strain",
+		"passage",
+		"subject_id",
+		"vaccine",
+	],
 }
 
 const guessDataVarNames = (existingNames: string[]) => {
-
 	const colsWithTitre: string[] = []
 	const colsWithVirus: string[] = []
 	const colsWithReference: string[] = []
@@ -1248,46 +1434,60 @@ const guessDataVarNames = (existingNames: string[]) => {
 	let varNames: DataVarNames
 
 	switch (format) {
-	case "wide": {
-		let preTitre = colsWithTitre[0]
-		let postTitre = colsWithTitre[1]
-		for (const name of colsWithTitre) {
-			const lowerName = name.toLowerCase()
-			if (lowerName.includes("pre")) {
-				preTitre = name
-			}
-			if (lowerName.includes("post")) {
-				postTitre = name
-			}
-		}
-
-		const uniquePidCols = []
-		for (const colname of existingNames) {
-			if (colname !== preTitre && colname !== postTitre && 
-				!colsWithVirus.includes(colname) && !colsWithReference.includes(colname) &&
-				!colsWithStrain.includes(colname) && !colsWithPassage.includes(colname))
+		case "wide":
 			{
-				uniquePidCols.push(colname)
-			}
-		}		
-		varNames = {format: "wide", preTitre: preTitre, postTitre: postTitre, 
-			virus: colsWithVirus[0], reference: colsWithReference[0], uniquePID: uniquePidCols}
-	} break;
+				let preTitre = colsWithTitre[0]
+				let postTitre = colsWithTitre[1]
+				for (const name of colsWithTitre) {
+					const lowerName = name.toLowerCase()
+					if (lowerName.includes("pre")) {
+						preTitre = name
+					}
+					if (lowerName.includes("post")) {
+						postTitre = name
+					}
+				}
 
-	case "long": {
-		varNames = {...DEFAULT_DATA_VAR_NAMES}
-		varNames.virus = colsWithVirus[0]
-		for (const testName of varNames.uniquePID) {
-			if (!existingNames.includes(testName)) {
-				Arr.removeIndex(varNames.uniquePID, varNames.uniquePID.indexOf(testName))
+				const uniquePidCols = []
+				for (const colname of existingNames) {
+					if (
+						colname !== preTitre &&
+						colname !== postTitre &&
+						!colsWithVirus.includes(colname) &&
+						!colsWithReference.includes(colname) &&
+						!colsWithStrain.includes(colname) &&
+						!colsWithPassage.includes(colname)
+					) {
+						uniquePidCols.push(colname)
+					}
+				}
+				varNames = {
+					format: "wide",
+					preTitre: preTitre,
+					postTitre: postTitre,
+					virus: colsWithVirus[0],
+					reference: colsWithReference[0],
+					uniquePID: uniquePidCols,
+				}
 			}
-		}
-		for (const existingName of existingNames) {
-			if (existingName.toLowerCase().endsWith("id") && !varNames.uniquePID.includes(existingName)) {
-				varNames.uniquePID.push(existingName)
+			break
+
+		case "long":
+			{
+				varNames = { ...DEFAULT_DATA_VAR_NAMES }
+				varNames.virus = colsWithVirus[0]
+				for (const testName of varNames.uniquePID) {
+					if (!existingNames.includes(testName)) {
+						Arr.removeIndex(varNames.uniquePID, varNames.uniquePID.indexOf(testName))
+					}
+				}
+				for (const existingName of existingNames) {
+					if (existingName.toLowerCase().endsWith("id") && !varNames.uniquePID.includes(existingName)) {
+						varNames.uniquePID.push(existingName)
+					}
+				}
 			}
-		}
-	} break;
+			break
 	}
 
 	return varNames
@@ -1313,15 +1513,13 @@ const parseData = (input: string, xFacets: string[]): Data => {
 		varNames: DEFAULT_DATA_VAR_NAMES,
 	}
 
-	const parseResult = Papa.parse(input, {skipEmptyLines: true, dynamicTyping: true})
+	const parseResult = Papa.parse(input, { skipEmptyLines: true, dynamicTyping: true })
 
 	if (parseResult.data.length > 0) {
-
 		data.colnames = parseResult.data[0]
 		data.varNames = guessDataVarNames(data.colnames)
 
 		if (parseResult.data.length > 1) {
-
 			let anyTitreIsFractional = false
 			let anyTitreIsBelow5 = false
 
@@ -1340,46 +1538,64 @@ const parseData = (input: string, xFacets: string[]): Data => {
 					data.dataFull.push(row)
 
 					switch (varNames.format) {
-					case "long": {
-						const titre = row[varNames.titre]
-						anyTitreIsFractional = anyTitreIsFractional || isFractional(titre)
-						anyTitreIsBelow5 = anyTitreIsBelow5 || <number>titre < 5
-					} break
+						case "long":
+							{
+								const titre = row[varNames.titre]
+								anyTitreIsFractional = anyTitreIsFractional || isFractional(titre)
+								anyTitreIsBelow5 = anyTitreIsBelow5 || <number>titre < 5
+							}
+							break
 
-					case "wide": {
-						const preTitre = row[varNames.preTitre]
-						const postTitre = row[varNames.postTitre]
-						anyTitreIsFractional = anyTitreIsFractional || isFractional(preTitre) || isFractional(postTitre)
-						anyTitreIsBelow5 = anyTitreIsBelow5 || <number>preTitre < 5 || <number>postTitre < 5
-					} break
+						case "wide":
+							{
+								const preTitre = row[varNames.preTitre]
+								const postTitre = row[varNames.postTitre]
+								anyTitreIsFractional =
+									anyTitreIsFractional || isFractional(preTitre) || isFractional(postTitre)
+								anyTitreIsBelow5 = anyTitreIsBelow5 || <number>preTitre < 5 || <number>postTitre < 5
+							}
+							break
 					}
 				}
 			}
 
 			const titreIsIndex = !anyTitreIsFractional && anyTitreIsBelow5
-			const titreIndexToOg = (val: number) => 5 * (2 ** val)
+			const titreIndexToOg = (val: number) => 5 * 2 ** val
 
 			switch (varNames.format) {
-			case "long": {
-				if (titreIsIndex) {
-					data.dataFull = data.dataFull.map(row => {row[varNames.titre] = titreIndexToOg(<number>row[varNames.titre]); return row})
-				}
+				case "long":
+					{
+						if (titreIsIndex) {
+							data.dataFull = data.dataFull.map((row) => {
+								row[varNames.titre] = titreIndexToOg(<number>row[varNames.titre])
+								return row
+							})
+						}
 
-				const allTimepointLabels = Arr.unique(data.dataFull.map(row => row[varNames.timepoint])).filter((lbl: any) => lbl !== undefined && lbl !== null) as string[]
-				for (const timepointLabel of allTimepointLabels) {
-					if (timepointLabel.toLowerCase().includes("pre")) {
-						varNames.timepointLabels.pre = timepointLabel
-					} else if (timepointLabel.toLowerCase().includes("post")) {
-						varNames.timepointLabels.post = timepointLabel
+						const allTimepointLabels = Arr.unique(
+							data.dataFull.map((row) => row[varNames.timepoint])
+						).filter((lbl: any) => lbl !== undefined && lbl !== null) as string[]
+						for (const timepointLabel of allTimepointLabels) {
+							if (timepointLabel.toLowerCase().includes("pre")) {
+								varNames.timepointLabels.pre = timepointLabel
+							} else if (timepointLabel.toLowerCase().includes("post")) {
+								varNames.timepointLabels.post = timepointLabel
+							}
+						}
 					}
-				}
-			} break
+					break
 
-			case "wide": {
-				if (titreIsIndex) {
-					data.dataFull = data.dataFull.map(row => {row[varNames.postTitre] = titreIndexToOg(<number>row[varNames.postTitre]); row[varNames.preTitre] = 5 * (2 ** <number>row[varNames.preTitre]); return row})
-				}
-			} break
+				case "wide":
+					{
+						if (titreIsIndex) {
+							data.dataFull = data.dataFull.map((row) => {
+								row[varNames.postTitre] = titreIndexToOg(<number>row[varNames.postTitre])
+								row[varNames.preTitre] = 5 * 2 ** <number>row[varNames.preTitre]
+								return row
+							})
+						}
+					}
+					break
 			}
 		}
 	}
@@ -1449,9 +1665,17 @@ const main = () => {
 	}
 
 	const plotSettings: PlotSettings = {
-		xFacets: [], xAxis: data.varNames.virus, refTitre: 40, refRatio: 4, refRelative: 0.5, theme: "dark",
-		opacities: {points: 0.5, lines: 0.1, boxplots: 1, counts: 1, refLine: 1, means: 1, bars: 0},
-		kind: "titres", relative: false, refVirus: "A/Victoria/2570/2019e", refType: "manual"
+		xFacets: [],
+		xAxis: data.varNames.virus,
+		refTitre: 40,
+		refRatio: 4,
+		refRelative: 0.5,
+		theme: "dark",
+		opacities: { points: 0.5, lines: 0.1, boxplots: 1, counts: 1, refLine: 1, means: 1, bars: 0 },
+		kind: "titres",
+		relative: false,
+		refVirus: "A/Victoria/2570/2019e",
+		refType: "manual",
 	}
 
 	document.documentElement.setAttribute("theme", plotSettings.theme)
@@ -1473,8 +1697,16 @@ const main = () => {
 				} else {
 					const newRef = Math.exp(scaledNewRef)
 					switch (plotSettings.kind) {
-						case "titres": {plotSettings.refTitre = newRef} break;
-						case "rises": {plotSettings.refRatio = newRef} break;
+						case "titres":
+							{
+								plotSettings.refTitre = newRef
+							}
+							break
+						case "rises":
+							{
+								plotSettings.refRatio = newRef
+							}
+							break
 					}
 				}
 				regenPlot()
@@ -1484,27 +1716,32 @@ const main = () => {
 		const logFormat = plotSettings.relative ? (x: number) => x.toFixed(2) : (x: number) => Math.exp(x).toFixed(0)
 
 		const cols: any = {}
-		for (const varname of plotSettings.xFacets) {cols[varname] = {}}
-		cols[plotSettings.xAxis] = {width: 200, access: "xTick"}
+		for (const varname of plotSettings.xFacets) {
+			cols[varname] = {}
+		}
+		cols[plotSettings.xAxis] = { width: 200, access: "xTick" }
 		if (plotSettings.kind === "titres") {
 			cols.timepoint = {}
 		}
-		cols.mean = {format: logFormat}
-		cols.meanLow95 = {format: logFormat, access: "meanLow"}
-		cols.meanHigh95 = {format: logFormat, access: "meanHigh"}
-		cols.min = {format: logFormat}
-		cols.max = {format: logFormat}
-		cols.q25 = {format: logFormat}
-		cols.q75 = {format: logFormat}
-		cols.median = {format: logFormat}
+		cols.mean = { format: logFormat }
+		cols.meanLow95 = { format: logFormat, access: "meanLow" }
+		cols.meanHigh95 = { format: logFormat, access: "meanHigh" }
+		cols.min = { format: logFormat }
+		cols.max = { format: logFormat }
+		cols.q25 = { format: logFormat }
+		cols.q75 = { format: logFormat }
+		cols.median = { format: logFormat }
 
 		removeChildren(tableParent)
-		addEl(tableParent, createTableElementFromAos({
-			aos: plotBoxplotData,
-			colSpecInit: cols,
-			title: plotSettings.kind === "titres" ? "GMT" : "GMR",
-			getTableHeightInit: () => Math.max(window.innerHeight - plot.totalHeight - SCROLLBAR_WIDTHS[0], 300),
-		}))
+		addEl(
+			tableParent,
+			createTableElementFromAos({
+				aos: plotBoxplotData,
+				colSpecInit: cols,
+				title: plotSettings.kind === "titres" ? "GMT" : "GMR",
+				getTableHeightInit: () => Math.max(window.innerHeight - plot.totalHeight - SCROLLBAR_WIDTHS[0], 300),
+			})
+		)
 	}
 
 	const onNewDataString = (contentsString: string) => {
@@ -1513,7 +1750,7 @@ const main = () => {
 			if (!data.colnames.includes(plotSettings.xAxis)) {
 				plotSettings.xAxis = data.varNames.virus
 			}
-			const viruses = Arr.unique(data.dataFull.map(x => x[data.varNames.virus]))
+			const viruses = Arr.unique(data.dataFull.map((x) => x[data.varNames.virus]))
 			if (!viruses.includes(plotSettings.refVirus)) {
 				plotSettings.refVirus = <string>viruses[0]
 			}
@@ -1556,62 +1793,74 @@ const main = () => {
 	fileInputWholePage.style.zIndex = "999"
 	fileInputWholePage.style.background = "gray"
 
-	globalThis.window.addEventListener("dragenter", () => fileInputWholePage.style.visibility = "visible")
-	fileInputWholePage.addEventListener("dragleave", () => fileInputWholePage.style.visibility = "hidden")
+	globalThis.window.addEventListener("dragenter", () => (fileInputWholePage.style.visibility = "visible"))
+	fileInputWholePage.addEventListener("dragleave", () => (fileInputWholePage.style.visibility = "hidden"))
 
-	addEl(inputContainer, createSwitch({
-		init: plotSettings.theme,
-		opts: <Theme[]>THEMES,
-		onUpdate: (opt) => {
-			document.documentElement.setAttribute("theme", opt)
-			plotSettings.theme = opt
-			regenPlot()
-		},
-		optElementStyle: switchOptionStyleAllCaps,
-		optContainerStyle: (container) => {
-			container.style.display = "flex"
-			container.style.flexDirection = "row"
-			container.style.marginBottom = "20px"
-		}
-	}))
+	addEl(
+		inputContainer,
+		createSwitch({
+			init: plotSettings.theme,
+			opts: <Theme[]>THEMES,
+			onUpdate: (opt) => {
+				document.documentElement.setAttribute("theme", opt)
+				plotSettings.theme = opt
+				regenPlot()
+			},
+			optElementStyle: switchOptionStyleAllCaps,
+			optContainerStyle: (container) => {
+				container.style.display = "flex"
+				container.style.flexDirection = "row"
+				container.style.marginBottom = "20px"
+			},
+		})
+	)
 
-	addEl(inputContainer, createSwitch({
-		init: plotSettings.kind,
-		opts: <PlotMode[]>PLOT_MODES,
-		onUpdate: () => {
-			plotSettings.kind = plotSettings.kind === "titres" ? "rises" : "titres"
-			regenPlot()
-		},
-		optElementStyle: switchOptionStyleAllCaps,
-		optContainerStyle: (el) => {
-			el.style.display = "flex"
-			el.style.flexDirection = "row"
-			el.style.marginBottom = "20px"
-		}
-	}))
+	addEl(
+		inputContainer,
+		createSwitch({
+			init: plotSettings.kind,
+			opts: <PlotMode[]>PLOT_MODES,
+			onUpdate: () => {
+				plotSettings.kind = plotSettings.kind === "titres" ? "rises" : "titres"
+				regenPlot()
+			},
+			optElementStyle: switchOptionStyleAllCaps,
+			optContainerStyle: (el) => {
+				el.style.display = "flex"
+				el.style.flexDirection = "row"
+				el.style.marginBottom = "20px"
+			},
+		})
+	)
 
-	addEl(inputContainer, createSwitch({
-		init: plotSettings.relative ? "Rel" : "Abs",
-		opts: ["Abs", "Rel"],
-		onUpdate: (rel) => {
-			plotSettings.relative = rel === "Rel"
-			if (plotSettings.relative) {regenReferenceSwitch()}
-			else {removeChildren(referenceSwitchContainer)}
-			regenPlot()
-		},
-		optElementStyle: switchOptionStyleAllCaps,
-		optContainerStyle: (el) => {
-			el.style.display = "flex"
-			el.style.flexDirection = "row"
-			el.style.marginBottom = "20px"
-		}
-	}))
+	addEl(
+		inputContainer,
+		createSwitch({
+			init: plotSettings.relative ? "Rel" : "Abs",
+			opts: ["Abs", "Rel"],
+			onUpdate: (rel) => {
+				plotSettings.relative = rel === "Rel"
+				if (plotSettings.relative) {
+					regenReferenceSwitch()
+				} else {
+					removeChildren(referenceSwitchContainer)
+				}
+				regenPlot()
+			},
+			optElementStyle: switchOptionStyleAllCaps,
+			optContainerStyle: (el) => {
+				el.style.display = "flex"
+				el.style.flexDirection = "row"
+				el.style.marginBottom = "20px"
+			},
+		})
+	)
 
 	const collapsibleSelectorSpacing = "10px"
 
 	const referenceSwitchContainer = addDiv(inputContainer)
 	const regenReferenceSwitch = () => {
-		const allViruses = Arr.unique(data.dataFiltered.map(row => <string>row[data.varNames.virus])).sort(virusSort)
+		const allViruses = Arr.unique(data.dataFiltered.map((row) => <string>row[data.varNames.virus])).sort(virusSort)
 		const referenceSwitch = createSwitch({
 			init: plotSettings.refVirus,
 			opts: allViruses,
@@ -1626,30 +1875,36 @@ const main = () => {
 		addEl(referenceSwitchContainer, referenceSwitch)
 	}
 
-	const refTypeSwitch = addEl(inputContainer, createSwitch({
-		init: plotSettings.refType,
-		opts: ["manual", "data"],
-		onUpdate: (refType) => {
-			plotSettings.refType = refType
-			regenPlot()
-		},
-		name: "Relative mode"
-	}))
+	const refTypeSwitch = addEl(
+		inputContainer,
+		createSwitch({
+			init: plotSettings.refType,
+			opts: ["manual", "data"],
+			onUpdate: (refType) => {
+				plotSettings.refType = refType
+				regenPlot()
+			},
+			name: "Relative mode",
+		})
+	)
 	refTypeSwitch.style.marginBottom = collapsibleSelectorSpacing
 
-	const opacitiesSwitch = addEl(inputContainer, createSwitch({
-		init: <PlotElement[]>PLOT_ELEMENTS,
-		opts: <PlotElement[]>PLOT_ELEMENTS,
-		onUpdate: (el, fromLeft) => {
-			// @ts-ignore TODO(sen) Fix
-			plotSettings.opacities[el] = fromLeft
-			regenPlot()
-		},
-		name: "Elements",
-		optElementStyle: switchOptionStyleAllCaps,
-		horizontalGradient: Object.values(plotSettings.opacities),
-		helpText: "Element transparency. Click on the plot to change refline position",
-	}))
+	const opacitiesSwitch = addEl(
+		inputContainer,
+		createSwitch({
+			init: <PlotElement[]>PLOT_ELEMENTS,
+			opts: <PlotElement[]>PLOT_ELEMENTS,
+			onUpdate: (el, fromLeft) => {
+				// @ts-ignore TODO(sen) Fix
+				plotSettings.opacities[el] = fromLeft
+				regenPlot()
+			},
+			name: "Elements",
+			optElementStyle: switchOptionStyleAllCaps,
+			horizontalGradient: Object.values(plotSettings.opacities),
+			helpText: "Element transparency. Click on the plot to change refline position",
+		})
+	)
 	opacitiesSwitch.style.marginBottom = collapsibleSelectorSpacing
 
 	const addInputSep = (parent: HTMLElement, label: string) => {
@@ -1668,36 +1923,48 @@ const main = () => {
 	const regenDataRelatedInputs = () => {
 		removeChildren(dataRelatedInputs)
 
-		const facetSwitch = addEl(dataRelatedInputs, createSwitch({
-			init: plotSettings.xFacets,
-			opts: data.colnames,
-			onUpdate: (sel) => {
-				plotSettings.xFacets = sel
-				data.dataFull = data.dataFull.map(row => {row.__XFACET__ = constructStringFromCols(row, plotSettings.xFacets, FACET_LABEL_SEP); return row})
-				data.dataFiltered = data.dataFiltered.map(row => {row.__XFACET__ = constructStringFromCols(row, plotSettings.xFacets, FACET_LABEL_SEP); return row})
-				regenPlot()
-			},
-			name: "Facet by",
-			singleNullable: true,
-		}))
+		const facetSwitch = addEl(
+			dataRelatedInputs,
+			createSwitch({
+				init: plotSettings.xFacets,
+				opts: data.colnames,
+				onUpdate: (sel) => {
+					plotSettings.xFacets = sel
+					data.dataFull = data.dataFull.map((row) => {
+						row.__XFACET__ = constructStringFromCols(row, plotSettings.xFacets, FACET_LABEL_SEP)
+						return row
+					})
+					data.dataFiltered = data.dataFiltered.map((row) => {
+						row.__XFACET__ = constructStringFromCols(row, plotSettings.xFacets, FACET_LABEL_SEP)
+						return row
+					})
+					regenPlot()
+				},
+				name: "Facet by",
+				singleNullable: true,
+			})
+		)
 		facetSwitch.style.marginBottom = collapsibleSelectorSpacing
 
-		const xAxisSwitch = addEl(dataRelatedInputs, createSwitch({
-			init: plotSettings.xAxis,
-			opts: data.colnames,
-			onUpdate: (sel) => {
-				plotSettings.xAxis = sel
-				regenPlot()
-			},
-			name: "X axis",
-		}))
+		const xAxisSwitch = addEl(
+			dataRelatedInputs,
+			createSwitch({
+				init: plotSettings.xAxis,
+				opts: data.colnames,
+				onUpdate: (sel) => {
+					plotSettings.xAxis = sel
+					regenPlot()
+				},
+				name: "X axis",
+			})
+		)
 		xAxisSwitch.style.marginBottom = collapsibleSelectorSpacing
 
 		addInputSep(dataRelatedInputs, "filters")
 		type Filter = {
-			selected: any[],
-			all: any[],
-			optElements: HTMLElement[],
+			selected: any[]
+			all: any[]
+			optElements: HTMLElement[]
 		}
 		const filters: Record<string, Filter> = {}
 
@@ -1706,10 +1973,10 @@ const main = () => {
 			for (const otherColname of data.colnames) {
 				if (otherColname !== colname) {
 					const allowedVals = filters[otherColname].selected
-					dataFilteredOther = dataFilteredOther.filter(row => allowedVals.includes(row[otherColname]))
+					dataFilteredOther = dataFilteredOther.filter((row) => allowedVals.includes(row[otherColname]))
 				}
 			}
-			const visible = Arr.unique(dataFilteredOther.map(row => row[colname]))
+			const visible = Arr.unique(dataFilteredOther.map((row) => row[colname]))
 			const thisFilter = filters[colname]
 			for (let optIndex = 0; optIndex < thisFilter.all.length; optIndex++) {
 				const thisEl = thisFilter.optElements[optIndex]
@@ -1724,71 +1991,89 @@ const main = () => {
 		}
 
 		for (const colname of data.colnames) {
-			const colUniqueVals = Arr.unique(data.dataFull.map(row => row[colname] as any)).sort(getSorter(colname, data.varNames))
-			filters[colname] = {selected: colUniqueVals, all: [...colUniqueVals], optElements: []}
-			const el = addEl(dataRelatedInputs, createSwitch({
-				init: colUniqueVals,
-				opts: colUniqueVals,
-				onUpdate: (sel) => {
-					filters[colname].selected = sel
-					data.dataFiltered = [...data.dataFull]
-					for (const otherColname of data.colnames) {
-						const allowedVals = filters[otherColname].selected
-						data.dataFiltered = data.dataFiltered.filter(row => allowedVals.includes(row[otherColname]))
-						updateVisible(otherColname)
-					}
-					regenReferenceSwitch()
-					regenPlot()
-				},
-				name: colname,
-				optElements: filters[colname].optElements,
-			}))
+			const colUniqueVals = Arr.unique(data.dataFull.map((row) => row[colname] as any)).sort(
+				getSorter(colname, data.varNames)
+			)
+			filters[colname] = { selected: colUniqueVals, all: [...colUniqueVals], optElements: [] }
+			const el = addEl(
+				dataRelatedInputs,
+				createSwitch({
+					init: colUniqueVals,
+					opts: colUniqueVals,
+					onUpdate: (sel) => {
+						filters[colname].selected = sel
+						data.dataFiltered = [...data.dataFull]
+						for (const otherColname of data.colnames) {
+							const allowedVals = filters[otherColname].selected
+							data.dataFiltered = data.dataFiltered.filter((row) =>
+								allowedVals.includes(row[otherColname])
+							)
+							updateVisible(otherColname)
+						}
+						regenReferenceSwitch()
+						regenPlot()
+					},
+					name: colname,
+					optElements: filters[colname].optElements,
+				})
+			)
 			el.style.marginBottom = collapsibleSelectorSpacing
 		}
 
 		addInputSep(dataRelatedInputs, "colnames")
 
-		let lastWideFormat = {...DEFAULT_DATA_VAR_NAMES_WIDE}
-		let lastLongFormat = {...DEFAULT_DATA_VAR_NAMES}
+		let lastWideFormat = { ...DEFAULT_DATA_VAR_NAMES_WIDE }
+		let lastLongFormat = { ...DEFAULT_DATA_VAR_NAMES }
 		const varNames = data.varNames
 		switch (varNames.format) {
-		case "long": {
-			lastLongFormat = varNames
-			lastWideFormat.virus = varNames.virus
-		} break
-		case "wide": {
-			lastWideFormat = varNames
-			lastLongFormat.virus = varNames.virus
-		} break
-		}
-
-		addEl(dataRelatedInputs, createSwitch({
-			init: data.varNames.format,
-			opts: <DataFormat[]>DATA_FORMATS,
-			onUpdate: () => {
-				const varNames = data.varNames
-				switch (varNames.format) {
-				case "long": {
+			case "long":
+				{
 					lastLongFormat = varNames
 					lastWideFormat.virus = varNames.virus
-					data.varNames = lastWideFormat
-				} break
-				case "wide": {
+				}
+				break
+			case "wide":
+				{
 					lastWideFormat = varNames
 					lastLongFormat.virus = varNames.virus
-					data.varNames = lastLongFormat
-				} break
 				}
-				regenPlot()
-				regenColnameInputs()
-			},
-			optElementStyle: switchOptionStyleAllCaps,
-			optContainerStyle: (el) => {
-				el.style.display = "flex"
-				el.style.flexDirection = "row"
-				el.style.marginBottom = "10px"
-			}
-		}))
+				break
+		}
+
+		addEl(
+			dataRelatedInputs,
+			createSwitch({
+				init: data.varNames.format,
+				opts: <DataFormat[]>DATA_FORMATS,
+				onUpdate: () => {
+					const varNames = data.varNames
+					switch (varNames.format) {
+						case "long":
+							{
+								lastLongFormat = varNames
+								lastWideFormat.virus = varNames.virus
+								data.varNames = lastWideFormat
+							}
+							break
+						case "wide":
+							{
+								lastWideFormat = varNames
+								lastLongFormat.virus = varNames.virus
+								data.varNames = lastLongFormat
+							}
+							break
+					}
+					regenPlot()
+					regenColnameInputs()
+				},
+				optElementStyle: switchOptionStyleAllCaps,
+				optContainerStyle: (el) => {
+					el.style.display = "flex"
+					el.style.flexDirection = "row"
+					el.style.marginBottom = "10px"
+				},
+			})
+		)
 
 		const colnameInputsContainer = addDiv(dataRelatedInputs)
 
@@ -1799,35 +2084,39 @@ const main = () => {
 				if (varName !== "format" && varName !== "timepointLabels") {
 					let helpText: string | undefined = undefined
 					if (varName === "uniquePID") {
-						helpText = "Set of variables that uniquely identifies a subject (pre/post vax titres for different viruses for the same person)"
+						helpText =
+							"Set of variables that uniquely identifies a subject (pre/post vax titres for different viruses for the same person)"
 					}
-					const el = addEl(colnameInputsContainer, createSwitch({
-						init: data.varNames[varName as keyof DataVarNames],
-						opts: data.colnames,
-						onUpdate: (sel) => {
-							// @ts-ignore TODO(sen) Fix
-							data.varNames[varName as keyof DataVarNames] = sel
+					const el = addEl(
+						colnameInputsContainer,
+						createSwitch({
+							init: data.varNames[varName as keyof DataVarNames],
+							opts: data.colnames,
+							onUpdate: (sel) => {
+								// @ts-ignore TODO(sen) Fix
+								data.varNames[varName as keyof DataVarNames] = sel
 
-							if (varName === "uniquePID") {
-								data.dataFull = data.dataFull.map(row => {
-									row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePID)
-									return row
-								})
-								data.dataFiltered = data.dataFiltered.map(row => {
-									row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePID)
-									return row
-								})
-							}
+								if (varName === "uniquePID") {
+									data.dataFull = data.dataFull.map((row) => {
+										row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePID)
+										return row
+									})
+									data.dataFiltered = data.dataFiltered.map((row) => {
+										row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePID)
+										return row
+									})
+								}
 
-							if (varName === "timepoint") {
-								regenTimepointLabelInputs()
-							}
+								if (varName === "timepoint") {
+									regenTimepointLabelInputs()
+								}
 
-							regenPlot()
-						},
-						name: varName,
-						helpText: helpText,
-					}))
+								regenPlot()
+							},
+							name: varName,
+							helpText: helpText,
+						})
+					)
 					el.style.marginBottom = collapsibleSelectorSpacing
 				}
 			}
@@ -1837,26 +2126,32 @@ const main = () => {
 				const varNames = data.varNames
 				removeChildren(timepointLabelInputContainer)
 				if (varNames.format === "long") {
-					const allTimepoints = Arr.unique(data.dataFiltered.map(row => row[varNames.timepoint]))
-					const preLab = addEl(timepointLabelInputContainer, createSwitch({
-						init: varNames.timepointLabels.pre,
-						opts: allTimepoints,
-						onUpdate: (sel) => {
-							varNames.timepointLabels.pre = sel
-							regenPlot()
-						},
-						name: "pre label",
-					}))
+					const allTimepoints = Arr.unique(data.dataFiltered.map((row) => row[varNames.timepoint]))
+					const preLab = addEl(
+						timepointLabelInputContainer,
+						createSwitch({
+							init: varNames.timepointLabels.pre,
+							opts: allTimepoints,
+							onUpdate: (sel) => {
+								varNames.timepointLabels.pre = sel
+								regenPlot()
+							},
+							name: "pre label",
+						})
+					)
 					preLab.style.marginBottom = collapsibleSelectorSpacing
-					addEl(timepointLabelInputContainer, createSwitch({
-						init: varNames.timepointLabels.post,
-						opts: allTimepoints,
-						onUpdate: (sel) => {
-							varNames.timepointLabels.post = sel
-							regenPlot()
-						},
-						name: "post label",
-					}))
+					addEl(
+						timepointLabelInputContainer,
+						createSwitch({
+							init: varNames.timepointLabels.post,
+							opts: allTimepoints,
+							onUpdate: (sel) => {
+								varNames.timepointLabels.post = sel
+								regenPlot()
+							},
+							name: "post label",
+						})
+					)
 				}
 			}
 			regenTimepointLabelInputs()
@@ -1875,7 +2170,9 @@ const main = () => {
 			if (resp.ok) {
 				fetchString = await resp.text()
 			}
-		} catch (_error) {/* NOTE(sen) Ignore */}
+		} catch (_error) {
+			/* NOTE(sen) Ignore */
+		}
 		onNewDataString(fetchString)
 	}
 
@@ -1883,12 +2180,24 @@ const main = () => {
 
 	globalThis.window.addEventListener("keypress", (event: KeyboardEvent) => {
 		switch (event.key) {
-		case "1": {fetchAndUpdate("/vis2022.csv")} break
-		case "2": {fetchAndUpdate("/HI WHO22 full panel.csv")} break
-		case "3": {fetchAndUpdate("/pivot-wide.csv")} break
-		case "4": {fetchAndUpdate("/visualiserdata.csv")} break
-		case "5": {fetchAndUpdate("/2022_SH.titers.txt")} break
-		case "6": {fetchAndUpdate("/vis2022sep.csv")} break
+			case "1":
+				fetchAndUpdate("/vis2022.csv")
+				break
+			case "2":
+				fetchAndUpdate("/HI WHO22 full panel.csv")
+				break
+			case "3":
+				fetchAndUpdate("/pivot-wide.csv")
+				break
+			case "4":
+				fetchAndUpdate("/visualiserdata.csv")
+				break
+			case "5":
+				fetchAndUpdate("/2022_SH.titers.txt")
+				break
+			case "6":
+				fetchAndUpdate("/vis2022sep.csv")
+				break
 		}
 	})
 }
