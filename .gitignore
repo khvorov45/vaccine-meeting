@@ -16,3 +16,4 @@ array.js
 *.d.ts
 *.d.ts.map
 /titre-visualizer/index.html
+temp*
