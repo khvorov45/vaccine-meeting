@@ -1,9 +1,7 @@
 import {Papa} from "./papaparse.js"
 import {VirtualizedList} from "./virtualized-list.js"
 import * as Arr from "./array.ts"
-import * as NestArr from "./nested_array.ts"
 import * as Rand from "./rand.ts"
-import * as Color from "./color.ts"
 import * as Plot from "./plot.ts"
 
 const THEMES_ = ["dark", "light"] as const
@@ -373,7 +371,7 @@ const FACET_LABEL_SEP = "; "
 
 const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 
-	const xFacetValsAll = NestArr.expandGrid(settings.xFacets.map(xFacet => Arr.unique(data.dataFiltered.map(row => row[xFacet] as any)).sort(getSorter(xFacet, data.varNames)))).map((vals: any) => vals.join(FACET_LABEL_SEP))
+	const xFacetValsAll = Arr.expandGrid(settings.xFacets.map(xFacet => Arr.unique(data.dataFiltered.map(row => row[xFacet] as any)).sort(getSorter(xFacet, data.varNames)))).map((vals: any) => vals.join(FACET_LABEL_SEP))
 	const xFacetVals: string[] = []
 	const xTicksPerFacet = xFacetValsAll.length > 0 ? xFacetValsAll.map((xFacetVal: any) => {
 		const dataFacet = data.dataFiltered.filter(row => row.__XFACET__ === xFacetVal)
@@ -459,7 +457,7 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 	// NOTE(sen) Reference line
 	{
 		const yCoord = plot.scaleYToPx(settings.relative ? settings.refRelative : settings.kind === "titres" ? settings.refTitre : settings.refRatio)
-		const color = plot.axisColor + Color.channel255ToString(settings.opacities.refLine)
+		const color = plot.axisColor + Plot.colorChannel255ToString(settings.opacities.refLine)
 		const thickness = 1
 		Plot.drawLine(plot.renderer, plot.spec.padAxis.l, yCoord, plot.totalWidth - plot.spec.padAxis.r, yCoord, color, color, thickness, [])
 	}
@@ -499,8 +497,8 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 
 			const pointSize = 2
 			const lineSize = 1
-			const pointAlphaStr = Color.channel255ToString(settings.opacities.points)
-			const lineAlphaStr = Color.channel255ToString(settings.opacities.lines)
+			const pointAlphaStr = Plot.colorChannel255ToString(settings.opacities.points)
+			const lineAlphaStr = Plot.colorChannel255ToString(settings.opacities.lines)
 			const preColorWithAlpha = preColor + pointAlphaStr
 			const postColorWithAlpha = postColor + pointAlphaStr
 			const preColorWithAlphaLine = preColor + lineAlphaStr
@@ -746,7 +744,7 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 			// NOTE(sen) Counts
 			{
 				const yCoord = plot.scaleYToPx(plot.spec.yTicks[plot.spec.yTicks.length - 1])
-				const alphaStr = Color.channel255ToString(settings.opacities.counts)
+				const alphaStr = Plot.colorChannel255ToString(settings.opacities.counts)
 
 				if (settings.kind === "titres") {
 

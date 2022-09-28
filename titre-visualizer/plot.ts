@@ -1,5 +1,3 @@
-import * as Color from "./color.ts"
-
 export const CANVAS_FONT_HEIGHT = 16
 
 export type Rect = {
@@ -56,6 +54,36 @@ export type BoxplotStats = {
 	meanSe: number,
 	meanLow: number,
 	meanHigh: number,
+}
+
+export const colorChannel255ToString = (channel: number) => {
+	if (channel <= 1) {
+		channel *= 255
+	}
+	return Math.round(channel).toString(16).padStart(2, "0")
+}
+
+export const colorChangeSaturation = (col: string, satDelta: number) => {
+	let alpha = col.slice(7, 9)
+	let red = parseInt(col.slice(1, 3), 16)
+	let green = parseInt(col.slice(3, 5), 16)
+	let blue = parseInt(col.slice(5, 7), 16)
+
+	let mean = (red + green + blue) / 3
+
+	red = (red - mean) * satDelta + mean
+	green = (green - mean) * satDelta + mean
+	blue = (blue - mean) * satDelta + mean
+
+	red = Math.max(Math.min(Math.round(red), 255), 0)
+	green = Math.max(Math.min(Math.round(green), 255), 0)
+	blue = Math.max(Math.min(Math.round(blue), 255), 0)
+
+	let redNew = colorChannel255ToString(red)
+	let greenNew = colorChannel255ToString(green)
+	let blueNew = colorChannel255ToString(blue)
+
+	return "#" + redNew + greenNew + blueNew + alpha
 }
 
 export const drawPoint = (
@@ -348,7 +376,7 @@ export const beginPlot = (spec: PlotSpec) => {
 	}
 
 	// NOTE(sen) Facet labels and separators
-	const facetSepColor = axisCol + Color.channel255ToString(0.4)
+	const facetSepColor = axisCol + colorChannel255ToString(0.4)
 	for (let xFacetIndex = 0; xFacetIndex < spec.xFacetVals.length; xFacetIndex++) {
 		const xFacetVal = spec.xFacetVals[xFacetIndex]
 		const metrics = xFacetMetrics[xFacetIndex]
@@ -404,7 +432,7 @@ export const addBoxplot = (
 
 	// NOTE(sen) Boxes
 	{
-		const alphaStr = Color.channel255ToString(boxesAlpha)
+		const alphaStr = colorChannel255ToString(boxesAlpha)
 		const color = baseColor + alphaStr
 		const altColor = baseAltColor + alphaStr
 		drawRectOutline(plot.renderer, boxplotBody, color, lineThiccness)
@@ -455,7 +483,7 @@ export const addBoxplot = (
 
 	// NOTE(sen) Means
 	{
-		const alphaStr = Color.channel255ToString(meansAlpha)
+		const alphaStr = colorChannel255ToString(meansAlpha)
 		const color = baseColor + alphaStr
 		const altColor = baseAltColor + alphaStr
 
@@ -486,6 +514,6 @@ export const addVBar = (
 	drawRect(
 		plot.renderer,
 		{l: xCoord - halfWidth, r: xCoord + halfWidth, t: topYCoord, b: plot.metrics.b},
-		color + Color.channel255ToString(alpha)
+		color + colorChannel255ToString(alpha)
 	)
 }
