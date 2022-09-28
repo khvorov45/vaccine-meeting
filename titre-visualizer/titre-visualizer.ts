@@ -1902,6 +1902,3 @@ main()
 // TODO(sen) Better colwidth for xfacet and xtick
 // TODO(sen) Improve boxplot shading
 // TODO(sen) Better colnames guessing (especially the id part)
-
-// NOTE(sen) To make this a "module"
-export {}
