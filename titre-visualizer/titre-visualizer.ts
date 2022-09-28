@@ -2176,30 +2176,31 @@ const main = () => {
 		onNewDataString(fetchString)
 	}
 
-	fetchAndUpdate("/vis2022sep.csv")
-
-	globalThis.window.addEventListener("keypress", (event: KeyboardEvent) => {
-		switch (event.key) {
-			case "1":
-				fetchAndUpdate("/vis2022.csv")
-				break
-			case "2":
-				fetchAndUpdate("/HI WHO22 full panel.csv")
-				break
-			case "3":
-				fetchAndUpdate("/pivot-wide.csv")
-				break
-			case "4":
-				fetchAndUpdate("/visualiserdata.csv")
-				break
-			case "5":
-				fetchAndUpdate("/2022_SH.titers.txt")
-				break
-			case "6":
-				fetchAndUpdate("/vis2022sep.csv")
-				break
-		}
-	})
+	if (globalThis.window.location.hostname == "127.0.0.1") {
+		fetchAndUpdate("/vis2022sep.csv")
+		globalThis.window.addEventListener("keypress", (event: KeyboardEvent) => {
+			switch (event.key) {
+				case "1":
+					fetchAndUpdate("/vis2022.csv")
+					break
+				case "2":
+					fetchAndUpdate("/HI WHO22 full panel.csv")
+					break
+				case "3":
+					fetchAndUpdate("/pivot-wide.csv")
+					break
+				case "4":
+					fetchAndUpdate("/visualiserdata.csv")
+					break
+				case "5":
+					fetchAndUpdate("/2022_SH.titers.txt")
+					break
+				case "6":
+					fetchAndUpdate("/vis2022sep.csv")
+					break
+			}
+		})
+	}
 }
 
 main()
