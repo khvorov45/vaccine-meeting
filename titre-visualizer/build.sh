@@ -1,1 +1,1 @@
-deno run --allow-run build.ts $@
+deno run --allow-all build.ts $@

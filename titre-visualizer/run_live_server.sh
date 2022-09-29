@@ -1,1 +1,1 @@
-live-server --entry-file=titre-visualizer.html --ignore=*.ts
+live-server --entry-file=titre-visualizer.html --ignorePattern="((ts)|(sh))$"

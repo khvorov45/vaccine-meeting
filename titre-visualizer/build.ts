@@ -1,22 +1,30 @@
-const execCmd = async (cmd: string): Promise<Deno.ProcessStatus> => {
+const execCmd = async (cmd: string): Promise<void> => {
 	const args = cmd.split(" ")
 	const process = Deno.run({ cmd: args })
 	const status = await process.status()
-	return status
+	if (!status.success) Deno.exit(1)
 }
 
 const main = async (): Promise<void> => {
-	const bundleStatus = await execCmd("deno bundle titre-visualizer.ts bundle.js")
-	if (!bundleStatus.success) return
+	await execCmd("deno bundle titre-visualizer.ts bundle.js")
 	if (Deno.args[0] === "release") {
-		const htmlMinifyStatus = await execCmd(
-			"html-minifier-terser --collapse-whitespace --minify-css true titre-visualizer.html -o index.html"
+		const minifiedHtmlPath = "index.html"
+		await execCmd(
+			`html-minifier-terser --collapse-whitespace --minify-css true titre-visualizer.html -o ${minifiedHtmlPath}`
 		)
-		if (!htmlMinifyStatus.success) return
-		const jsminifyStatus = await execCmd(
-			"terser bundle.js -o bundle.min.js --compress toplevel=true --mangle toplevel=true"
+		const minifiedScriptPath = "bundle.min.js"
+		await execCmd(`terser bundle.js -o ${minifiedScriptPath} --compress toplevel=true --mangle toplevel=true`)
+		const decoder = new TextDecoder()
+		const minifiedScript = decoder.decode(Deno.readFileSync(minifiedScriptPath))
+		const minifiedHtml = decoder.decode(Deno.readFileSync(minifiedHtmlPath))
+		const minifiedHtmlWithScript = minifiedHtml.replace(
+			`<script type="text/javascript" src="bundle.js"></script>`,
+			// NOTE(sen) If this is not a function, special characters in the replacement string
+			// will be treated special
+			() => `<script type="text/javascript">${minifiedScript}</script>`
 		)
-		if (!jsminifyStatus.success) return
+		const encoder = new TextEncoder()
+		Deno.writeFileSync(minifiedHtmlPath, encoder.encode(minifiedHtmlWithScript))
 	}
 }
 
