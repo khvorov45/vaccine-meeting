@@ -13,6 +13,10 @@ const main = async (): Promise<void> => {
 			"html-minifier-terser --collapse-whitespace --minify-css true titre-visualizer.html -o index.html"
 		)
 		if (!htmlMinifyStatus.success) return
+		const jsminifyStatus = await execCmd(
+			"terser bundle.js -o bundle.min.js --compress toplevel=true --mangle toplevel=true"
+		)
+		if (!jsminifyStatus.success) return
 	}
 }
 
