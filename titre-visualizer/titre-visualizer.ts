@@ -25,30 +25,6 @@ type DataFormat = typeof DATA_FORMATS_[number]
 // SECTION Math
 //
 
-const getBoxplotStats = (arr: number[]): Plot.BoxplotStats | null => {
-	let result: Plot.BoxplotStats | null = null
-	if (arr.length > 0) {
-		const arrSorted = arr.sort((x1, x2) => x1 - x2)
-		const q25 = Arr.sortedAscQuantile(arrSorted, 0.25)
-		const q75 = Arr.sortedAscQuantile(arrSorted, 0.75)
-		const mean = Arr.mean(arrSorted)
-		const meanSe = Arr.sd(arrSorted) / Math.sqrt(arr.length)
-		result = {
-			min: arrSorted[0],
-			max: arrSorted[arrSorted.length - 1],
-			median: Arr.sortedAscQuantile(arrSorted, 0.5),
-			q25: q25,
-			q75: q75,
-			iqr: q75 - q25,
-			mean: mean,
-			meanSe: meanSe,
-			meanLow: mean - 1.96 * meanSe,
-			meanHigh: mean + 1.96 * meanSe,
-		}
-	}
-	return result
-}
-
 const isGood = (n: any) => n !== null && n !== undefined && !isNaN(n)
 const isString = (val: any) => typeof val === "string" || val instanceof String
 const isNumber = (val: any) => typeof val === "number"
@@ -800,8 +776,8 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 			const boxPostXCoord = scaledPreTitres.length === 0 ? stripXCoord : postXCoord
 
 			if (settings.kind === "titres") {
-				const preStats = getBoxplotStats(scaledPreTitres)
-				const postStats = getBoxplotStats(scaledPostTitres)
+				const preStats = Plot.getBoxplotStats(scaledPreTitres)
+				const postStats = Plot.getBoxplotStats(scaledPostTitres)
 
 				if (preStats !== null) {
 					Plot.addVBar(
@@ -855,7 +831,7 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 					boxplotData.push(postStats)
 				}
 			} else if (scaledRatios.length > 0) {
-				const ratioStats = getBoxplotStats(scaledRatios)
+				const ratioStats = Plot.getBoxplotStats(scaledRatios)
 				if (ratioStats !== null) {
 					Plot.addVBar(
 						plot,

@@ -107,7 +107,7 @@ export const drawLine = (
 	thiccness: number,
 	dashSegments: number[]
 ) => {
-	const isGood = (n: any) => n !== null && n !== undefined && !isNaN(n)
+	const isGood = (n: number) => n !== null && n !== undefined && !isNaN(n)
 	if ((x1 !== x2 || y1 !== y2) && isGood(x1) && isGood(x2) && isGood(y1) && isGood(y2)) {
 		renderer.strokeStyle = color1
 		renderer.beginPath()
@@ -455,6 +455,49 @@ export const beginPlot = (spec: PlotSpec) => {
 		axisColor: axisCol,
 	}
 
+	return result
+}
+
+export const getBoxplotStats = (arr: number[]): BoxplotStats | null => {
+	const arrsum = (arr: number[]) => arr.reduce((a, b) => a + b, 0)
+	const arrmean = (arr: number[]) => arrsum(arr) / arr.length
+	const arrsd = (arr: number[]) => {
+		const mu = arrmean(arr)
+		const diffArr = arr.map((a) => (a - mu) ** 2)
+		return Math.sqrt(arrsum(diffArr) / (arr.length - 1))
+	}
+
+	const sortedAscQuantile = (sorted: number[], q: number) => {
+		const pos = (sorted.length - 1) * q
+		const base = Math.floor(pos)
+		const rest = pos - base
+		let result = sorted[base]
+		if (sorted[base + 1] !== undefined) {
+			result += rest * (sorted[base + 1] - sorted[base])
+		}
+		return result
+	}
+
+	let result: BoxplotStats | null = null
+	if (arr.length > 0) {
+		const arrSorted = arr.sort((x1, x2) => x1 - x2)
+		const q25 = sortedAscQuantile(arrSorted, 0.25)
+		const q75 = sortedAscQuantile(arrSorted, 0.75)
+		const mean = arrmean(arrSorted)
+		const meanSe = arrsd(arrSorted) / Math.sqrt(arr.length)
+		result = {
+			min: arrSorted[0],
+			max: arrSorted[arrSorted.length - 1],
+			median: sortedAscQuantile(arrSorted, 0.5),
+			q25: q25,
+			q75: q75,
+			iqr: q75 - q25,
+			mean: mean,
+			meanSe: meanSe,
+			meanLow: mean - 1.96 * meanSe,
+			meanHigh: mean + 1.96 * meanSe,
+		}
+	}
 	return result
 }
 
