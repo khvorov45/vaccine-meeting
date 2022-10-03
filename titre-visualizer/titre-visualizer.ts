@@ -22,15 +22,6 @@ const DATA_FORMATS = DATA_FORMATS_ as unknown as string[]
 type DataFormat = typeof DATA_FORMATS_[number]
 
 //
-// SECTION Math
-//
-
-const isGood = (n: any) => n !== null && n !== undefined && !isNaN(n)
-const isString = (val: any) => typeof val === "string" || val instanceof String
-const isNumber = (val: any) => typeof val === "number"
-const isFractional = (val: any) => isGood(val) && isNumber(val) && Math.round(val) !== val
-
-//
 // SECTION DOM
 //
 
@@ -490,6 +481,8 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 		)
 	}
 
+	const isGood = (n: number | null | undefined) => n !== null && n !== undefined && !isNaN(n)
+
 	for (let xFacetIndex = 0; xFacetIndex < Math.max(xFacetVals.length, 1); xFacetIndex++) {
 		const xFacetVal = xFacetVals[xFacetIndex]
 		const xTicksForFacet = xTicksPerFacet[xFacetIndex]
@@ -504,10 +497,11 @@ const createPlot = (data: Data, settings: PlotSettings, boxplotData: any[]) => {
 				const varNames = data.varNames
 				switch (varNames.format) {
 					case "long":
-						result = result && isGood(row[varNames.titre])
+						result = result && isGood(<number>row[varNames.titre])
 						break
 					case "wide":
-						result = result && isGood(row[varNames.preTitre]) && isGood(row[varNames.postTitre])
+						result =
+							result && isGood(<number>row[varNames.preTitre]) && isGood(<number>row[varNames.postTitre])
 						break
 				}
 
@@ -1152,7 +1146,7 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>({
 		const specInit = colSpecInit[colname]
 
 		let accessInit = specInit.access ?? defaults?.access ?? colname
-		if (isString(accessInit)) {
+		if (typeof accessInit === "string" || accessInit instanceof String) {
 			const colname = <string>accessInit
 			accessInit = (rowData) => rowData[colname]
 		}
@@ -1183,7 +1177,7 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>({
 					const formattedData = format(data)
 					let passed = true
 
-					if ((val.startsWith(">") || val.startsWith("<")) && isNumber(data)) {
+					if ((val.startsWith(">") || val.startsWith("<")) && typeof data === "number") {
 						const valNumber = parseFloat(val.slice(1))
 						if (!isNaN(valNumber)) {
 							switch (val[0]) {
@@ -1499,6 +1493,9 @@ const parseData = (input: string, xFacets: string[]): Data => {
 			let anyTitreIsFractional = false
 			let anyTitreIsBelow5 = false
 
+			const isFractional = (val: number) =>
+				val !== null && val !== undefined && !isNaN(val) && Math.round(val) !== val
+
 			const varNames = data.varNames
 			for (let parsedRowIndex = 1; parsedRowIndex < parseResult.data.length; parsedRowIndex++) {
 				const parsedRow = parseResult.data[parsedRowIndex]
@@ -1516,7 +1513,7 @@ const parseData = (input: string, xFacets: string[]): Data => {
 					switch (varNames.format) {
 						case "long":
 							{
-								const titre = row[varNames.titre]
+								const titre = <number>row[varNames.titre]
 								anyTitreIsFractional = anyTitreIsFractional || isFractional(titre)
 								anyTitreIsBelow5 = anyTitreIsBelow5 || <number>titre < 5
 							}
@@ -1524,8 +1521,8 @@ const parseData = (input: string, xFacets: string[]): Data => {
 
 						case "wide":
 							{
-								const preTitre = row[varNames.preTitre]
-								const postTitre = row[varNames.postTitre]
+								const preTitre = <number>row[varNames.preTitre]
+								const postTitre = <number>row[varNames.postTitre]
 								anyTitreIsFractional =
 									anyTitreIsFractional || isFractional(preTitre) || isFractional(postTitre)
 								anyTitreIsBelow5 = anyTitreIsBelow5 || <number>preTitre < 5 || <number>postTitre < 5
