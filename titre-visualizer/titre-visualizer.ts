@@ -1857,7 +1857,7 @@ const main = () => {
 
 		const xAxisSwitch = DOM.addEl(
 			dataRelatedInputs,
-			createSwitch({
+			DOM.createSwitch({
 				init: plotSettings.xAxis,
 				opts: data.colnames,
 				onUpdate: (sel) => {
@@ -1865,6 +1865,7 @@ const main = () => {
 					regenPlot()
 				},
 				name: "X axis",
+				colors: switchColors,
 			})
 		)
 		xAxisSwitch.style.marginBottom = collapsibleSelectorSpacing
@@ -1873,7 +1874,7 @@ const main = () => {
 		type Filter = {
 			selected: any[]
 			all: any[]
-			optElements: HTMLElement[]
+			optElements: HTMLDivElement[]
 		}
 		const filters: Record<string, Filter> = {}
 
@@ -1906,7 +1907,7 @@ const main = () => {
 			filters[colname] = { selected: colUniqueVals, all: [...colUniqueVals], optElements: [] }
 			const el = DOM.addEl(
 				dataRelatedInputs,
-				createSwitch({
+				DOM.createSwitch({
 					init: colUniqueVals,
 					opts: colUniqueVals,
 					onUpdate: (sel) => {
@@ -1923,7 +1924,8 @@ const main = () => {
 						regenPlot()
 					},
 					name: colname,
-					optElements: filters[colname].optElements,
+					optElementStorage: filters[colname].optElements,
+					colors: switchColors
 				})
 			)
 			el.style.marginBottom = collapsibleSelectorSpacing
@@ -1991,7 +1993,7 @@ const main = () => {
 					}
 					const el = DOM.addEl(
 						colnameInputsContainer,
-						createSwitch({
+						DOM.createSwitch({
 							init: data.varNames[varName as keyof DataVarNames],
 							opts: data.colnames,
 							onUpdate: (sel) => {
@@ -2016,7 +2018,8 @@ const main = () => {
 								regenPlot()
 							},
 							name: varName,
-							helpText: helpText,
+							help: helpText,
+							colors: switchColors,
 						})
 					)
 					el.style.marginBottom = collapsibleSelectorSpacing
@@ -2031,7 +2034,7 @@ const main = () => {
 					const allTimepoints = Arr.unique(data.dataFiltered.map((row) => row[varNames.timepoint]))
 					const preLab = DOM.addEl(
 						timepointLabelInputContainer,
-						createSwitch({
+						DOM.createSwitch({
 							init: varNames.timepointLabels.pre,
 							opts: allTimepoints,
 							onUpdate: (sel) => {
@@ -2039,12 +2042,13 @@ const main = () => {
 								regenPlot()
 							},
 							name: "pre label",
+							colors: switchColors,
 						})
 					)
 					preLab.style.marginBottom = collapsibleSelectorSpacing
 					DOM.addEl(
 						timepointLabelInputContainer,
-						createSwitch({
+						DOM.createSwitch({
 							init: varNames.timepointLabels.post,
 							opts: allTimepoints,
 							onUpdate: (sel) => {
@@ -2052,6 +2056,7 @@ const main = () => {
 								regenPlot()
 							},
 							name: "post label",
+							colors: switchColors,
 						})
 					)
 				}

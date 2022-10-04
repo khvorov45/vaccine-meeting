@@ -59,6 +59,7 @@ type SwitchSpec<SingleOpt extends string | number, SelType extends SingleOpt | S
 	optContainerStyle?: (container: HTMLDivElement) => void
 	optElementStyle?: (el: HTMLDivElement) => void
 	switchElementStyle?: (el: HTMLDivElement) => void
+	optElementStorage?: HTMLDivElement[]
 }
 
 const createSwitchCommon = <SingleOpt extends string | number, SelType extends SingleOpt | SingleOpt[]>(
@@ -129,7 +130,7 @@ const createSwitchCommon = <SingleOpt extends string | number, SelType extends S
 		})
 	}
 
-	const allOptElements: HTMLDivElement[] = []
+	const allOptElements: HTMLDivElement[] = spec.optElementStorage ?? []
 	for (const opt of spec.opts) {
 		const optElement = addDiv(optContainer)
 		allOptElements.push(optElement)
