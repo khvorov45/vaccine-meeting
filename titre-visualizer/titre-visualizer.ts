@@ -5,34 +5,14 @@ import * as Rand from "./rand.ts"
 import * as Plot from "./plot.ts"
 import * as DOM from "./dom.ts"
 
-const THEMES_ = ["dark", "light"] as const
-const THEMES = THEMES_ as unknown as string[]
-type Theme = typeof THEMES_[number]
-
-const PLOT_MODES_ = ["titres", "rises"] as const
-const PLOT_MODES = PLOT_MODES_ as unknown as string[]
-type PlotMode = typeof PLOT_MODES_[number]
-
 const PLOT_ELEMENTS_ = ["points", "lines", "boxplots", "counts", "refLine", "means", "bars"] as const
 const PLOT_ELEMENTS = PLOT_ELEMENTS_ as unknown as string[]
 type PlotElement = typeof PLOT_ELEMENTS_[number]
 type Opacities = Record<PlotElement, number>
 
-const DATA_FORMATS_ = ["wide", "long"] as const
-const DATA_FORMATS = DATA_FORMATS_ as unknown as string[]
-type DataFormat = typeof DATA_FORMATS_[number]
-
 //
 // SECTION DOM
 //
-
-const switchOptionStyleAllCaps = (optEl: HTMLElement, optVal: string) => {
-	optEl.style.flexGrow = "1"
-	optEl.style.fontWeight = "bold"
-	optEl.style.letterSpacing = "2px"
-	optEl.style.border = "1px solid var(--color-border)"
-	optEl.textContent = optVal.toUpperCase()
-}
 
 type SwitchSpec<SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]> = {
 	init: OptType
@@ -70,21 +50,18 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 
 		const label = DOM.addDiv(labelContainer)
 		label.textContent = spec.name! + " ▼"
-		// label.style.fontWeight = "bold"
 		label.style.fontSize = "large"
-		// label.style.letterSpacing = "2px"
 		label.style.cursor = "pointer"
 		label.style.paddingLeft = "5px"
-		//label.style.textTransform = "uppercase"
 
 		label.addEventListener("click", () => {
 			if (optContainerDisplayed) {
 				optContainerOldDisplay = optContainer.style.display
 				optContainer.style.display = "none"
-				label!.textContent = spec.name! + " ▼"
+				label.textContent = spec.name! + " ▼"
 			} else {
 				optContainer.style.display = optContainerOldDisplay
-				label!.textContent = spec.name! + " ▲"
+				label.textContent = spec.name! + " ▲"
 			}
 			optContainerDisplayed = !optContainerDisplayed
 		})
@@ -283,9 +260,9 @@ type PlotSettings = {
 	refTitre: number
 	refRatio: number
 	refRelative: number
-	theme: Theme
+	theme: "dark" | "light"
 	opacities: Opacities
-	kind: PlotMode
+	kind: "titres" | "rises"
 	relative: boolean
 	refVirus: string
 	refType: "manual" | "data"
@@ -1722,46 +1699,60 @@ const main = () => {
 	globalThis.window.addEventListener("dragenter", () => (fileInputWholePage.style.visibility = "visible"))
 	fileInputWholePage.addEventListener("dragleave", () => (fileInputWholePage.style.visibility = "hidden"))
 
+	const switchOptionStyleAllCaps = (optEl: HTMLElement, _optVal?: any) => {
+		optEl.style.flexGrow = "1"
+		optEl.style.fontWeight = "bold"
+		optEl.style.letterSpacing = "2px"
+		optEl.style.border = "1px solid var(--color-border)"
+		optEl.style.textTransform = "uppercase"
+	}
+
+	const swtichContainerHorizontalButtonGroup = (container: HTMLElement) => {
+		container.style.display = "flex"
+		container.style.flexDirection = "row"
+		container.style.marginBottom = "20px"
+	}
+
+	const switchColors = {
+		normal: "var(--color-background)",
+		hover: "var(--color-background2)",
+		selected: "var(--color-selected)",
+	}
+
 	DOM.addEl(
 		inputContainer,
-		createSwitch({
+		DOM.createSwitch({
 			init: plotSettings.theme,
-			opts: <Theme[]>THEMES,
+			opts: ["dark", "light"],
 			onUpdate: (opt) => {
 				document.documentElement.setAttribute("theme", opt)
 				plotSettings.theme = opt
 				regenPlot()
 			},
 			optElementStyle: switchOptionStyleAllCaps,
-			optContainerStyle: (container) => {
-				container.style.display = "flex"
-				container.style.flexDirection = "row"
-				container.style.marginBottom = "20px"
-			},
+			optContainerStyle: swtichContainerHorizontalButtonGroup,
+			colors: switchColors,
 		})
 	)
 
 	DOM.addEl(
 		inputContainer,
-		createSwitch({
+		DOM.createSwitch({
 			init: plotSettings.kind,
-			opts: <PlotMode[]>PLOT_MODES,
+			opts: ["titres", "rises"],
 			onUpdate: () => {
 				plotSettings.kind = plotSettings.kind === "titres" ? "rises" : "titres"
 				regenPlot()
 			},
 			optElementStyle: switchOptionStyleAllCaps,
-			optContainerStyle: (el) => {
-				el.style.display = "flex"
-				el.style.flexDirection = "row"
-				el.style.marginBottom = "20px"
-			},
+			optContainerStyle: swtichContainerHorizontalButtonGroup,
+			colors: switchColors,
 		})
 	)
 
 	DOM.addEl(
 		inputContainer,
-		createSwitch({
+		DOM.createSwitch({
 			init: plotSettings.relative ? "Rel" : "Abs",
 			opts: ["Abs", "Rel"],
 			onUpdate: (rel) => {
@@ -1774,11 +1765,8 @@ const main = () => {
 				regenPlot()
 			},
 			optElementStyle: switchOptionStyleAllCaps,
-			optContainerStyle: (el) => {
-				el.style.display = "flex"
-				el.style.flexDirection = "row"
-				el.style.marginBottom = "20px"
-			},
+			optContainerStyle: swtichContainerHorizontalButtonGroup,
+			colors: switchColors,
 		})
 	)
 
@@ -1968,36 +1956,29 @@ const main = () => {
 
 		DOM.addEl(
 			dataRelatedInputs,
-			createSwitch({
+			DOM.createSwitch({
 				init: data.varNames.format,
-				opts: <DataFormat[]>DATA_FORMATS,
+				opts: ["wide", "long"],
 				onUpdate: () => {
 					const varNames = data.varNames
 					switch (varNames.format) {
 						case "long":
-							{
-								lastLongFormat = varNames
-								lastWideFormat.virus = varNames.virus
-								data.varNames = lastWideFormat
-							}
+							lastLongFormat = varNames
+							lastWideFormat.virus = varNames.virus
+							data.varNames = lastWideFormat
 							break
 						case "wide":
-							{
-								lastWideFormat = varNames
-								lastLongFormat.virus = varNames.virus
-								data.varNames = lastLongFormat
-							}
+							lastWideFormat = varNames
+							lastLongFormat.virus = varNames.virus
+							data.varNames = lastLongFormat
 							break
 					}
 					regenPlot()
 					regenColnameInputs()
 				},
 				optElementStyle: switchOptionStyleAllCaps,
-				optContainerStyle: (el) => {
-					el.style.display = "flex"
-					el.style.flexDirection = "row"
-					el.style.marginBottom = "10px"
-				},
+				optContainerStyle: swtichContainerHorizontalButtonGroup,
+				colors: switchColors,
 			})
 		)
 
