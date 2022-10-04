@@ -1540,14 +1540,14 @@ const main = () => {
 	const fileInputContainer = DOM.addDiv(inputContainer)
 	fileInputContainer.style.border = "1px dashed var(--color-fileSelectBorder)"
 	fileInputContainer.style.width = "100%"
-	fileInputContainer.style.height = "50px"
+	fileInputContainer.style.height = "30px"
 	fileInputContainer.style.position = "relative"
 	fileInputContainer.style.flexShrink = "0"
 	fileInputContainer.style.boxSizing = "border-box"
-	fileInputContainer.style.marginBottom = "20px"
+	fileInputContainer.style.marginBottom = "10px"
 
 	const fileInputLabel = DOM.addDiv(fileInputContainer)
-	fileInputLabel.innerHTML = "SELECT FILE"
+	fileInputLabel.innerHTML = "Select file..."
 	fileInputLabel.style.position = "absolute"
 	fileInputLabel.style.top = "0px"
 	fileInputLabel.style.left = "0px"
@@ -1699,18 +1699,8 @@ const main = () => {
 	globalThis.window.addEventListener("dragenter", () => (fileInputWholePage.style.visibility = "visible"))
 	fileInputWholePage.addEventListener("dragleave", () => (fileInputWholePage.style.visibility = "hidden"))
 
-	const switchOptionStyleAllCaps = (optEl: HTMLElement, _optVal?: any) => {
-		optEl.style.flexGrow = "1"
-		optEl.style.fontWeight = "bold"
-		optEl.style.letterSpacing = "2px"
-		optEl.style.border = "1px solid var(--color-border)"
-		optEl.style.textTransform = "uppercase"
-	}
-
-	const swtichContainerHorizontalButtonGroup = (container: HTMLElement) => {
-		container.style.display = "flex"
-		container.style.flexDirection = "row"
-		container.style.marginBottom = "20px"
+	const switchMargin = (container: HTMLElement) => {
+		container.style.marginBottom = "10px"
 	}
 
 	const switchColors = {
@@ -1729,8 +1719,8 @@ const main = () => {
 				plotSettings.theme = opt
 				regenPlot()
 			},
-			optElementStyle: switchOptionStyleAllCaps,
-			optContainerStyle: swtichContainerHorizontalButtonGroup,
+			name: "Theme",
+			switchElementStyle: switchMargin,
 			colors: switchColors,
 		})
 	)
@@ -1744,8 +1734,8 @@ const main = () => {
 				plotSettings.kind = plotSettings.kind === "titres" ? "rises" : "titres"
 				regenPlot()
 			},
-			optElementStyle: switchOptionStyleAllCaps,
-			optContainerStyle: swtichContainerHorizontalButtonGroup,
+			name: "Y axis",
+			switchElementStyle: switchMargin,
 			colors: switchColors,
 		})
 	)
@@ -1753,10 +1743,10 @@ const main = () => {
 	DOM.addEl(
 		inputContainer,
 		DOM.createSwitch({
-			init: plotSettings.relative ? "Rel" : "Abs",
-			opts: ["Abs", "Rel"],
+			init: plotSettings.relative ? "Relative" : "Absolute",
+			opts: ["Absolute", "Relative"],
 			onUpdate: (rel) => {
-				plotSettings.relative = rel === "Rel"
+				plotSettings.relative = rel === "Relative"
 				if (plotSettings.relative) {
 					regenReferenceSwitch()
 				} else {
@@ -1764,8 +1754,8 @@ const main = () => {
 				}
 				regenPlot()
 			},
-			optElementStyle: switchOptionStyleAllCaps,
-			optContainerStyle: swtichContainerHorizontalButtonGroup,
+			name: "Titre mode",
+			switchElementStyle: switchMargin,
 			colors: switchColors,
 		})
 	)
@@ -1814,7 +1804,6 @@ const main = () => {
 				regenPlot()
 			},
 			name: "Elements",
-			optElementStyle: switchOptionStyleAllCaps,
 			horizontalGradient: Object.values(plotSettings.opacities),
 			helpText: "Element transparency. Click on the plot to change refline position",
 		})
@@ -1959,6 +1948,7 @@ const main = () => {
 			DOM.createSwitch({
 				init: data.varNames.format,
 				opts: ["wide", "long"],
+				name: "Format",
 				onUpdate: () => {
 					const varNames = data.varNames
 					switch (varNames.format) {
@@ -1976,8 +1966,7 @@ const main = () => {
 					regenPlot()
 					regenColnameInputs()
 				},
-				optElementStyle: switchOptionStyleAllCaps,
-				optContainerStyle: swtichContainerHorizontalButtonGroup,
+				switchElementStyle: switchMargin,
 				colors: switchColors,
 			})
 		)

@@ -53,15 +53,48 @@ type SwitchSpec<SingleOpt extends string | number> = {
 	init: SingleOpt
 	opts: SingleOpt[]
 	onUpdate: (opt: SingleOpt) => void
+	colors: { normal: string; hover: string; selected: string }
+	name: string
 	optContainerStyle?: (container: HTMLDivElement) => void
 	optElementStyle?: (el: HTMLDivElement) => void
-	colors: {normal: string, hover: string, selected: string}
+	switchElementStyle?: (el: HTMLDivElement) => void
 }
 
 export const createSwitch = <SingleOpt extends string | number>(spec: SwitchSpec<SingleOpt>) => {
 	const switchElement = createDiv()
-	const optContainer = addDiv(switchElement)
+	spec.switchElementStyle?.(switchElement)
+	const optContainer = createDiv()
 	spec.optContainerStyle?.(optContainer)
+
+	const displayStyleWhenVisible = optContainer.style.display
+	let optContainerDisplayed = false
+
+	const labelContainer = addDiv(switchElement)
+	labelContainer.style.display = "flex"
+	labelContainer.style.justifyContent = "space-between"
+
+	const label = addDiv(labelContainer)
+	label.style.fontSize = "large"
+	label.style.cursor = "pointer"
+	label.style.paddingLeft = "5px"
+
+	const setCollapse = (optContainerDisplayed: boolean) => {
+		if (optContainerDisplayed) {
+			optContainer.style.display = displayStyleWhenVisible
+			label.textContent = spec.name + " ▲"
+		} else {
+			optContainer.style.display = "none"
+			label.textContent = spec.name + " ▼"
+		}
+	}
+
+	label.addEventListener("click", () => {
+		optContainerDisplayed = !optContainerDisplayed
+		setCollapse(optContainerDisplayed)
+	})
+
+	setCollapse(optContainerDisplayed)
+	addEl(switchElement, optContainer)
 
 	let currentSel = spec.init
 	const isSelected = (opt: SingleOpt) => opt === currentSel
