@@ -49,10 +49,10 @@ export const createDivWithText = (text: string) => {
 	return div
 }
 
-type SwitchSpec<SingleOpt extends string | number> = {
-	init: SingleOpt
+type SwitchSpec<SingleOpt extends string | number, SelType extends SingleOpt | SingleOpt[]> = {
+	init: SelType
 	opts: SingleOpt[]
-	onUpdate: (opt: SingleOpt) => void
+	onUpdate: (opt: SelType) => void
 	colors: { normal: string; hover: string; selected: string }
 	name: string
 	help?: string
@@ -61,7 +61,9 @@ type SwitchSpec<SingleOpt extends string | number> = {
 	switchElementStyle?: (el: HTMLDivElement) => void
 }
 
-export const createSwitch = <SingleOpt extends string | number>(spec: SwitchSpec<SingleOpt>) => {
+export const createSwitch = <SingleOpt extends string | number, SelType extends SingleOpt | SingleOpt[]>(
+	spec: SwitchSpec<SingleOpt, SelType>
+) => {
 	const switchElement = createDiv()
 	spec.switchElementStyle?.(switchElement)
 	const optContainer = createDiv()
@@ -113,7 +115,7 @@ export const createSwitch = <SingleOpt extends string | number>(spec: SwitchSpec
 		helpText.style.zIndex = "999"
 		helpText.style.padding = "5px"
 		addEl(helpText, createDivWithText(spec.help))
-		
+
 		const helpDisplayWhenVisible = helpText.style.display
 		helpText.style.display = "none"
 		help.addEventListener("click", () => {
@@ -126,7 +128,13 @@ export const createSwitch = <SingleOpt extends string | number>(spec: SwitchSpec
 	}
 
 	let currentSel = spec.init
-	const isSelected = (opt: SingleOpt) => opt === currentSel
+	if (Array.isArray(currentSel)) {
+		currentSel = <typeof spec.init>[...currentSel]
+	}
+
+	const isSelected = Array.isArray(currentSel)
+		? (opt: SingleOpt) => (<SingleOpt[]>(<unknown>currentSel)).includes(opt)
+		: (opt: SingleOpt) => opt === <SingleOpt>(<unknown>currentSel)
 
 	const allOptElements: HTMLElement[] = []
 
@@ -154,12 +162,27 @@ export const createSwitch = <SingleOpt extends string | number>(spec: SwitchSpec
 		})
 
 		optElement.addEventListener("click", () => {
-			if (opt !== currentSel) {
+			if (Array.isArray(currentSel)) {
+				const arr = <SingleOpt[]>(<unknown>currentSel)
+				if (isSelected(opt)) {
+					const optIndex = arr.indexOf(opt)
+					if (optIndex !== -1) {
+						arr.splice(optIndex, 1)
+					} else {
+						console.error(`Switch opt ${opt} selected but not found in ${arr}`)
+					}
+					optElement.style.backgroundColor = spec.colors.normal
+				} else {
+					arr.push(opt)
+					optElement.style.backgroundColor = spec.colors.selected
+				}
+				spec.onUpdate(currentSel)
+			} else if (!isSelected(opt)) {
+				currentSel = <SelType>(<unknown>opt)
 				for (const el of allOptElements) {
 					el.style.backgroundColor = spec.colors.normal
 				}
 				optElement.style.backgroundColor = spec.colors.selected
-				currentSel = opt
 				spec.onUpdate(currentSel)
 			}
 		})

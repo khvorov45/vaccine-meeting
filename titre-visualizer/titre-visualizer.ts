@@ -186,7 +186,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 						currentSel = [...spec.opts]
 					} else {
 						const optIndex = (<SingleOpt[]>currentSel).indexOf(opt)
-						if (optIndex) {
+						if (optIndex !== -1) {
 							optElement.style.backgroundColor = normalCol
 							Arr.removeIndex(<SingleOpt[]>currentSel, optIndex)
 						} else {
@@ -1766,20 +1766,25 @@ const main = () => {
 			const allViruses = Arr.unique(data.dataFiltered.map((row) => <string>row[data.varNames.virus])).sort(
 				virusSort
 			)
-			const referenceSwitch = createSwitch({
-				init: plotSettings.refVirus,
-				opts: allViruses,
-				onUpdate: (ref) => {
-					plotSettings.refVirus = ref
-					regenPlot()
-				},
-				name: "Reference",
-			})
-			referenceSwitch.style.marginBottom = collapsibleSelectorSpacing
 
-			const refTypeSwitch = DOM.addEl(
-				inputContainer,
-				createSwitch({
+			DOM.addEl(
+				referenceSwitchContainer,
+				DOM.createSwitch({
+					init: plotSettings.refVirus,
+					opts: allViruses,
+					onUpdate: (ref) => {
+						plotSettings.refVirus = ref
+						regenPlot()
+					},
+					name: "Reference",
+					colors: switchColors,
+					switchElementStyle: switchMargin,
+				})
+			)
+
+			DOM.addEl(
+				referenceSwitchContainer,
+				DOM.createSwitch({
 					init: plotSettings.refType,
 					opts: ["manual", "data"],
 					onUpdate: (refType) => {
@@ -1787,12 +1792,10 @@ const main = () => {
 						regenPlot()
 					},
 					name: "Relative mode",
+					colors: switchColors,
+					switchElementStyle: switchMargin,
 				})
 			)
-			refTypeSwitch.style.marginBottom = collapsibleSelectorSpacing
-
-			DOM.addEl(referenceSwitchContainer, referenceSwitch)
-			DOM.addEl(referenceSwitchContainer, refTypeSwitch)
 		}
 	}
 
@@ -1829,9 +1832,9 @@ const main = () => {
 	const regenDataRelatedInputs = () => {
 		DOM.removeChildren(dataRelatedInputs)
 
-		const facetSwitch = DOM.addEl(
+		DOM.addEl(
 			dataRelatedInputs,
-			createSwitch({
+			DOM.createSwitch({
 				init: plotSettings.xFacets,
 				opts: data.colnames,
 				onUpdate: (sel) => {
@@ -1847,10 +1850,10 @@ const main = () => {
 					regenPlot()
 				},
 				name: "Facet by",
-				singleNullable: true,
+				colors: switchColors,
+				switchElementStyle: switchMargin,
 			})
 		)
-		facetSwitch.style.marginBottom = collapsibleSelectorSpacing
 
 		const xAxisSwitch = DOM.addEl(
 			dataRelatedInputs,
