@@ -1751,6 +1751,7 @@ const main = () => {
 				regenPlot()
 			},
 			name: "Titre mode",
+			help: "Absolute: actual observations.\nRelative: Titres for each individual are divided by the reference titre for that individual for that subtype",
 			switchElementStyle: switchMargin,
 			colors: switchColors,
 		})

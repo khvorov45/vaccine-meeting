@@ -55,6 +55,7 @@ type SwitchSpec<SingleOpt extends string | number> = {
 	onUpdate: (opt: SingleOpt) => void
 	colors: { normal: string; hover: string; selected: string }
 	name: string
+	help?: string
 	optContainerStyle?: (container: HTMLDivElement) => void
 	optElementStyle?: (el: HTMLDivElement) => void
 	switchElementStyle?: (el: HTMLDivElement) => void
@@ -95,6 +96,34 @@ export const createSwitch = <SingleOpt extends string | number>(spec: SwitchSpec
 
 	setCollapse(optContainerDisplayed)
 	addEl(switchElement, optContainer)
+
+	if (spec.help !== undefined) {
+		const help = addDiv(labelContainer)
+		help.textContent = "?"
+		help.style.cursor = "pointer"
+		help.style.paddingLeft = "10px"
+		help.style.paddingRight = help.style.paddingLeft
+		help.style.position = "relative"
+
+		const helpText = addDiv(help)
+		helpText.style.position = "absolute"
+		helpText.style.right = "0px"
+		helpText.style.backgroundColor = "var(--color-background2)"
+		helpText.style.width = "150px"
+		helpText.style.zIndex = "999"
+		helpText.style.padding = "5px"
+		addEl(helpText, createDivWithText(spec.help))
+		
+		const helpDisplayWhenVisible = helpText.style.display
+		helpText.style.display = "none"
+		help.addEventListener("click", () => {
+			if (helpText.style.display === "none") {
+				helpText.style.display = helpDisplayWhenVisible
+			} else {
+				helpText.style.display = "none"
+			}
+		})
+	}
 
 	let currentSel = spec.init
 	const isSelected = (opt: SingleOpt) => opt === currentSel
