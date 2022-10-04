@@ -3,6 +3,7 @@ import { VirtualizedList } from "./virtualized-list.js"
 import * as Arr from "./array.ts"
 import * as Rand from "./rand.ts"
 import * as Plot from "./plot.ts"
+import * as DOM from "./dom.ts"
 
 const THEMES_ = ["dark", "light"] as const
 const THEMES = THEMES_ as unknown as string[]
@@ -24,54 +25,6 @@ type DataFormat = typeof DATA_FORMATS_[number]
 //
 // SECTION DOM
 //
-
-const getScrollbarWidths = () => {
-	const outer = document.createElement("div")
-	outer.style.visibility = "hidden"
-	outer.style.overflowY = "scroll"
-	document.body.appendChild(outer)
-
-	const inner = document.createElement("div")
-	outer.appendChild(inner)
-
-	const scrollbarWidthV = outer.offsetWidth - inner.offsetWidth
-	outer.removeChild(inner)
-
-	outer.style.overflowY = "hidden"
-	outer.style.overflowX = "scroll"
-
-	outer.appendChild(inner)
-	const scrollbarWidthH = outer.offsetHeight - inner.offsetHeight
-
-	outer.parentNode!.removeChild(outer)
-	return [scrollbarWidthH, scrollbarWidthV]
-}
-
-const SCROLLBAR_WIDTHS = getScrollbarWidths()
-
-const createEl = (name: string) => document.createElement(name)
-const createDiv = () => createEl("div")
-const addEl = (parent: HTMLElement, child: HTMLElement) => {
-	parent.appendChild(child)
-	return child
-}
-const addDiv = (parent: HTMLElement) => addEl(parent, createDiv())
-const removeChildren = (el: HTMLElement) => {
-	while (el.lastChild) {
-		el.removeChild(el.lastChild)
-	}
-}
-
-const removeEl = (parent: HTMLElement, el: HTMLElement) => {
-	parent.removeChild(el)
-	return el
-}
-
-const createDivWithText = (text: string) => {
-	const div = createDiv()
-	div.textContent = text
-	return div
-}
 
 const switchOptionStyleAllCaps = (optEl: HTMLElement, optVal: string) => {
 	optEl.style.flexGrow = "1"
@@ -100,9 +53,9 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 	const multiple = Array.isArray(spec.init)
 	const collapsibleWithLabel = spec.name !== undefined
 
-	const switchElement = createDiv()
+	const switchElement = DOM.createDiv()
 
-	const optContainer = createDiv()
+	const optContainer = DOM.createDiv()
 	spec.optContainerStyle?.(optContainer)
 	let optContainerDisplayed = !collapsibleWithLabel
 	let optContainerOldDisplay = optContainer.style.display
@@ -111,11 +64,11 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 	}
 
 	if (collapsibleWithLabel) {
-		const labelContainer = addDiv(switchElement)
+		const labelContainer = DOM.addDiv(switchElement)
 		labelContainer.style.display = "flex"
 		labelContainer.style.justifyContent = "space-between"
 
-		const label = addDiv(labelContainer)
+		const label = DOM.addDiv(labelContainer)
 		label.textContent = spec.name! + " ▼"
 		// label.style.fontWeight = "bold"
 		label.style.fontSize = "large"
@@ -137,23 +90,23 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 		})
 
 		if (spec.horizontalGradient !== undefined || multiple || spec.helpText !== undefined) {
-			const help = addDiv(labelContainer)
+			const help = DOM.addDiv(labelContainer)
 			help.textContent = "?"
 			help.style.cursor = "pointer"
 			help.style.paddingLeft = "10px"
 			help.style.paddingRight = help.style.paddingLeft
 			help.style.position = "relative"
 
-			const helpText = addDiv(help)
+			const helpText = DOM.addDiv(help)
 			if (spec.helpText !== undefined) {
-				addEl(helpText, createDivWithText(spec.helpText))
+				DOM.addEl(helpText, DOM.createDivWithText(spec.helpText))
 			}
 			if (spec.horizontalGradient === undefined) {
-				addEl(helpText, createDivWithText("ctrl+click = select one"))
-				addEl(helpText, createDivWithText("shift+click = select all"))
+				DOM.addEl(helpText, DOM.createDivWithText("ctrl+click = select one"))
+				DOM.addEl(helpText, DOM.createDivWithText("shift+click = select all"))
 			} else {
-				addEl(helpText, createDivWithText("ctrl+click = zero"))
-				addEl(helpText, createDivWithText("shift+click = one"))
+				DOM.addEl(helpText, DOM.createDivWithText("ctrl+click = zero"))
+				DOM.addEl(helpText, DOM.createDivWithText("shift+click = one"))
 			}
 			helpText.style.position = "absolute"
 			helpText.style.right = "0px"
@@ -173,7 +126,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 		}
 	}
 
-	addEl(switchElement, optContainer)
+	DOM.addEl(switchElement, optContainer)
 
 	let currentSel = spec.init
 	if (multiple) {
@@ -189,7 +142,7 @@ const createSwitch = <SingleOpt extends string | number, OptType extends SingleO
 	const allOptElements: HTMLElement[] = spec.optElements === undefined ? [] : spec.optElements
 	for (let optIndex = 0; optIndex < spec.opts.length; optIndex++) {
 		const opt = spec.opts[optIndex]
-		const optElement = addDiv(optContainer)
+		const optElement = DOM.addDiv(optContainer)
 		allOptElements.push(optElement)
 		optElement.style.paddingTop = "5px"
 		optElement.style.paddingBottom = "5px"
@@ -914,21 +867,21 @@ const DOWNLOAD_CSV: { [key: string]: string } = {}
 const globalResizeListeners: any[] = []
 
 const createTableFilterRow = <T>(colSpec: { [key: string]: TableColSpecFinal<T> }, onInput: any) => {
-	const filterRow = createDiv()
+	const filterRow = DOM.createDiv()
 	applyTableHeaderRowStyle(filterRow)
 
-	let rowWidth = 0 //SCROLLBAR_WIDTHS[1]
+	let rowWidth = 0
 	let colnameIndex = 0
 	for (const colname of Object.keys(colSpec)) {
 		const colWidthPx = colSpec[colname].width
 		rowWidth += colWidthPx
-		const cellContainer = addDiv(filterRow)
+		const cellContainer = DOM.addDiv(filterRow)
 		applyCellContainerStyle(cellContainer, colWidthPx)
 		cellContainer.style.position = "relative"
 
 		const questionMarkWidth = 20
 
-		const cell = <HTMLInputElement>addEl(cellContainer, createEl("input"))
+		const cell = <HTMLInputElement>DOM.addEl(cellContainer, DOM.createEl("input"))
 		cell.type = "text"
 		cell.autocomplete = "off"
 		cell.placeholder = "Filter..."
@@ -938,7 +891,7 @@ const createTableFilterRow = <T>(colSpec: { [key: string]: TableColSpecFinal<T> 
 			onInput(colname, (<HTMLTextAreaElement>event.target).value)
 		})
 
-		const questionMark = addDiv(cellContainer)
+		const questionMark = DOM.addDiv(cellContainer)
 		questionMark.style.padding = "2px"
 		questionMark.style.width = questionMarkWidth + "px"
 		questionMark.style.textAlign = "center"
@@ -947,7 +900,7 @@ const createTableFilterRow = <T>(colSpec: { [key: string]: TableColSpecFinal<T> 
 
 		const helpText =
 			"Case-sensitive. Supports regular expressions (e.g. ^male). For numbers, you can type >x and <x (e.g. >40)"
-		const helpEl = createDiv()
+		const helpEl = DOM.createDiv()
 		helpEl.textContent = helpText
 		helpEl.style.position = "absolute"
 		helpEl.style.top = "100%"
@@ -968,9 +921,9 @@ const createTableFilterRow = <T>(colSpec: { [key: string]: TableColSpecFinal<T> 
 		let helpVisible = false
 		questionMark.addEventListener("click", () => {
 			if (helpVisible) {
-				removeEl(cellContainer, helpEl)
+				DOM.removeEl(cellContainer, helpEl)
 			} else {
-				addEl(cellContainer, helpEl)
+				DOM.addEl(cellContainer, helpEl)
 			}
 			helpVisible = !helpVisible
 		})
@@ -1000,14 +953,14 @@ const applyCellContainerStyle = (node: HTMLElement, width: number) => {
 }
 
 const createTableHeaderRow = <T>(colSpec: { [key: string]: TableColSpecFinal<T> }) => {
-	const headerRow = createDiv()
+	const headerRow = DOM.createDiv()
 	applyTableHeaderRowStyle(headerRow)
 
-	let rowWidth = 0 //SCROLLBAR_WIDTHS[1]
+	let rowWidth = 0 //DOM.SCROLLBAR_WIDTHS[1]
 	for (const colname of Object.keys(colSpec)) {
 		const colWidthPx = colSpec[colname].width
 		rowWidth += colWidthPx
-		const cell = addDiv(headerRow)
+		const cell = DOM.addDiv(headerRow)
 		applyCellContainerStyle(cell, colWidthPx)
 		cell.textContent = colname
 	}
@@ -1017,7 +970,7 @@ const createTableHeaderRow = <T>(colSpec: { [key: string]: TableColSpecFinal<T> 
 }
 
 const createTableCell = (widthPx: number) => {
-	const cellElement = createEl("td")
+	const cellElement = DOM.createEl("td")
 	cellElement.style.width = widthPx + "px"
 	cellElement.style.textAlign = "center"
 	cellElement.style.verticalAlign = "middle"
@@ -1035,7 +988,7 @@ const createTableCellString = (widthPx: number, string: string) => {
 }
 
 const createTableTitle = (title: string, downloadable: boolean) => {
-	const titleElement = createDiv()
+	const titleElement = DOM.createDiv()
 	titleElement.style.display = "flex"
 	titleElement.style.alignItems = "center"
 	titleElement.style.justifyContent = "center"
@@ -1053,10 +1006,9 @@ const createTableTitle = (title: string, downloadable: boolean) => {
 		titleElement.addEventListener("click", () => {
 			const csv = DOWNLOAD_CSV[title]
 			if (csv) {
-				const hidden = <HTMLLinkElement>createEl("a")
+				const hidden = DOM.createEl("a")
 				hidden.href = "data:text/csv;charset=utf-8," + encodeURI(csv)
 				hidden.target = "_blank"
-				// @ts-ignore TODO(sen) Fix
 				hidden.download = title + ".csv"
 				hidden.click()
 			} else {
@@ -1074,7 +1026,7 @@ const getTableBodyHeight = (tableHeight: number) => {
 }
 
 const createTableBodyContainer = (tableHeight: number) => {
-	const tableBodyContainer = createDiv()
+	const tableBodyContainer = DOM.createDiv()
 	tableBodyContainer.style.overflowY = "scroll"
 	tableBodyContainer.style.maxHeight = getTableBodyHeight(tableHeight) + "px"
 	tableBodyContainer.style.boxSizing = "border-box"
@@ -1090,7 +1042,7 @@ const getTableRowBackgroundColor = (rowIndex: number) => {
 }
 
 const createTableDataRow = (rowIndex: number) => {
-	const rowElement = createEl("tr")
+	const rowElement = DOM.createEl("tr")
 	rowElement.style.height = TABLE_ROW_HEIGHT_PX + "px"
 	rowElement.style.backgroundColor = getTableRowBackgroundColor(rowIndex)
 	return rowElement
@@ -1130,11 +1082,11 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>({
 	getTableHeightInit?: () => number
 	onFilterChange?: (filteredData: RowType[]) => void
 }) => {
-	const getTableHeight = getTableHeightInit ?? (() => window.innerHeight - SCROLLBAR_WIDTHS[0])
+	const getTableHeight = getTableHeightInit ?? (() => window.innerHeight - DOM.SCROLLBAR_WIDTHS[0])
 
-	const table = createDiv()
+	const table = DOM.createDiv()
 	table.style.maxWidth = "100%"
-	addEl(table, createTableTitle(title, true))
+	DOM.addEl(table, createTableTitle(title, true))
 	DOWNLOAD_CSV[title] = ""
 
 	const colnames = Object.keys(colSpecInit)
@@ -1214,14 +1166,14 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>({
 	let regenBody = () => {}
 
 	if (aos.length > 0) {
-		const hscrollContainer = addDiv(table)
+		const hscrollContainer = DOM.addDiv(table)
 		hscrollContainer.style.overflowX = "scroll"
 		hscrollContainer.style.boxSizing = "border-box"
 		hscrollContainer.style.borderLeft = "1px solid var(--color-border)"
 		hscrollContainer.style.borderRight = "1px solid var(--color-border)"
 
-		addEl(hscrollContainer, createTableHeaderRow(colSpec))
-		addEl(
+		DOM.addEl(hscrollContainer, createTableHeaderRow(colSpec))
+		DOM.addEl(
 			hscrollContainer,
 			createTableFilterRow(colSpec, (colname: string, filterVal: any) => {
 				colSpec[colname].filterVal = colSpec[colname].filterValProcess(filterVal)
@@ -1231,7 +1183,7 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>({
 		)
 
 		let tableBodyHeight = getTableBodyHeight(getTableHeight())
-		const tableBodyContainer = addEl(hscrollContainer, createTableBodyContainer(getTableHeight()))
+		const tableBodyContainer = DOM.addEl(hscrollContainer, createTableBodyContainer(getTableHeight()))
 		tableBodyContainer.style.width = tableWidthPx + "px"
 
 		const getAosFiltered = () => {
@@ -1266,8 +1218,8 @@ const createTableElementFromAos = <RowType extends { [key: string]: any }>({
 					const spec = colSpec[colname]
 					const colData = spec.access(rowData)
 					const colDataFormatted = spec.format(colData)
-					const width = spec.width - SCROLLBAR_WIDTHS[1] / colnames.length
-					addEl(rowElement, createTableCellString(width, colDataFormatted))
+					const width = spec.width - DOM.SCROLLBAR_WIDTHS[1] / colnames.length
+					DOM.addEl(rowElement, createTableCellString(width, colDataFormatted))
 				}
 
 				return rowElement
@@ -1581,7 +1533,7 @@ const main = () => {
 	const mainEl = document.getElementById("main")!
 
 	const inputBarSize = 200
-	const inputContainer = addDiv(mainEl)
+	const inputContainer = DOM.addDiv(mainEl)
 	inputContainer.style.display = "flex"
 	inputContainer.style.flexDirection = "column"
 	inputContainer.style.alignItems = "left"
@@ -1592,7 +1544,7 @@ const main = () => {
 	inputContainer.style.overflowX = "hidden"
 	inputContainer.style.flexShrink = "0"
 
-	const plotContainer = addDiv(mainEl)
+	const plotContainer = DOM.addDiv(mainEl)
 	plotContainer.style.display = "flex"
 	plotContainer.style.flexDirection = "column"
 	plotContainer.style.alignItems = "top"
@@ -1600,15 +1552,15 @@ const main = () => {
 	plotContainer.style.overflowY = "scroll"
 	plotContainer.style.overflowX = "hidden"
 
-	const plotParent = addDiv(plotContainer)
+	const plotParent = DOM.addDiv(plotContainer)
 	plotParent.style.flexShrink = "0"
 	plotParent.style.overflowX = "scroll"
 	plotParent.style.overflowY = "hidden"
 
-	const tableParent = addDiv(plotContainer)
+	const tableParent = DOM.addDiv(plotContainer)
 	tableParent.style.display = "flex"
 
-	const fileInputContainer = addDiv(inputContainer)
+	const fileInputContainer = DOM.addDiv(inputContainer)
 	fileInputContainer.style.border = "1px dashed var(--color-fileSelectBorder)"
 	fileInputContainer.style.width = "100%"
 	fileInputContainer.style.height = "50px"
@@ -1617,7 +1569,7 @@ const main = () => {
 	fileInputContainer.style.boxSizing = "border-box"
 	fileInputContainer.style.marginBottom = "20px"
 
-	const fileInputLabel = addDiv(fileInputContainer)
+	const fileInputLabel = DOM.addDiv(fileInputContainer)
 	fileInputLabel.innerHTML = "SELECT FILE"
 	fileInputLabel.style.position = "absolute"
 	fileInputLabel.style.top = "0px"
@@ -1654,10 +1606,10 @@ const main = () => {
 	document.documentElement.setAttribute("theme", plotSettings.theme)
 
 	const regenPlot = () => {
-		removeChildren(plotParent)
+		DOM.removeChildren(plotParent)
 		const plotBoxplotData: any[] = []
 		const plot = createPlot(data, plotSettings, plotBoxplotData)
-		addEl(plotParent, plot.canvas)
+		DOM.addEl(plotParent, plot.canvas)
 		plotParent.style.height = plot.totalHeight + "px"
 
 		plot.canvas.addEventListener("click", (event) => {
@@ -1705,14 +1657,15 @@ const main = () => {
 		cols.q75 = { format: logFormat }
 		cols.median = { format: logFormat }
 
-		removeChildren(tableParent)
-		addEl(
+		DOM.removeChildren(tableParent)
+		DOM.addEl(
 			tableParent,
 			createTableElementFromAos({
 				aos: plotBoxplotData,
 				colSpecInit: cols,
 				title: plotSettings.kind === "titres" ? "GMT" : "GMR",
-				getTableHeightInit: () => Math.max(window.innerHeight - plot.totalHeight - SCROLLBAR_WIDTHS[0], 300),
+				getTableHeightInit: () =>
+					Math.max(window.innerHeight - plot.totalHeight - DOM.SCROLLBAR_WIDTHS[0], 300),
 			})
 		)
 	}
@@ -1745,7 +1698,7 @@ const main = () => {
 		el.value = ""
 	}
 
-	const fileInput = <HTMLInputElement>addEl(fileInputContainer, createEl("input"))
+	const fileInput = <HTMLInputElement>DOM.addEl(fileInputContainer, DOM.createEl("input"))
 	fileInput.type = "file"
 	fileInput.addEventListener("change", fileInputHandler)
 	fileInput.style.opacity = "0"
@@ -1753,7 +1706,7 @@ const main = () => {
 	fileInput.style.width = "100%"
 	fileInput.style.height = "100%"
 
-	const fileInputWholePage = <HTMLInputElement>addEl(mainEl, createEl("input"))
+	const fileInputWholePage = <HTMLInputElement>DOM.addEl(mainEl, DOM.createEl("input"))
 	fileInputWholePage.type = "file"
 	fileInputWholePage.addEventListener("change", fileInputHandler)
 	fileInputWholePage.style.position = "fixed"
@@ -1769,7 +1722,7 @@ const main = () => {
 	globalThis.window.addEventListener("dragenter", () => (fileInputWholePage.style.visibility = "visible"))
 	fileInputWholePage.addEventListener("dragleave", () => (fileInputWholePage.style.visibility = "hidden"))
 
-	addEl(
+	DOM.addEl(
 		inputContainer,
 		createSwitch({
 			init: plotSettings.theme,
@@ -1788,7 +1741,7 @@ const main = () => {
 		})
 	)
 
-	addEl(
+	DOM.addEl(
 		inputContainer,
 		createSwitch({
 			init: plotSettings.kind,
@@ -1806,7 +1759,7 @@ const main = () => {
 		})
 	)
 
-	addEl(
+	DOM.addEl(
 		inputContainer,
 		createSwitch({
 			init: plotSettings.relative ? "Rel" : "Abs",
@@ -1816,7 +1769,7 @@ const main = () => {
 				if (plotSettings.relative) {
 					regenReferenceSwitch()
 				} else {
-					removeChildren(referenceSwitchContainer)
+					DOM.removeChildren(referenceSwitchContainer)
 				}
 				regenPlot()
 			},
@@ -1831,7 +1784,7 @@ const main = () => {
 
 	const collapsibleSelectorSpacing = "10px"
 
-	const referenceSwitchContainer = addDiv(inputContainer)
+	const referenceSwitchContainer = DOM.addDiv(inputContainer)
 	const regenReferenceSwitch = () => {
 		const allViruses = Arr.unique(data.dataFiltered.map((row) => <string>row[data.varNames.virus])).sort(virusSort)
 		const referenceSwitch = createSwitch({
@@ -1844,11 +1797,11 @@ const main = () => {
 			name: "Reference",
 		})
 		referenceSwitch.style.marginBottom = collapsibleSelectorSpacing
-		removeChildren(referenceSwitchContainer)
-		addEl(referenceSwitchContainer, referenceSwitch)
+		DOM.removeChildren(referenceSwitchContainer)
+		DOM.addEl(referenceSwitchContainer, referenceSwitch)
 	}
 
-	const refTypeSwitch = addEl(
+	const refTypeSwitch = DOM.addEl(
 		inputContainer,
 		createSwitch({
 			init: plotSettings.refType,
@@ -1862,7 +1815,7 @@ const main = () => {
 	)
 	refTypeSwitch.style.marginBottom = collapsibleSelectorSpacing
 
-	const opacitiesSwitch = addEl(
+	const opacitiesSwitch = DOM.addEl(
 		inputContainer,
 		createSwitch({
 			init: <PlotElement[]>PLOT_ELEMENTS,
@@ -1881,7 +1834,7 @@ const main = () => {
 	opacitiesSwitch.style.marginBottom = collapsibleSelectorSpacing
 
 	const addInputSep = (parent: HTMLElement, label: string) => {
-		const sep = addDiv(parent)
+		const sep = DOM.addDiv(parent)
 		sep.textContent = label
 		sep.style.textAlign = "center"
 		sep.style.padding = "10px"
@@ -1892,11 +1845,11 @@ const main = () => {
 		sep.style.marginBottom = "10px"
 	}
 
-	const dataRelatedInputs = addDiv(inputContainer)
+	const dataRelatedInputs = DOM.addDiv(inputContainer)
 	const regenDataRelatedInputs = () => {
-		removeChildren(dataRelatedInputs)
+		DOM.removeChildren(dataRelatedInputs)
 
-		const facetSwitch = addEl(
+		const facetSwitch = DOM.addEl(
 			dataRelatedInputs,
 			createSwitch({
 				init: plotSettings.xFacets,
@@ -1919,7 +1872,7 @@ const main = () => {
 		)
 		facetSwitch.style.marginBottom = collapsibleSelectorSpacing
 
-		const xAxisSwitch = addEl(
+		const xAxisSwitch = DOM.addEl(
 			dataRelatedInputs,
 			createSwitch({
 				init: plotSettings.xAxis,
@@ -1968,7 +1921,7 @@ const main = () => {
 				getSorter(colname, data.varNames)
 			)
 			filters[colname] = { selected: colUniqueVals, all: [...colUniqueVals], optElements: [] }
-			const el = addEl(
+			const el = DOM.addEl(
 				dataRelatedInputs,
 				createSwitch({
 					init: colUniqueVals,
@@ -2013,7 +1966,7 @@ const main = () => {
 				break
 		}
 
-		addEl(
+		DOM.addEl(
 			dataRelatedInputs,
 			createSwitch({
 				init: data.varNames.format,
@@ -2048,10 +2001,10 @@ const main = () => {
 			})
 		)
 
-		const colnameInputsContainer = addDiv(dataRelatedInputs)
+		const colnameInputsContainer = DOM.addDiv(dataRelatedInputs)
 
 		const regenColnameInputs = () => {
-			removeChildren(colnameInputsContainer)
+			DOM.removeChildren(colnameInputsContainer)
 
 			for (const varName of Object.keys(data.varNames)) {
 				if (varName !== "format" && varName !== "timepointLabels") {
@@ -2060,7 +2013,7 @@ const main = () => {
 						helpText =
 							"Set of variables that uniquely identifies a subject (pre/post vax titres for different viruses for the same person)"
 					}
-					const el = addEl(
+					const el = DOM.addEl(
 						colnameInputsContainer,
 						createSwitch({
 							init: data.varNames[varName as keyof DataVarNames],
@@ -2094,13 +2047,13 @@ const main = () => {
 				}
 			}
 
-			const timepointLabelInputContainer = addDiv(colnameInputsContainer)
+			const timepointLabelInputContainer = DOM.addDiv(colnameInputsContainer)
 			const regenTimepointLabelInputs = () => {
 				const varNames = data.varNames
-				removeChildren(timepointLabelInputContainer)
+				DOM.removeChildren(timepointLabelInputContainer)
 				if (varNames.format === "long") {
 					const allTimepoints = Arr.unique(data.dataFiltered.map((row) => row[varNames.timepoint]))
-					const preLab = addEl(
+					const preLab = DOM.addEl(
 						timepointLabelInputContainer,
 						createSwitch({
 							init: varNames.timepointLabels.pre,
@@ -2113,7 +2066,7 @@ const main = () => {
 						})
 					)
 					preLab.style.marginBottom = collapsibleSelectorSpacing
-					addEl(
+					DOM.addEl(
 						timepointLabelInputContainer,
 						createSwitch({
 							init: varNames.timepointLabels.post,
