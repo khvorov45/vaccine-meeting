@@ -1747,11 +1747,7 @@ const main = () => {
 			opts: ["Absolute", "Relative"],
 			onUpdate: (rel) => {
 				plotSettings.relative = rel === "Relative"
-				if (plotSettings.relative) {
-					regenReferenceSwitch()
-				} else {
-					DOM.removeChildren(referenceSwitchContainer)
-				}
+				regenReferenceSwitches()
 				regenPlot()
 			},
 			name: "Titre mode",
@@ -1763,35 +1759,41 @@ const main = () => {
 	const collapsibleSelectorSpacing = "10px"
 
 	const referenceSwitchContainer = DOM.addDiv(inputContainer)
-	const regenReferenceSwitch = () => {
-		const allViruses = Arr.unique(data.dataFiltered.map((row) => <string>row[data.varNames.virus])).sort(virusSort)
-		const referenceSwitch = createSwitch({
-			init: plotSettings.refVirus,
-			opts: allViruses,
-			onUpdate: (ref) => {
-				plotSettings.refVirus = ref
-				regenPlot()
-			},
-			name: "Reference",
-		})
-		referenceSwitch.style.marginBottom = collapsibleSelectorSpacing
+	const regenReferenceSwitches = () => {
 		DOM.removeChildren(referenceSwitchContainer)
-		DOM.addEl(referenceSwitchContainer, referenceSwitch)
-	}
+		if (plotSettings.relative) {
+			const allViruses = Arr.unique(data.dataFiltered.map((row) => <string>row[data.varNames.virus])).sort(
+				virusSort
+			)
+			const referenceSwitch = createSwitch({
+				init: plotSettings.refVirus,
+				opts: allViruses,
+				onUpdate: (ref) => {
+					plotSettings.refVirus = ref
+					regenPlot()
+				},
+				name: "Reference",
+			})
+			referenceSwitch.style.marginBottom = collapsibleSelectorSpacing
 
-	const refTypeSwitch = DOM.addEl(
-		inputContainer,
-		createSwitch({
-			init: plotSettings.refType,
-			opts: ["manual", "data"],
-			onUpdate: (refType) => {
-				plotSettings.refType = refType
-				regenPlot()
-			},
-			name: "Relative mode",
-		})
-	)
-	refTypeSwitch.style.marginBottom = collapsibleSelectorSpacing
+			const refTypeSwitch = DOM.addEl(
+				inputContainer,
+				createSwitch({
+					init: plotSettings.refType,
+					opts: ["manual", "data"],
+					onUpdate: (refType) => {
+						plotSettings.refType = refType
+						regenPlot()
+					},
+					name: "Relative mode",
+				})
+			)
+			refTypeSwitch.style.marginBottom = collapsibleSelectorSpacing
+
+			DOM.addEl(referenceSwitchContainer, referenceSwitch)
+			DOM.addEl(referenceSwitchContainer, refTypeSwitch)
+		}
+	}
 
 	const opacitiesSwitch = DOM.addEl(
 		inputContainer,
@@ -1913,7 +1915,7 @@ const main = () => {
 							)
 							updateVisible(otherColname)
 						}
-						regenReferenceSwitch()
+						regenReferenceSwitches()
 						regenPlot()
 					},
 					name: colname,
@@ -2055,7 +2057,7 @@ const main = () => {
 
 		regenColnameInputs()
 
-		regenReferenceSwitch()
+		regenReferenceSwitches()
 	}
 
 	// NOTE(sen) Dev only for now
