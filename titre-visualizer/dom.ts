@@ -151,8 +151,9 @@ const createSwitchCommon = <T>(
 type SwitchSpecHead<T> =
 	| {
 			type: "toggleOneNonNullable"
-			init: T
-			onUpdate: (opt: T) => void
+			getValue: () => T
+			setValue: (opt: T) => void
+			onUpdate: () => void
 	  }
 	| {
 			type: "toggleMany"
@@ -187,8 +188,7 @@ export const createSwitch = <T>(spec: SwitchSpec<T>) => {
 	switch (spec.type) {
 		case "toggleOneNonNullable":
 			{
-				let currentSel = spec.init
-				const isSelected = (opt: T) => opt === currentSel
+				const isSelected = (opt: T) => opt === spec.getValue()
 				const toggleOption = (
 					_event: MouseEvent,
 					opt: T,
@@ -196,12 +196,12 @@ export const createSwitch = <T>(spec: SwitchSpec<T>) => {
 					allOptElements: HTMLDivElement[]
 				) => {
 					if (!isSelected(opt)) {
-						currentSel = opt
+						spec.setValue(opt)
 						for (const el of allOptElements) {
 							el.style.backgroundColor = spec.colors.normal
 						}
 						optElement.style.backgroundColor = spec.colors.selected
-						spec.onUpdate(currentSel)
+						spec.onUpdate?.()
 					}
 				}
 				result = createSwitchCommon(spec, (el, opt) => optElementInitToggle(opt, el, isSelected), toggleOption)
@@ -266,10 +266,15 @@ export const createSwitch = <T>(spec: SwitchSpec<T>) => {
 					optElement.style.background = `linear-gradient(to right, ${spec.colors.selected} ${fromLeftPercent}%, ${spec.colors.normal} ${fromLeftPercent}%)`
 					spec.onUpdate(opt, fromLeft)
 				}
+
+				spec.help = spec.help === undefined ? "" : (spec.help += "\n")
+				spec.help += "ctrl+click = zero\nshift+click = one"
+
 				result = createSwitchCommon(spec, optElementInit, toggleOption)
 			}
 			break
 	}
 
+	// TODO(sen) Get/set idea for the non-singles
 	return result
 }

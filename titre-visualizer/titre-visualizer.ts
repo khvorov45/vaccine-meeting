@@ -1505,11 +1505,11 @@ const main = () => {
 		inputContainer,
 		DOM.createSwitch({
 			type: "toggleOneNonNullable",
-			init: plotSettings.theme,
+			getValue: () => plotSettings.theme,
+			setValue: (opt) => (plotSettings.theme = opt),
 			opts: <typeof plotSettings.theme[]>["dark", "light"],
-			onUpdate: (opt) => {
-				document.documentElement.setAttribute("theme", opt)
-				plotSettings.theme = opt
+			onUpdate: () => {
+				document.documentElement.setAttribute("theme", plotSettings.theme)
 				regenPlot()
 			},
 			name: "Theme",
@@ -1522,12 +1522,10 @@ const main = () => {
 		inputContainer,
 		DOM.createSwitch({
 			type: "toggleOneNonNullable",
-			init: plotSettings.kind,
-			opts: ["titres", "rises"],
-			onUpdate: () => {
-				plotSettings.kind = plotSettings.kind === "titres" ? "rises" : "titres"
-				regenPlot()
-			},
+			getValue: () => plotSettings.kind,
+			setValue: (opt) => (plotSettings.kind = opt),
+			opts: <typeof plotSettings.kind[]>["titres", "rises"],
+			onUpdate: regenPlot,
 			name: "Y axis",
 			switchElementStyle: switchMargin,
 			colors: switchColors,
@@ -1538,10 +1536,10 @@ const main = () => {
 		inputContainer,
 		DOM.createSwitch({
 			type: "toggleOneNonNullable",
-			init: plotSettings.relative ? "Relative" : "Absolute",
+			getValue: () => (plotSettings.relative ? "Relative" : "Absolute"),
+			setValue: (opt) => (plotSettings.relative = opt === "Relative"),
 			opts: ["Absolute", "Relative"],
-			onUpdate: (rel) => {
-				plotSettings.relative = rel === "Relative"
+			onUpdate: () => {
 				regenReferenceSwitches()
 				regenPlot()
 			},
@@ -1566,12 +1564,10 @@ const main = () => {
 				referenceSwitchContainer,
 				DOM.createSwitch({
 					type: "toggleOneNonNullable",
-					init: plotSettings.refVirus,
+					getValue: () => plotSettings.refVirus,
+					setValue: (opt) => (plotSettings.refVirus = opt),
 					opts: allViruses,
-					onUpdate: (ref) => {
-						plotSettings.refVirus = ref
-						regenPlot()
-					},
+					onUpdate: regenPlot,
 					name: "Reference",
 					colors: switchColors,
 					switchElementStyle: switchMargin,
@@ -1582,12 +1578,10 @@ const main = () => {
 				referenceSwitchContainer,
 				DOM.createSwitch({
 					type: "toggleOneNonNullable",
-					init: plotSettings.refType,
+					getValue: () => plotSettings.refType,
+					setValue: (opt) => (plotSettings.refType = opt),
 					opts: <typeof plotSettings.refType[]>["manual", "data"],
-					onUpdate: (refType) => {
-						plotSettings.refType = refType
-						regenPlot()
-					},
+					onUpdate: regenPlot,
 					name: "Relative mode",
 					colors: switchColors,
 					switchElementStyle: switchMargin,
@@ -1658,12 +1652,10 @@ const main = () => {
 			dataRelatedInputs,
 			DOM.createSwitch({
 				type: "toggleOneNonNullable",
-				init: plotSettings.xAxis,
+				getValue: () => plotSettings.xAxis,
+				setValue: (opt) => (plotSettings.xAxis = opt),
 				opts: data.colnames,
-				onUpdate: (sel) => {
-					plotSettings.xAxis = sel
-					regenPlot()
-				},
+				onUpdate: regenPlot,
 				name: "X axis",
 				colors: switchColors,
 			})
@@ -1756,8 +1748,9 @@ const main = () => {
 			dataRelatedInputs,
 			DOM.createSwitch({
 				type: "toggleOneNonNullable",
-				init: data.varNames.format,
-				opts: ["wide", "long"],
+				getValue: () => data.varNames.format,
+				setValue: (opt) => (data.varNames.format = opt),
+				opts: <typeof data.varNames.format[]>["wide", "long"],
 				name: "Format",
 				onUpdate: () => {
 					const varNames = data.varNames
@@ -1819,11 +1812,11 @@ const main = () => {
 							DOM.createSwitch({
 								type: "toggleOneNonNullable",
 								// @ts-ignore TODO(sen) fix
-								init: data.varNames.timepoint,
+								getValue: () => data.varNames.timepoint,
+								// @ts-ignore TODO(sen) fix
+								setValue: (opt) => (data.varNames.timepoint = opt),
 								opts: data.colnames,
-								onUpdate: (sel) => {
-									// @ts-ignore TODO(sen) fix
-									data.varNames.timepoint = sel
+								onUpdate: () => {
 									regenTimepointLabelInputs()
 									regenPlot()
 								},
@@ -1833,17 +1826,21 @@ const main = () => {
 						)
 						break
 
-					case "virus": case "reference": case "preTitre": case "postTitre": case "titre":
+					case "virus":
+					case "reference":
+					case "preTitre":
+					case "postTitre":
+					case "titre":
 						DOM.addEl(
 							colnameInputsContainer,
 							DOM.createSwitch({
 								type: "toggleOneNonNullable",
 								// @ts-ignore TODO(sen) fix
-								init: data.varNames[varName],
+								getValue: () => data.varNames[varName],
+								// @ts-ignore TODO(sen) fix
+								setValue: () => data.varNames[varName],
 								opts: data.colnames,
-								onUpdate: (sel) => {
-									// @ts-ignore TODO(sen) fix
-									data.varNames[varName] = sel
+								onUpdate: () => {
 									regenPlot()
 								},
 								name: varName,
@@ -1866,12 +1863,10 @@ const main = () => {
 						timepointLabelInputContainer,
 						DOM.createSwitch({
 							type: "toggleOneNonNullable",
-							init: varNames.timepointLabels.pre,
+							getValue: () => varNames.timepointLabels.pre,
+							setValue: (opt) => (varNames.timepointLabels.pre = opt),
 							opts: allTimepoints,
-							onUpdate: (sel) => {
-								varNames.timepointLabels.pre = sel
-								regenPlot()
-							},
+							onUpdate: regenPlot,
 							name: "pre label",
 							colors: switchColors,
 						})
@@ -1881,23 +1876,20 @@ const main = () => {
 						timepointLabelInputContainer,
 						DOM.createSwitch({
 							type: "toggleOneNonNullable",
-							init: varNames.timepointLabels.post,
+							getValue: () => varNames.timepointLabels.post,
+							setValue: (opt) => (varNames.timepointLabels.post = opt),
 							opts: allTimepoints,
-							onUpdate: (sel) => {
-								varNames.timepointLabels.post = sel
-								regenPlot()
-							},
+							onUpdate: regenPlot,
 							name: "post label",
 							colors: switchColors,
 						})
 					)
 				}
 			}
+
 			regenTimepointLabelInputs()
 		}
-
 		regenColnameInputs()
-
 		regenReferenceSwitches()
 	}
 
