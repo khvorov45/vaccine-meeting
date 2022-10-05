@@ -49,10 +49,8 @@ export const createDivWithText = (text: string) => {
 	return div
 }
 
-type SwitchSpec<SingleOpt extends string | number, SelType extends SingleOpt | SingleOpt[]> = {
-	init: SelType
-	opts: SingleOpt[]
-	onUpdate: (opt: SelType) => void
+type SwitchSpecBody<T> = {
+	opts: T[]
 	colors: { normal: string; hover: string; selected: string }
 	name: string
 	help?: string
@@ -62,10 +60,10 @@ type SwitchSpec<SingleOpt extends string | number, SelType extends SingleOpt | S
 	optElementStorage?: HTMLDivElement[]
 }
 
-const createSwitchCommon = <SingleOpt extends string | number, SelType extends SingleOpt | SingleOpt[]>(
-	spec: SwitchSpec<SingleOpt, SelType>,
-	isSelected: (opt: SingleOpt) => boolean,
-	toggleOption: (event: MouseEvent, opt: SingleOpt, el: HTMLDivElement, allEls: HTMLDivElement[]) => void
+const createSwitchCommon = <T>(
+	spec: SwitchSpecBody<T>,
+	optElementInit: (el: HTMLDivElement, opt: T, optIndex: number) => void,
+	toggleOption: (event: MouseEvent, opt: T, el: HTMLDivElement, allEls: HTMLDivElement[]) => void
 ) => {
 	const switchElement = createDiv()
 	spec.switchElementStyle?.(switchElement)
@@ -132,7 +130,8 @@ const createSwitchCommon = <SingleOpt extends string | number, SelType extends S
 	}
 
 	const allOptElements: HTMLDivElement[] = spec.optElementStorage ?? []
-	for (const opt of spec.opts) {
+	for (let optIndex = 0; optIndex < spec.opts.length; optIndex++) {
+		const opt = spec.opts[optIndex]
 		const optElement = addDiv(optContainer)
 		allOptElements.push(optElement)
 		optElement.style.paddingTop = "5px"
@@ -140,8 +139,38 @@ const createSwitchCommon = <SingleOpt extends string | number, SelType extends S
 		optElement.style.cursor = "pointer"
 		optElement.style.textAlign = "center"
 		optElement.textContent = `${opt}`
+		optElementInit(optElement, opt, optIndex)
 		spec.optElementStyle?.(optElement)
 
+		optElement.addEventListener("click", (event) => toggleOption(event, opt, optElement, allOptElements))
+	}
+
+	return switchElement
+}
+
+type SwitchSpecHead<T> =
+	| {
+			type: "toggleOneNonNullable"
+			init: T
+			onUpdate: (opt: T) => void
+	  }
+	| {
+			type: "toggleMany"
+			init: T[]
+			onUpdate: (opt: T[]) => void
+	  }
+	| {
+			type: "gradient"
+			init: number[]
+			onUpdate: (opt: T, fromLeft: number) => void
+	  }
+
+export type SwitchSpec<T> = SwitchSpecHead<T> & SwitchSpecBody<T>
+
+export const createSwitch = <T>(spec: SwitchSpec<T>) => {
+	let result: HTMLDivElement
+
+	const optElementInitToggle = (opt: T, optElement: HTMLDivElement, isSelected: (opt: T) => boolean) => {
 		optElement.style.backgroundColor = isSelected(opt) ? spec.colors.selected : spec.colors.normal
 		optElement.addEventListener("mouseover", () => {
 			if (!isSelected(opt)) {
@@ -153,89 +182,94 @@ const createSwitchCommon = <SingleOpt extends string | number, SelType extends S
 				optElement.style.backgroundColor = spec.colors.normal
 			}
 		})
-
-		optElement.addEventListener("click", (event) => toggleOption(event, opt, optElement, allOptElements))
 	}
 
-	return switchElement
-}
-
-const createSwitchSingle = <SingleOpt extends string | number, SelType extends SingleOpt>(
-	spec: SwitchSpec<SingleOpt, SelType>
-) => {
-	let currentSel = spec.init
-	const isSelected = (opt: SingleOpt) => opt === currentSel
-	const toggleOption = (
-		_event: MouseEvent,
-		opt: SingleOpt,
-		optElement: HTMLDivElement,
-		allOptElements: HTMLDivElement[]
-	) => {
-		if (!isSelected(opt)) {
-			currentSel = <SelType>(<unknown>opt)
-			for (const el of allOptElements) {
-				el.style.backgroundColor = spec.colors.normal
-			}
-			optElement.style.backgroundColor = spec.colors.selected
-			spec.onUpdate(currentSel)
-		}
-	}
-	const switchElement = createSwitchCommon(spec, isSelected, toggleOption)
-	return switchElement
-}
-
-const createSwitchMultiple = <SingleOpt extends string | number, SelType extends SingleOpt[]>(
-	spec: SwitchSpec<SingleOpt, SelType>
-) => {
-	let currentSel = spec.init.map((x) => x)
-	const isSelected = (opt: SingleOpt) => currentSel.includes(opt)
-	const toggleOption = (
-		event: MouseEvent,
-		opt: SingleOpt,
-		optElement: HTMLDivElement,
-		allOptElements: HTMLDivElement[]
-	) => {
-		if (event.ctrlKey) {
-			allOptElements.map((optEl) => (optEl.style.backgroundColor = spec.colors.normal))
-			optElement.style.backgroundColor = spec.colors.selected
-			currentSel = [opt]
-		} else if (event.shiftKey) {
-			allOptElements.map((optEl) => (optEl.style.backgroundColor = spec.colors.selected))
-			currentSel = [...spec.opts]
-		} else {
-			if (isSelected(opt)) {
-				const optIndex = currentSel.indexOf(opt)
-				if (optIndex !== -1) {
-					currentSel.splice(optIndex, 1)
-				} else {
-					console.error(`Switch opt ${opt} selected but not found in ${currentSel}`)
+	switch (spec.type) {
+		case "toggleOneNonNullable":
+			{
+				let currentSel = spec.init
+				const isSelected = (opt: T) => opt === currentSel
+				const toggleOption = (
+					_event: MouseEvent,
+					opt: T,
+					optElement: HTMLDivElement,
+					allOptElements: HTMLDivElement[]
+				) => {
+					if (!isSelected(opt)) {
+						currentSel = opt
+						for (const el of allOptElements) {
+							el.style.backgroundColor = spec.colors.normal
+						}
+						optElement.style.backgroundColor = spec.colors.selected
+						spec.onUpdate(currentSel)
+					}
 				}
-				optElement.style.backgroundColor = spec.colors.normal
-			} else {
-				currentSel.push(opt)
-				optElement.style.backgroundColor = spec.colors.selected
+				result = createSwitchCommon(spec, (el, opt) => optElementInitToggle(opt, el, isSelected), toggleOption)
 			}
-		}
-		spec.onUpdate(<SelType>currentSel)
+			break
+		case "toggleMany":
+			{
+				let currentSel = spec.init.map((x) => x)
+				const isSelected = (opt: T) => currentSel.includes(opt)
+				const toggleOption = (
+					event: MouseEvent,
+					opt: T,
+					optElement: HTMLDivElement,
+					allOptElements: HTMLDivElement[]
+				) => {
+					if (event.ctrlKey) {
+						allOptElements.map((optEl) => (optEl.style.backgroundColor = spec.colors.normal))
+						optElement.style.backgroundColor = spec.colors.selected
+						currentSel = [opt]
+					} else if (event.shiftKey) {
+						allOptElements.map((optEl) => (optEl.style.backgroundColor = spec.colors.selected))
+						currentSel = [...spec.opts]
+					} else {
+						if (isSelected(opt)) {
+							const optIndex = currentSel.indexOf(opt)
+							if (optIndex !== -1) {
+								currentSel.splice(optIndex, 1)
+							} else {
+								console.error(`Switch opt ${opt} selected but not found in ${currentSel}`)
+							}
+							optElement.style.backgroundColor = spec.colors.normal
+						} else {
+							currentSel.push(opt)
+							optElement.style.backgroundColor = spec.colors.selected
+						}
+					}
+					spec.onUpdate(currentSel)
+				}
+
+				spec.help = spec.help === undefined ? "" : (spec.help += "\n")
+				spec.help += "ctrl+click = select one\nshift+click = select all"
+
+				result = createSwitchCommon(spec, (el, opt) => optElementInitToggle(opt, el, isSelected), toggleOption)
+			}
+			break
+		case "gradient":
+			{
+				const optElementInit = (el: HTMLDivElement, _opt: T, index: number) => {
+					const fromLeft = spec.init[index]
+					const fromLeftPercent = Math.round(fromLeft * 100)
+					el.style.background = `linear-gradient(to right, ${spec.colors.selected} ${fromLeftPercent}%, ${spec.colors.normal} ${fromLeftPercent}%)`
+				}
+				const toggleOption = (event: MouseEvent, opt: T, optElement: HTMLDivElement) => {
+					const parent = <HTMLDivElement>event.target
+					let fromLeft = event.offsetX / parent.offsetWidth
+					if (event.ctrlKey) {
+						fromLeft = 0
+					} else if (event.shiftKey) {
+						fromLeft = 1
+					}
+					const fromLeftPercent = Math.round(fromLeft * 100)
+					optElement.style.background = `linear-gradient(to right, ${spec.colors.selected} ${fromLeftPercent}%, ${spec.colors.normal} ${fromLeftPercent}%)`
+					spec.onUpdate(opt, fromLeft)
+				}
+				result = createSwitchCommon(spec, optElementInit, toggleOption)
+			}
+			break
 	}
 
-	spec.help = spec.help === undefined ? "" : spec.help += "\n"
-	spec.help += "ctrl+click = select one\nshift+click = select all"
-
-	const switchEl = createSwitchCommon(spec, isSelected, toggleOption)
-	return switchEl
-}
-
-export const createSwitch = <SingleOpt extends string | number, SelType extends SingleOpt[] | SingleOpt>(
-	spec: SwitchSpec<SingleOpt, SelType>
-) => {
-	let result: HTMLDivElement
-	if (Array.isArray(spec.init)) {
-		// @ts-ignore NOTE(sen) trust me bro
-		result = createSwitchMultiple(spec)
-	} else {
-		// @ts-ignore NOTE(sen) trust me bro
-		result = createSwitchSingle(spec)
-	}
 	return result
 }

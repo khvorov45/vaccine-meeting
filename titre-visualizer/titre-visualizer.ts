@@ -11,212 +11,6 @@ type PlotElement = typeof PLOT_ELEMENTS_[number]
 type Opacities = Record<PlotElement, number>
 
 //
-// SECTION DOM
-//
-
-type SwitchSpec<SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]> = {
-	init: OptType
-	opts: SingleOpt[]
-	onUpdate: (opt: OptType, fromLeft?: number) => void
-	name?: string
-	optElementStyle?: (optEl: HTMLElement, optVal: SingleOpt) => void
-	optContainerStyle?: (container: HTMLElement) => void
-	optElements?: HTMLElement[]
-	horizontalGradient?: number | number[]
-	helpText?: string
-	singleNullable?: boolean
-}
-
-const createSwitch = <SingleOpt extends string | number, OptType extends SingleOpt | SingleOpt[]>(
-	spec: SwitchSpec<SingleOpt, OptType>
-) => {
-	const multiple = Array.isArray(spec.init)
-	const collapsibleWithLabel = spec.name !== undefined
-
-	const switchElement = DOM.createDiv()
-
-	const optContainer = DOM.createDiv()
-	spec.optContainerStyle?.(optContainer)
-	let optContainerDisplayed = !collapsibleWithLabel
-	let optContainerOldDisplay = optContainer.style.display
-	if (!optContainerDisplayed) {
-		optContainer.style.display = "none"
-	}
-
-	if (collapsibleWithLabel) {
-		const labelContainer = DOM.addDiv(switchElement)
-		labelContainer.style.display = "flex"
-		labelContainer.style.justifyContent = "space-between"
-
-		const label = DOM.addDiv(labelContainer)
-		label.textContent = spec.name! + " ▼"
-		label.style.fontSize = "large"
-		label.style.cursor = "pointer"
-		label.style.paddingLeft = "5px"
-
-		label.addEventListener("click", () => {
-			if (optContainerDisplayed) {
-				optContainerOldDisplay = optContainer.style.display
-				optContainer.style.display = "none"
-				label.textContent = spec.name! + " ▼"
-			} else {
-				optContainer.style.display = optContainerOldDisplay
-				label.textContent = spec.name! + " ▲"
-			}
-			optContainerDisplayed = !optContainerDisplayed
-		})
-
-		if (spec.horizontalGradient !== undefined || multiple || spec.helpText !== undefined) {
-			const help = DOM.addDiv(labelContainer)
-			help.textContent = "?"
-			help.style.cursor = "pointer"
-			help.style.paddingLeft = "10px"
-			help.style.paddingRight = help.style.paddingLeft
-			help.style.position = "relative"
-
-			const helpText = DOM.addDiv(help)
-			if (spec.helpText !== undefined) {
-				DOM.addEl(helpText, DOM.createDivWithText(spec.helpText))
-			}
-			if (spec.horizontalGradient === undefined) {
-				DOM.addEl(helpText, DOM.createDivWithText("ctrl+click = select one"))
-				DOM.addEl(helpText, DOM.createDivWithText("shift+click = select all"))
-			} else {
-				DOM.addEl(helpText, DOM.createDivWithText("ctrl+click = zero"))
-				DOM.addEl(helpText, DOM.createDivWithText("shift+click = one"))
-			}
-			helpText.style.position = "absolute"
-			helpText.style.right = "0px"
-			helpText.style.backgroundColor = "var(--color-background2)"
-			helpText.style.width = "150px"
-			helpText.style.display = "none"
-			helpText.style.zIndex = "999"
-			helpText.style.padding = "5px"
-
-			help.addEventListener("click", () => {
-				if (helpText.style.display === "none") {
-					helpText.style.display = "block"
-				} else {
-					helpText.style.display = "none"
-				}
-			})
-		}
-	}
-
-	DOM.addEl(switchElement, optContainer)
-
-	let currentSel = spec.init
-	if (multiple) {
-		// @ts-ignore TODO(sen) fix
-		currentSel = [...currentSel]
-	}
-	const isSelected = (opt: SingleOpt) => {
-		// @ts-ignore TODO(sen) fix
-		const result = (!multiple && opt === currentSel) || (multiple && (<SingleOpt[]>currentSel).includes(opt))
-		return result
-	}
-
-	const allOptElements: HTMLElement[] = spec.optElements === undefined ? [] : spec.optElements
-	for (let optIndex = 0; optIndex < spec.opts.length; optIndex++) {
-		const opt = spec.opts[optIndex]
-		const optElement = DOM.addDiv(optContainer)
-		allOptElements.push(optElement)
-		optElement.style.paddingTop = "5px"
-		optElement.style.paddingBottom = "5px"
-		optElement.style.cursor = "pointer"
-		optElement.style.textAlign = "center"
-
-		optElement.textContent = `${opt}`
-		spec.optElementStyle?.(optElement, opt)
-
-		const normalCol = "var(--color-background)"
-		const hoverCol = "var(--color-background2)"
-		const selectedCol = "var(--color-selected)"
-
-		if (spec.horizontalGradient === undefined) {
-			if (isSelected(opt)) {
-				optElement.style.backgroundColor = selectedCol
-			} else {
-				optElement.style.backgroundColor = normalCol
-			}
-
-			optElement.addEventListener("mouseover", () => {
-				if (!isSelected(opt)) {
-					optElement.style.backgroundColor = hoverCol
-				}
-			})
-			optElement.addEventListener("mouseout", () => {
-				if (!isSelected(opt)) {
-					optElement.style.backgroundColor = normalCol
-				}
-			})
-		} else {
-			// @ts-ignore TODO(sen) fix
-			const fromLeft = spec.horizontalGradient[optIndex]
-			const fromLeftPercent = Math.round(fromLeft * 100)
-			optElement.style.background = `linear-gradient(to right, ${selectedCol} ${fromLeftPercent}%, ${normalCol} ${fromLeftPercent}%)`
-		}
-
-		optElement.addEventListener("click", (event) => {
-			if (spec.horizontalGradient === undefined) {
-				if (!multiple) {
-					// @ts-ignore TODO(sen) fix
-					if (opt !== currentSel) {
-						for (const child of optContainer.childNodes) {
-							const childHtml = child as HTMLElement
-							childHtml.style.backgroundColor = normalCol
-						}
-						optElement.style.backgroundColor = selectedCol
-						// @ts-ignore TODO(sen) fix
-						currentSel = opt
-					} else if (spec.singleNullable) {
-						optElement.style.backgroundColor = normalCol
-						//@ts-ignore TODO(sen) fix
-						currentSel = null
-					}
-				} else if (multiple) {
-					if (event.ctrlKey) {
-						allOptElements.map((optEl) => (optEl.style.backgroundColor = normalCol))
-						optElement.style.backgroundColor = selectedCol
-						// @ts-ignore TODO(sen) fix
-						currentSel = [opt]
-					} else if (event.shiftKey) {
-						allOptElements.map((optEl) => (optEl.style.backgroundColor = selectedCol))
-						// @ts-ignore TODO(sen) fix
-						currentSel = [...spec.opts]
-					} else {
-						const optIndex = (<SingleOpt[]>currentSel).indexOf(opt)
-						if (optIndex !== -1) {
-							optElement.style.backgroundColor = normalCol
-							Arr.removeIndex(<SingleOpt[]>currentSel, optIndex)
-						} else {
-							optElement.style.backgroundColor = selectedCol
-							;(<SingleOpt[]>currentSel).push(opt)
-						}
-					}
-				}
-
-				spec.onUpdate(currentSel)
-			} else {
-				// @ts-ignore TODO(sen) fix
-				let fromLeft = event.offsetX / event.target!.offsetWidth
-				if (event.ctrlKey) {
-					fromLeft = 0
-				} else if (event.shiftKey) {
-					fromLeft = 1
-				}
-				const fromLeftPercent = Math.round(fromLeft * 100)
-				optElement.style.background = `linear-gradient(to right, ${selectedCol} ${fromLeftPercent}%, ${normalCol} ${fromLeftPercent}%)`
-				// @ts-ignore TODO(sen) fix
-				spec.onUpdate(opt, fromLeft)
-			}
-		})
-	}
-
-	return switchElement
-}
-
-//
 // SECTION Plots
 //
 
@@ -1246,9 +1040,6 @@ type TimepointLabels = {
 
 type DataVarNamesLong = {
 	format: "long"
-	virus: string
-	reference: string
-	uniquePID: string[]
 	timepoint: string
 	titre: string
 	timepointLabels: TimepointLabels
@@ -1256,14 +1047,15 @@ type DataVarNamesLong = {
 
 type DataVarNamesWide = {
 	format: "wide"
-	virus: string
-	reference: string
 	preTitre: string
 	postTitre: string
-	uniquePID: string[] // NOTE(sen) Need for relative titres
 }
 
-type DataVarNames = DataVarNamesLong | DataVarNamesWide
+type DataVarNames = {
+	virus: string
+	reference: string
+	uniquePID: string[] // NOTE(sen) Need for relative titres
+} & (DataVarNamesLong | DataVarNamesWide)
 
 type Data = {
 	dataFull: Record<string, string | number>[]
@@ -1272,7 +1064,7 @@ type Data = {
 	colnames: string[]
 }
 
-const DEFAULT_DATA_VAR_NAMES: DataVarNamesLong = {
+const DEFAULT_DATA_VAR_NAMES_LONG: DataVarNames = {
 	format: "long",
 	uniquePID: ["pid", "cohort", "vaccine", "serum_source", "testing_lab"],
 	timepoint: "timepoint",
@@ -1282,7 +1074,7 @@ const DEFAULT_DATA_VAR_NAMES: DataVarNamesLong = {
 	timepointLabels: { pre: "Pre-vax", post: "Post-vax" },
 }
 
-const DEFAULT_DATA_VAR_NAMES_WIDE: DataVarNamesWide = {
+const DEFAULT_DATA_VAR_NAMES_WIDE: DataVarNames = {
 	format: "wide",
 	preTitre: "preTitre",
 	postTitre: "postTitre",
@@ -1373,7 +1165,7 @@ const guessDataVarNames = (existingNames: string[]) => {
 
 		case "long":
 			{
-				varNames = { ...DEFAULT_DATA_VAR_NAMES }
+				varNames = { ...DEFAULT_DATA_VAR_NAMES_LONG }
 				varNames.virus = colsWithVirus[0]
 				for (const testName of varNames.uniquePID) {
 					if (!existingNames.includes(testName)) {
@@ -1409,7 +1201,7 @@ const parseData = (input: string, xFacets: string[]): Data => {
 		dataFull: [],
 		dataFiltered: [],
 		colnames: [],
-		varNames: DEFAULT_DATA_VAR_NAMES,
+		varNames: DEFAULT_DATA_VAR_NAMES_LONG,
 	}
 
 	const parseResult = Papa.parse(input, { skipEmptyLines: true, dynamicTyping: true })
@@ -1562,7 +1354,7 @@ const main = () => {
 	let data: Data = {
 		dataFull: [],
 		dataFiltered: [],
-		varNames: DEFAULT_DATA_VAR_NAMES,
+		varNames: DEFAULT_DATA_VAR_NAMES_LONG,
 		colnames: [],
 	}
 
@@ -1712,8 +1504,9 @@ const main = () => {
 	DOM.addEl(
 		inputContainer,
 		DOM.createSwitch({
+			type: "toggleOneNonNullable",
 			init: plotSettings.theme,
-			opts: ["dark", "light"],
+			opts: <typeof plotSettings.theme[]>["dark", "light"],
 			onUpdate: (opt) => {
 				document.documentElement.setAttribute("theme", opt)
 				plotSettings.theme = opt
@@ -1728,6 +1521,7 @@ const main = () => {
 	DOM.addEl(
 		inputContainer,
 		DOM.createSwitch({
+			type: "toggleOneNonNullable",
 			init: plotSettings.kind,
 			opts: ["titres", "rises"],
 			onUpdate: () => {
@@ -1743,6 +1537,7 @@ const main = () => {
 	DOM.addEl(
 		inputContainer,
 		DOM.createSwitch({
+			type: "toggleOneNonNullable",
 			init: plotSettings.relative ? "Relative" : "Absolute",
 			opts: ["Absolute", "Relative"],
 			onUpdate: (rel) => {
@@ -1770,6 +1565,7 @@ const main = () => {
 			DOM.addEl(
 				referenceSwitchContainer,
 				DOM.createSwitch({
+					type: "toggleOneNonNullable",
 					init: plotSettings.refVirus,
 					opts: allViruses,
 					onUpdate: (ref) => {
@@ -1785,8 +1581,9 @@ const main = () => {
 			DOM.addEl(
 				referenceSwitchContainer,
 				DOM.createSwitch({
+					type: "toggleOneNonNullable",
 					init: plotSettings.refType,
-					opts: ["manual", "data"],
+					opts: <typeof plotSettings.refType[]>["manual", "data"],
 					onUpdate: (refType) => {
 						plotSettings.refType = refType
 						regenPlot()
@@ -1801,17 +1598,18 @@ const main = () => {
 
 	const opacitiesSwitch = DOM.addEl(
 		inputContainer,
-		createSwitch({
-			init: <PlotElement[]>PLOT_ELEMENTS,
+		DOM.createSwitch({
+			type: "gradient",
+			init: Object.values(plotSettings.opacities),
 			opts: <PlotElement[]>PLOT_ELEMENTS,
-			onUpdate: (el, fromLeft) => {
+			onUpdate: (elName, fromLeft) => {
 				// @ts-ignore TODO(sen) Fix
-				plotSettings.opacities[el] = fromLeft
+				plotSettings.opacities[elName] = fromLeft
 				regenPlot()
 			},
 			name: "Elements",
-			horizontalGradient: Object.values(plotSettings.opacities),
-			helpText: "Element transparency. Click on the plot to change refline position",
+			help: "Element transparency. Click on the plot to change refline position",
+			colors: switchColors,
 		})
 	)
 	opacitiesSwitch.style.marginBottom = collapsibleSelectorSpacing
@@ -1835,6 +1633,7 @@ const main = () => {
 		DOM.addEl(
 			dataRelatedInputs,
 			DOM.createSwitch({
+				type: "toggleMany",
 				init: plotSettings.xFacets,
 				opts: data.colnames,
 				onUpdate: (sel) => {
@@ -1858,6 +1657,7 @@ const main = () => {
 		const xAxisSwitch = DOM.addEl(
 			dataRelatedInputs,
 			DOM.createSwitch({
+				type: "toggleOneNonNullable",
 				init: plotSettings.xAxis,
 				opts: data.colnames,
 				onUpdate: (sel) => {
@@ -1908,6 +1708,7 @@ const main = () => {
 			const el = DOM.addEl(
 				dataRelatedInputs,
 				DOM.createSwitch({
+					type: "toggleMany",
 					init: colUniqueVals,
 					opts: colUniqueVals,
 					onUpdate: (sel) => {
@@ -1925,7 +1726,7 @@ const main = () => {
 					},
 					name: colname,
 					optElementStorage: filters[colname].optElements,
-					colors: switchColors
+					colors: switchColors,
 				})
 			)
 			el.style.marginBottom = collapsibleSelectorSpacing
@@ -1934,7 +1735,7 @@ const main = () => {
 		addInputSep(dataRelatedInputs, "colnames")
 
 		let lastWideFormat = { ...DEFAULT_DATA_VAR_NAMES_WIDE }
-		let lastLongFormat = { ...DEFAULT_DATA_VAR_NAMES }
+		let lastLongFormat = { ...DEFAULT_DATA_VAR_NAMES_LONG }
 		const varNames = data.varNames
 		switch (varNames.format) {
 			case "long":
@@ -1954,6 +1755,7 @@ const main = () => {
 		DOM.addEl(
 			dataRelatedInputs,
 			DOM.createSwitch({
+				type: "toggleOneNonNullable",
 				init: data.varNames.format,
 				opts: ["wide", "long"],
 				name: "Format",
@@ -1980,27 +1782,20 @@ const main = () => {
 		)
 
 		const colnameInputsContainer = DOM.addDiv(dataRelatedInputs)
-
 		const regenColnameInputs = () => {
 			DOM.removeChildren(colnameInputsContainer)
 
 			for (const varName of Object.keys(data.varNames)) {
-				if (varName !== "format" && varName !== "timepointLabels") {
-					let helpText: string | undefined = undefined
-					if (varName === "uniquePID") {
-						helpText =
-							"Set of variables that uniquely identifies a subject (pre/post vax titres for different viruses for the same person)"
-					}
-					const el = DOM.addEl(
-						colnameInputsContainer,
-						DOM.createSwitch({
-							init: data.varNames[varName as keyof DataVarNames],
-							opts: data.colnames,
-							onUpdate: (sel) => {
-								// @ts-ignore TODO(sen) Fix
-								data.varNames[varName as keyof DataVarNames] = sel
-
-								if (varName === "uniquePID") {
+				switch (varName) {
+					case "uniquePID":
+						DOM.addEl(
+							colnameInputsContainer,
+							DOM.createSwitch({
+								type: "toggleMany",
+								init: data.varNames.uniquePID,
+								opts: data.colnames,
+								onUpdate: (sel) => {
+									data.varNames.uniquePID = sel
 									data.dataFull = data.dataFull.map((row) => {
 										row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePID)
 										return row
@@ -2009,20 +1804,53 @@ const main = () => {
 										row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePID)
 										return row
 									})
-								}
+									regenPlot()
+								},
+								name: varName,
+								colors: switchColors,
+								help: "Set of variables that uniquely identifies a subject (pre/post vax titres for different viruses for the same person)",
+							})
+						)
+						break
 
-								if (varName === "timepoint") {
+					case "timepoint":
+						DOM.addEl(
+							colnameInputsContainer,
+							DOM.createSwitch({
+								type: "toggleOneNonNullable",
+								// @ts-ignore TODO(sen) fix
+								init: data.varNames.timepoint,
+								opts: data.colnames,
+								onUpdate: (sel) => {
+									// @ts-ignore TODO(sen) fix
+									data.varNames.timepoint = sel
 									regenTimepointLabelInputs()
-								}
+									regenPlot()
+								},
+								name: varName,
+								colors: switchColors,
+							})
+						)
+						break
 
-								regenPlot()
-							},
-							name: varName,
-							help: helpText,
-							colors: switchColors,
-						})
-					)
-					el.style.marginBottom = collapsibleSelectorSpacing
+					case "virus": case "reference": case "preTitre": case "postTitre": case "titre":
+						DOM.addEl(
+							colnameInputsContainer,
+							DOM.createSwitch({
+								type: "toggleOneNonNullable",
+								// @ts-ignore TODO(sen) fix
+								init: data.varNames[varName],
+								opts: data.colnames,
+								onUpdate: (sel) => {
+									// @ts-ignore TODO(sen) fix
+									data.varNames[varName] = sel
+									regenPlot()
+								},
+								name: varName,
+								colors: switchColors,
+							})
+						)
+						break
 				}
 			}
 
@@ -2031,10 +1859,13 @@ const main = () => {
 				const varNames = data.varNames
 				DOM.removeChildren(timepointLabelInputContainer)
 				if (varNames.format === "long") {
-					const allTimepoints = Arr.unique(data.dataFiltered.map((row) => row[varNames.timepoint]))
+					const allTimepoints = Arr.unique(data.dataFiltered.map((row) => row[varNames.timepoint])).map(
+						(x) => `${x}`
+					)
 					const preLab = DOM.addEl(
 						timepointLabelInputContainer,
 						DOM.createSwitch({
+							type: "toggleOneNonNullable",
 							init: varNames.timepointLabels.pre,
 							opts: allTimepoints,
 							onUpdate: (sel) => {
@@ -2049,6 +1880,7 @@ const main = () => {
 					DOM.addEl(
 						timepointLabelInputContainer,
 						DOM.createSwitch({
+							type: "toggleOneNonNullable",
 							init: varNames.timepointLabels.post,
 							opts: allTimepoints,
 							onUpdate: (sel) => {
