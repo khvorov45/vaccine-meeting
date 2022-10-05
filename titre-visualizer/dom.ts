@@ -65,7 +65,7 @@ type SwitchSpec<SingleOpt extends string | number, SelType extends SingleOpt | S
 const createSwitchCommon = <SingleOpt extends string | number, SelType extends SingleOpt | SingleOpt[]>(
 	spec: SwitchSpec<SingleOpt, SelType>,
 	isSelected: (opt: SingleOpt) => boolean,
-	toggleOption: (opt: SingleOpt, el: HTMLDivElement, allEls: HTMLDivElement[]) => void
+	toggleOption: (event: MouseEvent, opt: SingleOpt, el: HTMLDivElement, allEls: HTMLDivElement[]) => void
 ) => {
 	const switchElement = createDiv()
 	spec.switchElementStyle?.(switchElement)
@@ -117,6 +117,7 @@ const createSwitchCommon = <SingleOpt extends string | number, SelType extends S
 		helpText.style.width = "150px"
 		helpText.style.zIndex = "999"
 		helpText.style.padding = "5px"
+		helpText.style.whiteSpace = "pre-line"
 		addEl(helpText, createDivWithText(spec.help))
 
 		const helpDisplayWhenVisible = helpText.style.display
@@ -153,7 +154,7 @@ const createSwitchCommon = <SingleOpt extends string | number, SelType extends S
 			}
 		})
 
-		optElement.addEventListener("click", () => toggleOption(opt, optElement, allOptElements))
+		optElement.addEventListener("click", (event) => toggleOption(event, opt, optElement, allOptElements))
 	}
 
 	return switchElement
@@ -164,7 +165,12 @@ const createSwitchSingle = <SingleOpt extends string | number, SelType extends S
 ) => {
 	let currentSel = spec.init
 	const isSelected = (opt: SingleOpt) => opt === currentSel
-	const toggleOption = (opt: SingleOpt, optElement: HTMLDivElement, allOptElements: HTMLDivElement[]) => {
+	const toggleOption = (
+		_event: MouseEvent,
+		opt: SingleOpt,
+		optElement: HTMLDivElement,
+		allOptElements: HTMLDivElement[]
+	) => {
 		if (!isSelected(opt)) {
 			currentSel = <SelType>(<unknown>opt)
 			for (const el of allOptElements) {
@@ -181,23 +187,41 @@ const createSwitchSingle = <SingleOpt extends string | number, SelType extends S
 const createSwitchMultiple = <SingleOpt extends string | number, SelType extends SingleOpt[]>(
 	spec: SwitchSpec<SingleOpt, SelType>
 ) => {
-	const currentSel = spec.init.map((x) => x)
+	let currentSel = spec.init.map((x) => x)
 	const isSelected = (opt: SingleOpt) => currentSel.includes(opt)
-	const toggleOption = (opt: SingleOpt, optElement: HTMLDivElement, _allEls: HTMLDivElement[]) => {
-		if (isSelected(opt)) {
-			const optIndex = currentSel.indexOf(opt)
-			if (optIndex !== -1) {
-				currentSel.splice(optIndex, 1)
-			} else {
-				console.error(`Switch opt ${opt} selected but not found in ${currentSel}`)
-			}
-			optElement.style.backgroundColor = spec.colors.normal
-		} else {
-			currentSel.push(opt)
+	const toggleOption = (
+		event: MouseEvent,
+		opt: SingleOpt,
+		optElement: HTMLDivElement,
+		allOptElements: HTMLDivElement[]
+	) => {
+		if (event.ctrlKey) {
+			allOptElements.map((optEl) => (optEl.style.backgroundColor = spec.colors.normal))
 			optElement.style.backgroundColor = spec.colors.selected
+			currentSel = [opt]
+		} else if (event.shiftKey) {
+			allOptElements.map((optEl) => (optEl.style.backgroundColor = spec.colors.selected))
+			currentSel = [...spec.opts]
+		} else {
+			if (isSelected(opt)) {
+				const optIndex = currentSel.indexOf(opt)
+				if (optIndex !== -1) {
+					currentSel.splice(optIndex, 1)
+				} else {
+					console.error(`Switch opt ${opt} selected but not found in ${currentSel}`)
+				}
+				optElement.style.backgroundColor = spec.colors.normal
+			} else {
+				currentSel.push(opt)
+				optElement.style.backgroundColor = spec.colors.selected
+			}
 		}
 		spec.onUpdate(<SelType>currentSel)
 	}
+
+	spec.help = spec.help === undefined ? "" : spec.help += "\n"
+	spec.help += "ctrl+click = select one\nshift+click = select all"
+
 	const switchEl = createSwitchCommon(spec, isSelected, toggleOption)
 	return switchEl
 }
