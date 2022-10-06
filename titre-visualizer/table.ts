@@ -175,7 +175,7 @@ const createTableTitle = (title: string, downloadable: boolean) => {
 			const csv = DOWNLOAD_CSV[title]
 			if (csv) {
 				const hidden = createEl("a")
-				hidden.href = "data:text/csv;charset=utf-8," + encodeURI(csv)
+				hidden.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv)
 				hidden.target = "_blank"
 				hidden.download = title + ".csv"
 				hidden.click()
@@ -225,7 +225,7 @@ type TableColSpecFinal<RowType> = {
 	filterValProcess: (val: string) => string
 }
 
-type TableColSpec<RowType> = {
+export type TableColSpec<RowType> = {
 	access?: ((row: RowType) => any) | string
 	format?: (val: any) => string
 	width?: number
@@ -258,7 +258,7 @@ export const createTableFromAos = <RowType extends { [key: string]: any }>({
 	DOWNLOAD_CSV[title] = ""
 
 	const colnames = Object.keys(colSpecInit)
-	DOWNLOAD_CSV[title] += colnames.join(",") + "\n"
+	DOWNLOAD_CSV[title] += colnames.map(x => `"${x}"`).join(",") + "\n"
 
 	// NOTE(sen) Fill in missing spec entries
 	const colSpec: { [key: string]: TableColSpecFinal<RowType> } = {}
@@ -406,11 +406,15 @@ export const createTableFromAos = <RowType extends { [key: string]: any }>({
 		for (let rowIndex = 0; rowIndex < aos.length; rowIndex += 1) {
 			const rowData = aos[rowIndex]
 
-			for (const colname of colnames) {
+			for (let colnameIndex = 0; colnameIndex < colnames.length; colnameIndex++) {
+				const colname = colnames[colnameIndex]
 				const spec = colSpec[colname]
 				const colData = spec.access(rowData)
 				const colDataFormatted = spec.format(colData)
-				DOWNLOAD_CSV[title] += '"' + colDataFormatted + '",'
+				DOWNLOAD_CSV[title] += '"' + colDataFormatted + '"'
+				if (colnameIndex < colnames.length - 1) {
+					DOWNLOAD_CSV[title] += ","
+				}
 			}
 
 			DOWNLOAD_CSV[title] += "\n"
