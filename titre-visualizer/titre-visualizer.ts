@@ -4,6 +4,7 @@ import * as Rand from "./rand.ts"
 import * as Plot from "./plot.ts"
 import * as DOM from "./dom.ts"
 import * as Table from "./table.ts"
+import * as FileInput from "./fileinput.ts"
 
 const PLOT_ELEMENTS_ = ["points", "lines", "boxplots", "counts", "refLine", "means", "bars"] as const
 const PLOT_ELEMENTS = PLOT_ELEMENTS_ as unknown as string[]
@@ -1052,16 +1053,12 @@ const main = () => {
 	}
 
 	const fileInputHandler = (event: Event) => {
-		fileInputWholePage.style.visibility = "hidden"
-		const el = <HTMLInputElement>event.target
-		const file = el.files?.[0]
-		if (file !== null && file !== undefined) {
+        const el = <HTMLInputElement>event.target
+        const file = el.files?.[0]
+        if (file !== null && file !== undefined) {
 			fileInputLabel.innerHTML = file.name
 			file.text().then((string) => onNewDataString(string))
-		}
-
-		// NOTE(sen) The change/input event will not be fired for the same file twice otherwise
-		el.value = ""
+        }
 	}
 
 	const fileInput = <HTMLInputElement>DOM.addEl(fileInputContainer, DOM.createEl("input"))
@@ -1072,21 +1069,7 @@ const main = () => {
 	fileInput.style.width = "100%"
 	fileInput.style.height = "100%"
 
-	const fileInputWholePage = <HTMLInputElement>DOM.addEl(mainEl, DOM.createEl("input"))
-	fileInputWholePage.type = "file"
-	fileInputWholePage.addEventListener("change", fileInputHandler)
-	fileInputWholePage.style.position = "fixed"
-	fileInputWholePage.style.top = "0"
-	fileInputWholePage.style.left = "0"
-	fileInputWholePage.style.width = "100%"
-	fileInputWholePage.style.height = "100%"
-	fileInputWholePage.style.opacity = "0.5"
-	fileInputWholePage.style.visibility = "hidden"
-	fileInputWholePage.style.zIndex = "999"
-	fileInputWholePage.style.background = "gray"
-
-	globalThis.window.addEventListener("dragenter", () => (fileInputWholePage.style.visibility = "visible"))
-	fileInputWholePage.addEventListener("dragleave", () => (fileInputWholePage.style.visibility = "hidden"))
+	FileInput.createWholePageFileInput(fileInputHandler)
 
 	const switchMargin = (container: HTMLElement) => {
 		container.style.marginBottom = "10px"
@@ -1192,7 +1175,7 @@ const main = () => {
 		DOM.createSwitch({
 			type: "gradient",
 			getValue: (opt) => plotSettings.opacities[opt],
-			setValue: (opt, _index, value) => plotSettings.opacities[opt] = value,
+			setValue: (opt, _index, value) => (plotSettings.opacities[opt] = value),
 			opts: <PlotElement[]>PLOT_ELEMENTS,
 			onUpdate: regenPlot,
 			name: "Elements",
