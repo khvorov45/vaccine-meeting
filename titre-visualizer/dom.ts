@@ -63,7 +63,7 @@ type SwitchSpecBody<T> = {
 const createSwitchCommon = <T>(
 	spec: SwitchSpecBody<T>,
 	optElementInit: (el: HTMLDivElement, opt: T, optIndex: number) => void,
-	toggleOption: (event: MouseEvent, opt: T, el: HTMLDivElement, allEls: HTMLDivElement[]) => void
+	toggleOption: (event: MouseEvent, opt: T, index: number, el: HTMLDivElement, allEls: HTMLDivElement[]) => void
 ) => {
 	const switchElement = createDiv()
 	spec.switchElementStyle?.(switchElement)
@@ -142,7 +142,7 @@ const createSwitchCommon = <T>(
 		optElementInit(optElement, opt, optIndex)
 		spec.optElementStyle?.(optElement)
 
-		optElement.addEventListener("click", (event) => toggleOption(event, opt, optElement, allOptElements))
+		optElement.addEventListener("click", (event) => toggleOption(event, opt, optIndex, optElement, allOptElements))
 	}
 
 	return switchElement
@@ -157,13 +157,14 @@ type SwitchSpecHead<T> =
 	  }
 	| {
 			type: "toggleMany"
-			init: T[]
-			onUpdate: (opt: T[]) => void
+			state: T[]
+			onUpdate: () => void
 	  }
 	| {
 			type: "gradient"
-			init: number[]
-			onUpdate: (opt: T, fromLeft: number) => void
+			getValue: (opt: T, optIndex: number) => number
+			setValue: (opt: T, optIndex: number, value: number) => void
+			onUpdate: () => void
 	  }
 
 export type SwitchSpec<T> = SwitchSpecHead<T> & SwitchSpecBody<T>
@@ -192,6 +193,7 @@ export const createSwitch = <T>(spec: SwitchSpec<T>) => {
 				const toggleOption = (
 					_event: MouseEvent,
 					opt: T,
+					_index: number,
 					optElement: HTMLDivElement,
 					allOptElements: HTMLDivElement[]
 				) => {
@@ -207,38 +209,42 @@ export const createSwitch = <T>(spec: SwitchSpec<T>) => {
 				result = createSwitchCommon(spec, (el, opt) => optElementInitToggle(opt, el, isSelected), toggleOption)
 			}
 			break
+
 		case "toggleMany":
 			{
-				let currentSel = spec.init.map((x) => x)
-				const isSelected = (opt: T) => currentSel.includes(opt)
+				const allOpts = [...spec.opts]
+				const isSelected = (opt: T) => spec.state.includes(opt)
 				const toggleOption = (
 					event: MouseEvent,
 					opt: T,
+					_indexInAll: number,
 					optElement: HTMLDivElement,
 					allOptElements: HTMLDivElement[]
 				) => {
 					if (event.ctrlKey) {
 						allOptElements.map((optEl) => (optEl.style.backgroundColor = spec.colors.normal))
 						optElement.style.backgroundColor = spec.colors.selected
-						currentSel = [opt]
+						spec.state.length = 0
+						spec.state.push(opt)
 					} else if (event.shiftKey) {
 						allOptElements.map((optEl) => (optEl.style.backgroundColor = spec.colors.selected))
-						currentSel = [...spec.opts]
+						spec.state.length = 0
+						allOpts.map((opt) => spec.state.push(opt))
 					} else {
 						if (isSelected(opt)) {
-							const optIndex = currentSel.indexOf(opt)
-							if (optIndex !== -1) {
-								currentSel.splice(optIndex, 1)
+							const indexInState = spec.state.indexOf(opt)
+							if (indexInState !== -1) {
+								spec.state.splice(indexInState, 1)
 							} else {
-								console.error(`Switch opt ${opt} selected but not found in ${currentSel}`)
+								console.error(`Switch opt ${opt} selected but not found in ${spec.state}`)
 							}
 							optElement.style.backgroundColor = spec.colors.normal
 						} else {
-							currentSel.push(opt)
+							spec.state.push(opt)
 							optElement.style.backgroundColor = spec.colors.selected
 						}
 					}
-					spec.onUpdate(currentSel)
+					spec.onUpdate()
 				}
 
 				spec.help = spec.help === undefined ? "" : (spec.help += "\n")
@@ -247,14 +253,15 @@ export const createSwitch = <T>(spec: SwitchSpec<T>) => {
 				result = createSwitchCommon(spec, (el, opt) => optElementInitToggle(opt, el, isSelected), toggleOption)
 			}
 			break
+
 		case "gradient":
 			{
-				const optElementInit = (el: HTMLDivElement, _opt: T, index: number) => {
-					const fromLeft = spec.init[index]
+				const optElementInit = (el: HTMLDivElement, opt: T, index: number) => {
+					const fromLeft = spec.getValue(opt, index)
 					const fromLeftPercent = Math.round(fromLeft * 100)
 					el.style.background = `linear-gradient(to right, ${spec.colors.selected} ${fromLeftPercent}%, ${spec.colors.normal} ${fromLeftPercent}%)`
 				}
-				const toggleOption = (event: MouseEvent, opt: T, optElement: HTMLDivElement) => {
+				const toggleOption = (event: MouseEvent, opt: T, optIndex: number, optElement: HTMLDivElement) => {
 					const parent = <HTMLDivElement>event.target
 					let fromLeft = event.offsetX / parent.offsetWidth
 					if (event.ctrlKey) {
@@ -264,7 +271,8 @@ export const createSwitch = <T>(spec: SwitchSpec<T>) => {
 					}
 					const fromLeftPercent = Math.round(fromLeft * 100)
 					optElement.style.background = `linear-gradient(to right, ${spec.colors.selected} ${fromLeftPercent}%, ${spec.colors.normal} ${fromLeftPercent}%)`
-					spec.onUpdate(opt, fromLeft)
+					spec.setValue(opt, optIndex, fromLeft)
+					spec.onUpdate()
 				}
 
 				spec.help = spec.help === undefined ? "" : (spec.help += "\n")
@@ -275,6 +283,5 @@ export const createSwitch = <T>(spec: SwitchSpec<T>) => {
 			break
 	}
 
-	// TODO(sen) Get/set idea for the non-singles
 	return result
 }

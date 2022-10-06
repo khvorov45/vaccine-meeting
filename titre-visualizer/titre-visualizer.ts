@@ -1594,13 +1594,10 @@ const main = () => {
 		inputContainer,
 		DOM.createSwitch({
 			type: "gradient",
-			init: Object.values(plotSettings.opacities),
+			getValue: (opt) => plotSettings.opacities[opt],
+			setValue: (opt, _index, value) => plotSettings.opacities[opt] = value,
 			opts: <PlotElement[]>PLOT_ELEMENTS,
-			onUpdate: (elName, fromLeft) => {
-				// @ts-ignore TODO(sen) Fix
-				plotSettings.opacities[elName] = fromLeft
-				regenPlot()
-			},
+			onUpdate: regenPlot,
 			name: "Elements",
 			help: "Element transparency. Click on the plot to change refline position",
 			colors: switchColors,
@@ -1628,10 +1625,9 @@ const main = () => {
 			dataRelatedInputs,
 			DOM.createSwitch({
 				type: "toggleMany",
-				init: plotSettings.xFacets,
+				state: plotSettings.xFacets,
 				opts: data.colnames,
-				onUpdate: (sel) => {
-					plotSettings.xFacets = sel
+				onUpdate: () => {
 					data.dataFull = data.dataFull.map((row) => {
 						row.__XFACET__ = constructStringFromCols(row, plotSettings.xFacets, FACET_LABEL_SEP)
 						return row
@@ -1701,10 +1697,9 @@ const main = () => {
 				dataRelatedInputs,
 				DOM.createSwitch({
 					type: "toggleMany",
-					init: colUniqueVals,
+					state: filters[colname].selected,
 					opts: colUniqueVals,
-					onUpdate: (sel) => {
-						filters[colname].selected = sel
+					onUpdate: () => {
 						data.dataFiltered = [...data.dataFull]
 						for (const otherColname of data.colnames) {
 							const allowedVals = filters[otherColname].selected
@@ -1785,10 +1780,9 @@ const main = () => {
 							colnameInputsContainer,
 							DOM.createSwitch({
 								type: "toggleMany",
-								init: data.varNames.uniquePID,
+								state: data.varNames.uniquePID,
 								opts: data.colnames,
-								onUpdate: (sel) => {
-									data.varNames.uniquePID = sel
+								onUpdate: () => {
 									data.dataFull = data.dataFull.map((row) => {
 										row.__UNIQUEPID__ = constructStringFromCols(row, data.varNames.uniquePID)
 										return row
