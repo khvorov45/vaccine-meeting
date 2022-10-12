@@ -5,6 +5,7 @@ import * as Plot from "./plot.ts"
 import * as DOM from "./dom.ts"
 import * as Table from "./table.ts"
 import * as FileInput from "./fileinput.ts"
+import * as Switch from "./switch.ts"
 
 const PLOT_ELEMENTS_ = ["points", "lines", "boxplots", "counts", "refLine", "means", "bars"] as const
 const PLOT_ELEMENTS = PLOT_ELEMENTS_ as unknown as string[]
@@ -1053,12 +1054,12 @@ const main = () => {
 	}
 
 	const fileInputHandler = (event: Event) => {
-        const el = <HTMLInputElement>event.target
-        const file = el.files?.[0]
-        if (file !== null && file !== undefined) {
+		const el = <HTMLInputElement>event.target
+		const file = el.files?.[0]
+		if (file !== null && file !== undefined) {
 			fileInputLabel.innerHTML = file.name
 			file.text().then((string) => onNewDataString(string))
-        }
+		}
 	}
 
 	const fileInput = <HTMLInputElement>DOM.addEl(fileInputContainer, DOM.createEl("input"))
@@ -1083,7 +1084,7 @@ const main = () => {
 
 	DOM.addEl(
 		inputContainer,
-		DOM.createSwitch({
+		Switch.create({
 			type: "toggleOneNonNullable",
 			getValue: () => plotSettings.theme,
 			setValue: (opt) => (plotSettings.theme = opt),
@@ -1100,7 +1101,7 @@ const main = () => {
 
 	DOM.addEl(
 		inputContainer,
-		DOM.createSwitch({
+		Switch.create({
 			type: "toggleOneNonNullable",
 			getValue: () => plotSettings.kind,
 			setValue: (opt) => (plotSettings.kind = opt),
@@ -1114,7 +1115,7 @@ const main = () => {
 
 	DOM.addEl(
 		inputContainer,
-		DOM.createSwitch({
+		Switch.create({
 			type: "toggleOneNonNullable",
 			getValue: () => (plotSettings.relative ? "Relative" : "Absolute"),
 			setValue: (opt) => (plotSettings.relative = opt === "Relative"),
@@ -1142,7 +1143,7 @@ const main = () => {
 
 			DOM.addEl(
 				referenceSwitchContainer,
-				DOM.createSwitch({
+				Switch.create({
 					type: "toggleOneNonNullable",
 					getValue: () => plotSettings.refVirus,
 					setValue: (opt) => (plotSettings.refVirus = opt),
@@ -1156,7 +1157,7 @@ const main = () => {
 
 			DOM.addEl(
 				referenceSwitchContainer,
-				DOM.createSwitch({
+				Switch.create({
 					type: "toggleOneNonNullable",
 					getValue: () => plotSettings.refType,
 					setValue: (opt) => (plotSettings.refType = opt),
@@ -1172,7 +1173,7 @@ const main = () => {
 
 	const opacitiesSwitch = DOM.addEl(
 		inputContainer,
-		DOM.createSwitch({
+		Switch.create({
 			type: "gradient",
 			getValue: (opt) => plotSettings.opacities[opt],
 			setValue: (opt, _index, value) => (plotSettings.opacities[opt] = value),
@@ -1203,7 +1204,7 @@ const main = () => {
 
 		DOM.addEl(
 			dataRelatedInputs,
-			DOM.createSwitch({
+			Switch.create({
 				type: "toggleMany",
 				state: plotSettings.xFacets,
 				opts: data.colnames,
@@ -1226,7 +1227,7 @@ const main = () => {
 
 		const xAxisSwitch = DOM.addEl(
 			dataRelatedInputs,
-			DOM.createSwitch({
+			Switch.create({
 				type: "toggleOneNonNullable",
 				getValue: () => plotSettings.xAxis,
 				setValue: (opt) => (plotSettings.xAxis = opt),
@@ -1275,7 +1276,7 @@ const main = () => {
 			filters[colname] = { selected: colUniqueVals, all: [...colUniqueVals], optElements: [] }
 			const el = DOM.addEl(
 				dataRelatedInputs,
-				DOM.createSwitch({
+				Switch.create({
 					type: "toggleMany",
 					state: filters[colname].selected,
 					opts: colUniqueVals,
@@ -1321,7 +1322,7 @@ const main = () => {
 
 		DOM.addEl(
 			dataRelatedInputs,
-			DOM.createSwitch({
+			Switch.create({
 				type: "toggleOneNonNullable",
 				getValue: () => data.varNames.format,
 				setValue: (opt) => (data.varNames.format = opt),
@@ -1358,7 +1359,7 @@ const main = () => {
 					case "uniquePID":
 						DOM.addEl(
 							colnameInputsContainer,
-							DOM.createSwitch({
+							Switch.create({
 								type: "toggleMany",
 								state: data.varNames.uniquePID,
 								opts: data.colnames,
@@ -1383,7 +1384,7 @@ const main = () => {
 					case "timepoint":
 						DOM.addEl(
 							colnameInputsContainer,
-							DOM.createSwitch({
+							Switch.create({
 								type: "toggleOneNonNullable",
 								// @ts-ignore TODO(sen) fix
 								getValue: () => data.varNames.timepoint,
@@ -1407,7 +1408,7 @@ const main = () => {
 					case "titre":
 						DOM.addEl(
 							colnameInputsContainer,
-							DOM.createSwitch({
+							Switch.create({
 								type: "toggleOneNonNullable",
 								// @ts-ignore TODO(sen) fix
 								getValue: () => data.varNames[varName],
@@ -1435,7 +1436,7 @@ const main = () => {
 					)
 					const preLab = DOM.addEl(
 						timepointLabelInputContainer,
-						DOM.createSwitch({
+						Switch.create({
 							type: "toggleOneNonNullable",
 							getValue: () => varNames.timepointLabels.pre,
 							setValue: (opt) => (varNames.timepointLabels.pre = opt),
@@ -1448,7 +1449,7 @@ const main = () => {
 					preLab.style.marginBottom = collapsibleSelectorSpacing
 					DOM.addEl(
 						timepointLabelInputContainer,
-						DOM.createSwitch({
+						Switch.create({
 							type: "toggleOneNonNullable",
 							getValue: () => varNames.timepointLabels.post,
 							setValue: (opt) => (varNames.timepointLabels.post = opt),
