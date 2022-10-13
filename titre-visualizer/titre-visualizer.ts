@@ -937,8 +937,9 @@ const main = () => {
 	fileInputContainer.style.boxSizing = "border-box"
 	fileInputContainer.style.marginBottom = "10px"
 
-	const fileInputLabel = DOM.addDiv(fileInputContainer)
-	fileInputLabel.innerHTML = "Select file..."
+	const fileInputLabel = DOM.addEl(fileInputContainer, DOM.createEl("label"))
+	fileInputLabel.htmlFor = "fileinput"
+	fileInputLabel.textContent = "Select file..."
 	fileInputLabel.style.position = "absolute"
 	fileInputLabel.style.top = "0px"
 	fileInputLabel.style.left = "0px"
@@ -1064,6 +1065,7 @@ const main = () => {
 
 	const fileInput = <HTMLInputElement>DOM.addEl(fileInputContainer, DOM.createEl("input"))
 	fileInput.type = "file"
+	fileInput.id = fileInputLabel.htmlFor
 	fileInput.addEventListener("change", fileInputHandler)
 	fileInput.style.opacity = "0"
 	fileInput.style.cursor = "pointer"
