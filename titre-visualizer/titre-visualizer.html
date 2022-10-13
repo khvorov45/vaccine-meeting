@@ -1,148 +1,151 @@
 <!DOCTYPE html>
+<html lang="en-US">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content="Titre visualizer" />
 
-<head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<meta name="description" content="Titre visualizer" />
+		<!-- NOTE(sen) Stop browsers from requesting favicon -->
+		<link rel="icon" href="data:," />
 
-	<!-- NOTE(sen) Stop browsers from requesting favicon -->
-	<link rel="icon" href="data:," />
+		<title>Titre visualizer</title>
+	</head>
 
-	<title>Titre visualizer</title>
-</head>
+	<style>
+		:root {
+			--color-fileSelectBorder: #aaaaaa;
+			--color-border: #474d56;
+			--color-background: #07090c;
+			--color-background2: #131821;
+			--color-selected: #670033;
+			--color-text: #bfbdb6;
+			--color-error: #f26d78;
+		}
 
-<style>
-	:root {
-		--color-fileSelectBorder: #aaaaaa;
-		--color-border: #474d56;
-		--color-background: #07090c;
-		--color-background2: #131821;
-		--color-selected: #670033;
-		--color-text: #bfbdb6;
-		--color-error: #f26d78;
-	}
+		[theme="light"] {
+			--color-fileSelectBorder: #000000;
+			--color-border: #999999;
+			--color-background: #ffffff;
+			--color-background2: #cfdaeb;
+			--color-selected: #ff69b4;
+			--color-text: #000000;
+			--color-error: #a30000;
+		}
 
-	[theme="light"] {
-		--color-fileSelectBorder: #000000;
-		--color-border: #999999;
-		--color-background: #ffffff;
-		--color-background2: #cfdaeb;
-		--color-selected: #ff69b4;
-		--color-text: #000000;
-		--color-error: #a30000;
-	}
+		/* Scrollbars */
+		::-webkit-scrollbar {
+			width: 10px;
+			height: 10px;
+		}
 
-	/* Scrollbars */
-	::-webkit-scrollbar {
-		width: 10px;
-		height: 10px;
-	}
+		::-webkit-scrollbar-track,
+		::-webkit-scrollbar-corner {
+			background: var(--color-background);
+		}
 
-	::-webkit-scrollbar-track,
-	::-webkit-scrollbar-corner {
-		background: var(--color-background);
-	}
+		::-webkit-scrollbar-thumb {
+			background: var(--color-border);
+		}
 
-	::-webkit-scrollbar-thumb {
-		background: var(--color-border);
-	}
+		::-webkit-scrollbar-thumb:hover {
+			background: var(--color-selected);
+		}
 
-	::-webkit-scrollbar-thumb:hover {
-		background: var(--color-selected);
-	}
+		html,
+		html * {
+			scrollbar-color: var(--color-border) var(--color-background);
+			scrollbar-width: thin;
+		}
 
-	html,
-	html * {
-		scrollbar-color: var(--color-border) var(--color-background);
-		scrollbar-width: thin;
-	}
+		input {
+			color: inherit;
+			background-color: inherit;
+		}
 
-	input {
-		color: inherit;
-		background-color: inherit;
-	}
+		input:focus {
+			color: inherit;
+			background-color: inherit;
+		}
 
-	input:focus {
-		color: inherit;
-		background-color: inherit;
-	}
+		/* Range input */
+		input[type="range"] {
+			color: inherit;
+			background-color: inherit;
+			height: 20px;
+			-webkit-appearance: none;
+			appearance: none;
+			width: 100%;
+		}
+		input[type="range"]:focus {
+			outline: none;
+		}
+		input[type="range"]::-webkit-slider-runnable-track {
+			width: 100%;
+			height: 16px;
+			cursor: pointer;
+			background: var(--color-border);
+		}
+		input[type="range"]::-webkit-slider-thumb {
+			height: 20px;
+			width: 20px;
+			background: var(--color-border);
+			cursor: pointer;
+			-webkit-appearance: none;
+			appearance: none;
+			margin-top: -2px;
+			border: 1px solid var(--color-text);
+		}
+		input[type="range"]::-moz-range-track {
+			width: 100%;
+			height: 16px;
+			cursor: pointer;
+			background: var(--color-border);
+		}
+		input[type="range"]::-moz-range-thumb {
+			height: 20px;
+			width: 20px;
+			background: var(--color-border);
+			cursor: pointer;
+			border: 1px solid var(--color-text);
+		}
+		input[type="range"]::-ms-track {
+			width: 100%;
+			height: 16px;
+			cursor: pointer;
+			background: transparent;
+			border-color: transparent;
+			color: transparent;
+		}
+		input[type="range"]::-ms-fill-lower {
+			background: var(--color-border);
+			border-radius: 50px;
+			box-shadow: 0px 0px 0px #000000;
+		}
+		input[type="range"]::-ms-fill-upper {
+			background: var(--color-border);
+			border-radius: 50px;
+			box-shadow: 0px 0px 0px #000000;
+		}
+		input[type="range"]::-ms-thumb {
+			margin-top: 1px;
+			border: 1px solid var(--color-text);
+			height: 20px;
+			width: 20px;
+			background: var(--color-border);
+			cursor: pointer;
+		}
+	</style>
 
-	/* Range input */
-	input[type="range"] {
-		color: inherit;
-		background-color: inherit;
-		height: 20px;
-		-webkit-appearance: none;
-		width: 100%;
-	}
-	input[type="range"]:focus {
-		outline: none;
-	}
-	input[type="range"]::-webkit-slider-runnable-track {
-		width: 100%;
-		height: 16px;
-		cursor: pointer;
-		background: var(--color-border);
-	}
-	input[type="range"]::-webkit-slider-thumb {
-		height: 20px;
-		width: 20px;
-		background: var(--color-border);
-		cursor: pointer;
-		-webkit-appearance: none;
-		margin-top: -2px;
-		border: 1px solid var(--color-text);
-	}
-	input[type="range"]::-moz-range-track {
-		width: 100%;
-		height: 16px;
-		cursor: pointer;
-		background: var(--color-border);
-	}
-	input[type="range"]::-moz-range-thumb {
-		height: 20px;
-		width: 20px;
-		background: var(--color-border);
-		cursor: pointer;
-		border: 1px solid var(--color-text);
-	}
-	input[type="range"]::-ms-track {
-		width: 100%;
-		height: 16px;
-		cursor: pointer;
-		background: transparent;
-		border-color: transparent;
-		color: transparent;
-	}
-	input[type="range"]::-ms-fill-lower {
-		background: var(--color-border);
-		border-radius: 50px;
-		box-shadow: 0px 0px 0px #000000;
-	}
-	input[type="range"]::-ms-fill-upper {
-		background: var(--color-border);
-		border-radius: 50px;
-		box-shadow: 0px 0px 0px #000000;
-	}
-	input[type="range"]::-ms-thumb {
-		margin-top: 1px;
-		border: 1px solid var(--color-text);
-		height: 20px;
-		width: 20px;
-		background: var(--color-border);
-		cursor: pointer;
-	}
-</style>
+	<body
+		style="
+			background-color: var(--color-background);
+			color: var(--color-text);
+			margin: 0;
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+		"
+	>
+		<div id="main" style="display: flex; flex-direction: row"></div>
+	</body>
 
-<body
-	style="
-		background-color: var(--color-background);
-		color: var(--color-text);
-		margin: 0;
-		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-	"
->
-	<div id="main" style="display: flex; flex-direction: row"></div>
-</body>
-
-<script type="text/javascript" src="bundle.js"></script>
+	<script type="text/javascript" src="bundle.js"></script>
+</html>
