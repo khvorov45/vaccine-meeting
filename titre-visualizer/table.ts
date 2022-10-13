@@ -390,7 +390,6 @@ export const createTableFromAos = <RowType extends { [key: string]: any }>({
 
 				return rowElement
 			},
-			estimatedRowHeight: TABLE_ROW_HEIGHT_PX,
 			rowHeight: TABLE_ROW_HEIGHT_PX,
 		})
 
@@ -399,7 +398,7 @@ export const createTableFromAos = <RowType extends { [key: string]: any }>({
 			if (newTableBodyHeight != tableBodyHeight) {
 				tableBodyHeight = newTableBodyHeight
 				tableBodyContainer.style.maxHeight = newTableBodyHeight + "px"
-				VL.resize(virtualizedList, newTableBodyHeight)
+				VL.setHeight(virtualizedList, newTableBodyHeight)
 			}
 		}
 
