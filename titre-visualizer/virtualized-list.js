@@ -1,6 +1,6 @@
 // https://github.com/patrick-steele-idem/morphdom
 
-const morphdom = (fromNode, toNode, options) => {
+const morphdom = (fromNode, toNode) => {
 	const syncBooleanAttrProp = (fromEl, toEl, name) => {
 		if (fromEl[name] !== toEl[name]) {
 			fromEl[name] = toEl[name]
@@ -119,10 +119,6 @@ const morphdom = (fromNode, toNode, options) => {
 	const TEXT_NODE = 3
 	const COMMENT_NODE = 8
 
-	if (!options) {
-		options = {}
-	}
-
 	const doc = typeof document === "undefined" ? undefined : document
 	const HAS_TEMPLATE_SUPPORT = !!doc && "content" in doc.createElement("template")
 	const HAS_RANGE_SUPPORT = !!doc && doc.createRange && "createContextualFragment" in doc.createRange()
@@ -156,23 +152,7 @@ const morphdom = (fromNode, toNode, options) => {
 		toNode = toNode.firstElementChild
 	}
 
-	const defaultGetNodeKey = (node) => {
-		if (node) {
-			return (node.getAttribute && node.getAttribute("id")) || node.id
-		}
-	}
-
-	const noop = () => {}
-
-	const getNodeKey = options.getNodeKey || defaultGetNodeKey
-	const onBeforeNodeAdded = options.onBeforeNodeAdded || noop
-	const onNodeAdded = options.onNodeAdded || noop
-	const onBeforeElUpdated = options.onBeforeElUpdated || noop
-	const onElUpdated = options.onElUpdated || noop
-	const onBeforeNodeDiscarded = options.onBeforeNodeDiscarded || noop
-	const onNodeDiscarded = options.onNodeDiscarded || noop
-	const onBeforeElChildrenUpdated = options.onBeforeElChildrenUpdated || noop
-	const childrenOnly = options.childrenOnly === true
+	const getNodeKey = (node) => node.nodeIndex
 
 	// This object is used as a lookup to quickly find all keyed elements in the original DOM tree.
 	const fromNodesLookup = Object.create(null)
@@ -196,7 +176,6 @@ const morphdom = (fromNode, toNode, options) => {
 					// Only report the node as discarded if it is not keyed. We do this because
 					// at the end we loop through all keyed elements that were unmatched
 					// and then discard them in one final pass.
-					onNodeDiscarded(curChild)
 					if (curChild.firstChild) {
 						walkDiscardedChildNodes(curChild, skipKeyedNodes)
 					}
@@ -208,13 +187,9 @@ const morphdom = (fromNode, toNode, options) => {
 	}
 
 	const removeNode = (node, parentNode, skipKeyedNodes) => {
-		if (onBeforeNodeDiscarded(node) === false) {
-			return
-		}
 		if (parentNode) {
 			parentNode.removeChild(node)
 		}
-		onNodeDiscarded(node)
 		walkDiscardedChildNodes(node, skipKeyedNodes)
 	}
 
@@ -261,8 +236,6 @@ const morphdom = (fromNode, toNode, options) => {
 	}
 
 	const handleNodeAdded = (el) => {
-		onNodeAdded(el)
-
 		var curChild = el.firstChild
 		while (curChild) {
 			var nextSibling = curChild.nextSibling
@@ -288,91 +261,13 @@ const morphdom = (fromNode, toNode, options) => {
 		}
 	}
 
-	const morphEl = (fromEl, toEl, childrenOnly) => {
+	const morphEl = (fromEl, toEl) => {
 		var toElKey = getNodeKey(toEl)
 
 		if (toElKey) {
 			// If an element with an ID is being morphed then it will be in the final
 			// DOM so clear it out of the saved elements collection
 			delete fromNodesLookup[toElKey]
-		}
-
-		if (!childrenOnly) {
-			// optional
-			if (onBeforeElUpdated(fromEl, toEl) === false) {
-				return
-			}
-
-			// update attributes on original DOM element first
-			{
-				const fromNode = fromEl
-				const toNode = toEl
-				var toNodeAttrs = toNode.attributes
-				var attr
-				var attrName
-				var attrNamespaceURI
-				var attrValue
-				var fromValue
-
-				// document-fragments dont have attributes so lets not do anything
-				if (toNode.nodeType === DOCUMENT_FRAGMENT_NODE || fromNode.nodeType === DOCUMENT_FRAGMENT_NODE) {
-					return
-				}
-
-				// update attributes on original DOM element
-				for (var i = toNodeAttrs.length - 1; i >= 0; i--) {
-					attr = toNodeAttrs[i]
-					attrName = attr.name
-					attrNamespaceURI = attr.namespaceURI
-					attrValue = attr.value
-
-					if (attrNamespaceURI) {
-						attrName = attr.localName || attrName
-						fromValue = fromNode.getAttributeNS(attrNamespaceURI, attrName)
-
-						if (fromValue !== attrValue) {
-							if (attr.prefix === "xmlns") {
-								attrName = attr.name // It's not allowed to set an attribute with the XMLNS namespace without specifying the `xmlns` prefix
-							}
-							fromNode.setAttributeNS(attrNamespaceURI, attrName, attrValue)
-						}
-					} else {
-						fromValue = fromNode.getAttribute(attrName)
-
-						if (fromValue !== attrValue) {
-							fromNode.setAttribute(attrName, attrValue)
-						}
-					}
-				}
-
-				// Remove any extra attributes found on the original DOM element that
-				// weren't found on the target element.
-				var fromNodeAttrs = fromNode.attributes
-
-				for (var d = fromNodeAttrs.length - 1; d >= 0; d--) {
-					attr = fromNodeAttrs[d]
-					attrName = attr.name
-					attrNamespaceURI = attr.namespaceURI
-
-					if (attrNamespaceURI) {
-						attrName = attr.localName || attrName
-
-						if (!toNode.hasAttributeNS(attrNamespaceURI, attrName)) {
-							fromNode.removeAttributeNS(attrNamespaceURI, attrName)
-						}
-					} else {
-						if (!toNode.hasAttribute(attrName)) {
-							fromNode.removeAttribute(attrName)
-						}
-					}
-				}
-			}
-			// optional
-			onElUpdated(fromEl)
-
-			if (onBeforeElChildrenUpdated(fromEl, toEl) === false) {
-				return
-			}
 		}
 
 		if (fromEl.nodeName !== "TEXTAREA") {
@@ -520,18 +415,11 @@ const morphdom = (fromNode, toNode, options) => {
 					// MORPH
 					morphEl(matchingFromEl, curToNodeChild)
 				} else {
-					var onBeforeNodeAddedResult = onBeforeNodeAdded(curToNodeChild)
-					if (onBeforeNodeAddedResult !== false) {
-						if (onBeforeNodeAddedResult) {
-							curToNodeChild = onBeforeNodeAddedResult
-						}
-
-						if (curToNodeChild.actualize) {
-							curToNodeChild = curToNodeChild.actualize(fromEl.ownerDocument || doc)
-						}
-						fromEl.appendChild(curToNodeChild)
-						handleNodeAdded(curToNodeChild)
+					if (curToNodeChild.actualize) {
+						curToNodeChild = curToNodeChild.actualize(fromEl.ownerDocument || doc)
 					}
+					fromEl.appendChild(curToNodeChild)
+					handleNodeAdded(curToNodeChild)
 				}
 
 				curToNodeChild = toNextSibling
@@ -565,61 +453,13 @@ const morphdom = (fromNode, toNode, options) => {
 	}
 
 	var morphedNode = fromNode
-	var morphedNodeType = morphedNode.nodeType
-	var toNodeType = toNode.nodeType
 
-	if (!childrenOnly) {
-		// Handle the case where we are given two DOM nodes that are not
-		// compatible (e.g. <div> --> <span> or <div> --> TEXT)
-		if (morphedNodeType === ELEMENT_NODE) {
-			if (toNodeType === ELEMENT_NODE) {
-				if (!compareNodeNames(fromNode, toNode)) {
-					onNodeDiscarded(fromNode)
-					// move children
-					{
-						const fromEl = fromNode
-						const toEl =
-							!toNode.namespaceURI || toNode.namespaceURI === "http://www.w3.org/1999/xhtml"
-								? doc.createElement(toNode.nodeName)
-								: doc.createElementNS(toNode.namespaceURI, toNode.nodeName)
-						var curChild = fromEl.firstChild
-						while (curChild) {
-							var nextChild = curChild.nextSibling
-							toEl.appendChild(curChild)
-							curChild = nextChild
-						}
-						morphedNode = toEl
-					}
-				}
-			} else {
-				// Going from an element node to a text node
-				morphedNode = toNode
-			}
-		} else if (morphedNodeType === TEXT_NODE || morphedNodeType === COMMENT_NODE) {
-			// Text or comment node
-			if (toNodeType === morphedNodeType) {
-				if (morphedNode.nodeValue !== toNode.nodeValue) {
-					morphedNode.nodeValue = toNode.nodeValue
-				}
-
-				return morphedNode
-			} else {
-				// Text node to something else
-				morphedNode = toNode
-			}
-		}
-	}
-
-	if (morphedNode === toNode) {
-		// The "to node" was not compatible with the "from node" so we had to
-		// toss out the "from node" and use the "to node"
-		onNodeDiscarded(fromNode)
-	} else {
+	if (morphedNode !== toNode) {
 		if (toNode.isSameNode && toNode.isSameNode(morphedNode)) {
 			return
 		}
 
-		morphEl(morphedNode, toNode, childrenOnly)
+		morphEl(morphedNode, toNode)
 
 		// We now need to loop over any keyed nodes that might need to be
 		// removed. We only do the removal if we know that the keyed node
@@ -634,18 +474,6 @@ const morphdom = (fromNode, toNode, options) => {
 				}
 			}
 		}
-	}
-
-	if (!childrenOnly && morphedNode !== fromNode && fromNode.parentNode) {
-		if (morphedNode.actualize) {
-			morphedNode = morphedNode.actualize(fromNode.ownerDocument || doc)
-		}
-		// If we had to swap out the from node with a new node because the old
-		// node was not compatible with the target node then we need to
-		// replace the old DOM node in the original DOM tree. This is only
-		// possible if the original DOM node was part of a DOM tree which
-		// we know is the case if it has a parent node.
-		fromNode.parentNode.replaceChild(morphedNode, fromNode)
 	}
 
 	return morphedNode
@@ -1034,10 +862,7 @@ export class VirtualizedList {
 		this.inner.style.height = `${this._sizeAndPositionManager.getTotalSize()}px`
 		this.content.style.top = `${this.getRowOffset(start)}px`
 
-		morphdom(this.content, fragment, {
-			childrenOnly: true,
-			getNodeKey: (node) => node.nodeIndex,
-		})
+		morphdom(this.content, fragment)
 
 		this.onRowsRendered({
 			startIndex: start,
