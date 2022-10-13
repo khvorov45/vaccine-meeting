@@ -1,23 +1,21 @@
 // Stripped down version of https://github.com/patrick-steele-idem/morphdom
-const morphdom = (fromNode, toNode) => {
+const morphdom = (fromNode: HTMLElement, toNode: HTMLElement) => {
 	const ELEMENT_NODE = 1
 	const DOCUMENT_FRAGMENT_NODE = 11
 	const TEXT_NODE = 3
 	const COMMENT_NODE = 8
 
-	const doc = typeof document === "undefined" ? undefined : document
-
-	const getNodeKey = (node) => node.nodeIndex
+	const getNodeKey = (node: any) => node.nodeIndex
 
 	// This object is used as a lookup to quickly find all keyed elements in the original DOM tree.
 	const fromNodesLookup = Object.create(null)
 
-	const keyedRemovalList = []
-	const addKeyedRemoval = (key) => {
+	const keyedRemovalList: any[] = []
+	const addKeyedRemoval = (key: any) => {
 		keyedRemovalList.push(key)
 	}
 
-	const walkDiscardedChildNodes = (node, skipKeyedNodes) => {
+	const walkDiscardedChildNodes = (node: Node, skipKeyedNodes: boolean) => {
 		if (node.nodeType === ELEMENT_NODE) {
 			let curChild = node.firstChild
 			while (curChild) {
@@ -41,14 +39,14 @@ const morphdom = (fromNode, toNode) => {
 		}
 	}
 
-	const removeNode = (node, parentNode, skipKeyedNodes) => {
+	const removeNode = (node: Node, parentNode: Node, skipKeyedNodes: boolean) => {
 		if (parentNode) {
 			parentNode.removeChild(node)
 		}
 		walkDiscardedChildNodes(node, skipKeyedNodes)
 	}
 
-	const indexTree = (node) => {
+	const indexTree = (node: Node) => {
 		if (node.nodeType === ELEMENT_NODE || node.nodeType === DOCUMENT_FRAGMENT_NODE) {
 			let curChild = node.firstChild
 			while (curChild) {
@@ -63,7 +61,7 @@ const morphdom = (fromNode, toNode) => {
 	}
 	indexTree(fromNode)
 
-	const compareNodeNames = (fromEl, toEl) => {
+	const compareNodeNames = (fromEl: Node, toEl: Node) => {
 		const fromNodeName = fromEl.nodeName
 		const toNodeName = toEl.nodeName
 
@@ -89,7 +87,7 @@ const morphdom = (fromNode, toNode) => {
 		}
 	}
 
-	const handleNodeAdded = (el) => {
+	const handleNodeAdded = (el: Node) => {
 		let curChild = el.firstChild
 		while (curChild) {
 			const nextSibling = curChild.nextSibling
@@ -100,7 +98,7 @@ const morphdom = (fromNode, toNode) => {
 				// if we find a duplicate #id node in cache, replace `el` with cache value
 				// and morph it to the child node.
 				if (unmatchedFromEl && compareNodeNames(curChild, unmatchedFromEl)) {
-					curChild.parentNode.replaceChild(unmatchedFromEl, curChild)
+					curChild.parentNode?.replaceChild(unmatchedFromEl, curChild)
 					morphEl(unmatchedFromEl, curChild)
 				} else {
 					handleNodeAdded(curChild)
@@ -115,7 +113,7 @@ const morphdom = (fromNode, toNode) => {
 		}
 	}
 
-	const morphEl = (fromEl, toEl) => {
+	const morphEl = (fromEl: Node, toEl: Node) => {
 		const toElKey = getNodeKey(toEl)
 
 		if (toElKey) {
@@ -129,7 +127,7 @@ const morphdom = (fromNode, toNode) => {
 		let curToNodeKey
 		let curFromNodeKey
 
-		let fromNextSibling
+		let fromNextSibling = null
 		let toNextSibling
 		let matchingFromEl
 
@@ -139,7 +137,7 @@ const morphdom = (fromNode, toNode) => {
 			curToNodeKey = getNodeKey(curToNodeChild)
 
 			// walk the fromNode children all the way through
-			while (curFromNodeChild) {
+			while (curFromNodeChild !== null) {
 				fromNextSibling = curFromNodeChild.nextSibling
 
 				if (curToNodeChild.isSameNode && curToNodeChild.isSameNode(curFromNodeChild)) {
@@ -207,13 +205,15 @@ const morphdom = (fromNode, toNode) => {
 							isCompatible = false
 						}
 
-						isCompatible = isCompatible !== false && compareNodeNames(curFromNodeChild, curToNodeChild)
-						if (isCompatible) {
-							// We found compatible DOM elements so transform
-							// the current "from" node to match the current
-							// target DOM node.
-							// MORPH
-							morphEl(curFromNodeChild, curToNodeChild)
+						if (curFromNodeChild) {
+							isCompatible = isCompatible !== false && compareNodeNames(curFromNodeChild, curToNodeChild)
+							if (isCompatible) {
+								// We found compatible DOM elements so transform
+								// the current "from" node to match the current
+								// target DOM node.
+								// MORPH
+								morphEl(curFromNodeChild, curToNodeChild)
+							}
 						}
 					} else if (curFromNodeType === TEXT_NODE || curFromNodeType == COMMENT_NODE) {
 						// Both nodes being compared are Text or Comment nodes
@@ -244,7 +244,7 @@ const morphdom = (fromNode, toNode) => {
 					// Since the node is keyed it might be matched up later so we defer
 					// the actual removal to later
 					addKeyedRemoval(curFromNodeKey)
-				} else {
+				} else if (curFromNodeChild !== null) {
 					// NOTE: we skip nested keyed nodes from being removed since there is
 					//       still a chance they will be matched up later
 					removeNode(curFromNodeChild, fromEl, true /* skip keyed nodes */)
@@ -266,9 +266,6 @@ const morphdom = (fromNode, toNode) => {
 				// MORPH
 				morphEl(matchingFromEl, curToNodeChild)
 			} else {
-				if (curToNodeChild.actualize) {
-					curToNodeChild = curToNodeChild.actualize(fromEl.ownerDocument || doc)
-				}
 				fromEl.appendChild(curToNodeChild)
 				handleNodeAdded(curToNodeChild)
 			}
@@ -318,393 +315,264 @@ const morphdom = (fromNode, toNode) => {
 	}
 }
 
-// https://github.com/clauderic/virtualized-list
-/* Forked from react-virtualized 💖 */
-const ALIGN_START = "start"
-const ALIGN_CENTER = "center"
-const ALIGN_END = "end"
+// Based on https://github.com/clauderic/virtualized-list
 
-class SizeAndPositionManager {
-	constructor({ itemCount, itemSizeGetter, estimatedItemSize }) {
-		this._itemSizeGetter = itemSizeGetter
-		this._itemCount = itemCount
-		this._estimatedItemSize = estimatedItemSize
+type SizeAndPosition = {
+	itemCount: number
+	estimatedItemSize: number
+	// Cache of size and position data for items, mapped by item index.
+	itemSizeAndPositionData: { [key in number]: { offset: number; size: number } }
+	// Measurements for items up to this index can be trusted; items afterward should be estimated.
+	lastMeasuredIndex: number
+}
 
-		// Cache of size and position data for items, mapped by item index.
-		this._itemSizeAndPositionData = {}
-
-		// Measurements for items up to this index can be trusted; items afterward should be estimated.
-		this._lastMeasuredIndex = -1
+const createSizeAndPosition = (itemCount: number, estimatedItemSize: number) => {
+	const result: SizeAndPosition = {
+		itemCount: itemCount,
+		estimatedItemSize: estimatedItemSize,
+		itemSizeAndPositionData: [],
+		lastMeasuredIndex: -1,
 	}
+	return result
+}
 
-	getLastMeasuredIndex() {
-		return this._lastMeasuredIndex
-	}
+const getSizeAndPositionOfLastMeasuredItem = (sp: SizeAndPosition) => {
+	return sp.lastMeasuredIndex >= 0 ? sp.itemSizeAndPositionData[sp.lastMeasuredIndex] : { offset: 0, size: 0 }
+}
 
-	/**
-	 * This method returns the size and position for the item at the specified index.
-	 * It just-in-time calculates (or used cached values) for items leading up to the index.
-	 */
-	getSizeAndPositionForIndex(index) {
-		if (index < 0 || index >= this._itemCount) {
-			throw Error(`Requested index ${index} is outside of range 0..${this._itemCount}`)
-		}
+const getSizeAndPositionForIndex = (vl: VirtualizedList, index: number) => {
+	index = Math.max(Math.min(index, vl.sizeAndPosition.itemCount - 1), 0)
 
-		if (index > this._lastMeasuredIndex) {
-			const lastMeasuredSizeAndPosition = this.getSizeAndPositionOfLastMeasuredItem()
-			let offset = lastMeasuredSizeAndPosition.offset + lastMeasuredSizeAndPosition.size
+	if (index > vl.sizeAndPosition.lastMeasuredIndex) {
+		const lastMeasuredSizeAndPosition = getSizeAndPositionOfLastMeasuredItem(vl.sizeAndPosition)
+		let offset = lastMeasuredSizeAndPosition.offset + lastMeasuredSizeAndPosition.size
 
-			for (let i = this._lastMeasuredIndex + 1; i <= index; i++) {
-				const size = this._itemSizeGetter({ index: i })
-
-				if (size == null || isNaN(size)) {
-					throw Error(`Invalid size returned for index ${i} of value ${size}`)
-				}
-
-				this._itemSizeAndPositionData[i] = {
-					offset,
-					size,
-				}
-
-				offset += size
+		for (let i = vl.sizeAndPosition.lastMeasuredIndex + 1; i <= index; i++) {
+			let size = 0
+			if (typeof vl.options.rowHeight === "function") {
+				size = vl.options.rowHeight(index)
+			} else {
+				size = Array.isArray(vl.options.rowHeight) ? vl.options.rowHeight[index] : vl.options.rowHeight
 			}
 
-			this._lastMeasuredIndex = index
-		}
-
-		return this._itemSizeAndPositionData[index]
-	}
-
-	getSizeAndPositionOfLastMeasuredItem() {
-		return this._lastMeasuredIndex >= 0
-			? this._itemSizeAndPositionData[this._lastMeasuredIndex]
-			: { offset: 0, size: 0 }
-	}
-
-	/**
-	 * Total size of all items being measured.
-	 * This value will be completedly estimated initially.
-	 * As items as measured the estimate will be updated.
-	 */
-	getTotalSize() {
-		const lastMeasuredSizeAndPosition = this.getSizeAndPositionOfLastMeasuredItem()
-
-		return (
-			lastMeasuredSizeAndPosition.offset +
-			lastMeasuredSizeAndPosition.size +
-			(this._itemCount - this._lastMeasuredIndex - 1) * this._estimatedItemSize
-		)
-	}
-
-	/**
-	 * Determines a new offset that ensures a certain item is visible, given the alignment.
-	 *
-	 * @param align Desired alignment within container; one of "start" (default), "center", or "end"
-	 * @param containerSize Size (width or height) of the container viewport
-	 * @return Offset to use to ensure the specified item is visible
-	 */
-	getUpdatedOffsetForIndex({ align = ALIGN_START, containerSize, targetIndex }) {
-		if (containerSize <= 0) {
-			return 0
-		}
-
-		const datum = this.getSizeAndPositionForIndex(targetIndex)
-		const maxOffset = datum.offset
-		const minOffset = maxOffset - containerSize + datum.size
-
-		let idealOffset
-
-		switch (align) {
-			case ALIGN_END:
-				idealOffset = minOffset
-				break
-			case ALIGN_CENTER:
-				idealOffset = maxOffset - (containerSize - datum.size) / 2
-				break
-			default:
-				idealOffset = maxOffset
-				break
-		}
-
-		const totalSize = this.getTotalSize()
-
-		return Math.max(0, Math.min(totalSize - containerSize, idealOffset))
-	}
-
-	getVisibleRange({ containerSize, offset, overscanCount }) {
-		const totalSize = this.getTotalSize()
-
-		if (totalSize === 0) {
-			return {}
-		}
-
-		const maxOffset = offset + containerSize
-		let start = this._findNearestItem(offset)
-		let stop = start
-
-		const datum = this.getSizeAndPositionForIndex(start)
-		offset = datum.offset + datum.size
-
-		while (offset < maxOffset && stop < this._itemCount - 1) {
-			stop++
-			offset += this.getSizeAndPositionForIndex(stop).size
-		}
-
-		if (overscanCount) {
-			start = Math.max(0, start - overscanCount)
-			stop = Math.min(stop + overscanCount, this._itemCount)
-		}
-
-		return {
-			start,
-			stop,
-		}
-	}
-
-	/**
-	 * Clear all cached values for items after the specified index.
-	 * This method should be called for any item that has changed its size.
-	 * It will not immediately perform any calculations; they'll be performed the next time getSizeAndPositionForIndex() is called.
-	 */
-	resetItem(index) {
-		this._lastMeasuredIndex = Math.min(this._lastMeasuredIndex, index - 1)
-	}
-
-	_binarySearch({ low, high, offset }) {
-		let middle
-		let currentOffset
-
-		while (low <= high) {
-			middle = low + Math.floor((high - low) / 2)
-			currentOffset = this.getSizeAndPositionForIndex(middle).offset
-
-			if (currentOffset === offset) {
-				return middle
-			} else if (currentOffset < offset) {
-				low = middle + 1
-			} else if (currentOffset > offset) {
-				high = middle - 1
+			vl.sizeAndPosition.itemSizeAndPositionData[i] = {
+				offset,
+				size,
 			}
+			offset += size
 		}
 
-		if (low > 0) {
-			return low - 1
-		}
+		vl.sizeAndPosition.lastMeasuredIndex = index
 	}
 
-	_exponentialSearch({ index, offset }) {
-		let interval = 1
+	return vl.sizeAndPosition.itemSizeAndPositionData[index]
+}
 
-		while (index < this._itemCount && this.getSizeAndPositionForIndex(index).offset < offset) {
-			index += interval
-			interval *= 2
-		}
+const getTotalSize = (sp: SizeAndPosition) => {
+	const lastMeasuredSizeAndPosition = getSizeAndPositionOfLastMeasuredItem(sp)
+	return (
+		lastMeasuredSizeAndPosition.offset +
+		lastMeasuredSizeAndPosition.size +
+		(sp.itemCount - sp.lastMeasuredIndex - 1) * sp.estimatedItemSize
+	)
+}
 
-		return this._binarySearch({
-			high: Math.min(index, this._itemCount - 1),
-			low: Math.floor(index / 2),
-			offset,
-		})
+const getVisibleRange = (vl: VirtualizedList, containerSize: number, offset: number, overscanCount?: number) => {
+	const totalSize = getTotalSize(vl.sizeAndPosition)
+
+	if (totalSize === 0) {
+		return { start: 0, stop: 0 }
 	}
 
-	/**
-	 * Searches for the item (index) nearest the specified offset.
-	 *
-	 * If no exact match is found the next lowest item index will be returned.
-	 * This allows partially visible items (with offsets just before/above the fold) to be visible.
-	 */
-	_findNearestItem(offset) {
-		if (isNaN(offset)) {
-			throw Error(`Invalid offset ${offset} specified`)
-		}
+	const maxOffset = offset + containerSize
+	let start = findNearestItem(vl, offset)
+	let stop = start
 
-		// Our search algorithms find the nearest match at or below the specified offset.
-		// So make sure the offset is at least 0 or no match will be found.
-		offset = Math.max(0, offset)
+	const datum = getSizeAndPositionForIndex(vl, start)
+	offset = datum.offset + datum.size
 
-		const lastMeasuredSizeAndPosition = this.getSizeAndPositionOfLastMeasuredItem()
-		const lastMeasuredIndex = Math.max(0, this._lastMeasuredIndex)
+	while (offset < maxOffset && stop < vl.sizeAndPosition.itemCount - 1) {
+		stop++
+		offset += getSizeAndPositionForIndex(vl, stop).size
+	}
 
-		if (lastMeasuredSizeAndPosition.offset >= offset) {
-			// If we've already measured items within this range just use a binary search as it's faster.
-			return this._binarySearch({
-				high: lastMeasuredIndex,
-				low: 0,
-				offset,
-			})
-		} else {
-			// If we haven't yet measured this high, fallback to an exponential search with an inner binary search.
-			// The exponential search avoids pre-computing sizes for the full set of items as a binary search would.
-			// The overall complexity for this approach is O(log n).
-			return this._exponentialSearch({
-				index: lastMeasuredIndex,
-				offset,
-			})
-		}
+	if (overscanCount !== undefined) {
+		start = Math.max(0, start - overscanCount)
+		stop = Math.min(stop + overscanCount, vl.sizeAndPosition.itemCount)
+	}
+
+	return {
+		start,
+		stop,
 	}
 }
 
-const STYLE_INNER = "position:relative; overflow:hidden; width:100%; min-height:100%; will-change: transform;"
-const STYLE_CONTENT = "position:absolute; top:0; left:0; height:100%; width:100%; overflow:visible;"
+const binarySearch = (vl: VirtualizedList, low: number, high: number, offset: number) => {
+	let middle
+	let currentOffset
 
-export class VirtualizedList {
-	constructor(container, options) {
-		this.container = container
-		this.options = options
+	while (low <= high) {
+		middle = low + Math.floor((high - low) / 2)
+		currentOffset = getSizeAndPositionForIndex(vl, middle).offset
 
-		// Initialization
-		this.state = {}
-		this._initializeSizeAndPositionManager(options.rowCount)
-
-		// Binding
-		this.render = this.render.bind(this)
-		this.handleScroll = this.handleScroll.bind(this)
-
-		// Lifecycle Methods
-		this.componentDidMount()
-	}
-
-	componentDidMount() {
-		const { onMount, initialScrollTop, initialIndex, height } = this.options
-		const offset = initialScrollTop || (initialIndex != null && this.getRowOffset(initialIndex)) || 0
-		const inner = (this.inner = document.createElement("div"))
-		const content = (this.content = document.createElement("div"))
-
-		inner.setAttribute("style", STYLE_INNER)
-		content.setAttribute("style", STYLE_CONTENT)
-		inner.appendChild(content)
-		this.container.appendChild(inner)
-
-		this.setState(
-			{
-				offset,
-				height,
-			},
-			() => {
-				if (offset) {
-					this.container.scrollTop = offset
-				}
-
-				// Add event listeners
-				this.container.addEventListener("scroll", this.handleScroll)
-
-				if (typeof onMount === "function") {
-					onMount()
-				}
-			}
-		)
-	}
-
-	_initializeSizeAndPositionManager(count) {
-		this._sizeAndPositionManager = new SizeAndPositionManager({
-			itemCount: count,
-			itemSizeGetter: this.getRowHeight,
-			estimatedItemSize: this.options.estimatedRowHeight || 100,
-		})
-	}
-
-	setState(state = {}, callback) {
-		this.state = Object.assign(this.state, state)
-
-		requestAnimationFrame(() => {
-			this.render()
-
-			if (typeof callback === "function") {
-				callback()
-			}
-		})
-	}
-
-	resize(height, callback) {
-		this.setState(
-			{
-				height,
-			},
-			callback
-		)
-	}
-
-	handleScroll(e) {
-		const { onScroll } = this.options
-		const offset = this.container.scrollTop
-
-		this.setState({ offset })
-
-		if (typeof onScroll === "function") {
-			onScroll(offset, e)
+		if (currentOffset === offset) {
+			return middle
+		} else if (currentOffset < offset) {
+			low = middle + 1
+		} else if (currentOffset > offset) {
+			high = middle - 1
 		}
 	}
 
-	getRowHeight = ({ index }) => {
-		const { rowHeight } = this.options
-
-		if (typeof rowHeight === "function") {
-			return rowHeight(index)
-		}
-
-		return Array.isArray(rowHeight) ? rowHeight[index] : rowHeight
+	if (low > 0) {
+		return low - 1
 	}
 
-	getRowOffset(index) {
-		const sizeAndPosition = this._sizeAndPositionManager.getSizeAndPositionForIndex(index)
-		let offset = 0
-		if (sizeAndPosition !== undefined) {
-			offset = sizeAndPosition.offset
-		}
-		return offset
+	return low
+}
+
+const exponentialSearch = (vl: VirtualizedList, index: number, offset: number) => {
+	let interval = 1
+	while (index < vl.sizeAndPosition.itemCount && getSizeAndPositionForIndex(vl, index).offset < offset) {
+		index += interval
+		interval *= 2
+	}
+	return binarySearch(vl, Math.floor(index / 2), Math.min(index, vl.sizeAndPosition.itemCount - 1), offset)
+}
+
+/**
+ * Searches for the item (index) nearest the specified offset.
+ *
+ * If no exact match is found the next lowest item index will be returned.
+ * This allows partially visible items (with offsets just before/above the fold) to be visible.
+ */
+const findNearestItem = (vl: VirtualizedList, offset: number) => {
+	// Our search algorithms find the nearest match at or below the specified offset.
+	// So make sure the offset is at least 0 or no match will be found.
+	offset = Math.max(0, offset)
+
+	const lastMeasuredSizeAndPosition = getSizeAndPositionOfLastMeasuredItem(vl.sizeAndPosition)
+	const lastMeasuredIndex = Math.max(0, vl.sizeAndPosition.lastMeasuredIndex)
+
+	if (lastMeasuredSizeAndPosition.offset >= offset) {
+		// If we've already measured items within this range just use a binary search as it's faster.
+		return binarySearch(vl, 0, lastMeasuredIndex, offset)
+	} else {
+		// If we haven't yet measured this high, fallback to an exponential search with an inner binary search.
+		// The exponential search avoids pre-computing sizes for the full set of items as a binary search would.
+		// The overall complexity for this approach is O(log n).
+		return exponentialSearch(vl, lastMeasuredIndex, offset)
+	}
+}
+
+export type VirtualizedListOptions = {
+	height: number
+	rowCount: number
+	renderRow: (rowIndex: number) => HTMLElement
+	estimatedRowHeight: number
+	rowHeight: number | number[] | ((index: number) => number)
+	initialScrollTop?: number
+	initialIndex?: number
+	overscanCount?: number
+	onScroll?: (scrollTop: number, event: Event) => void
+	onRowsRendered?: (startIndex: number, stopIndex: number) => void
+}
+
+export type VirtualizedList = {
+	container: HTMLElement
+	inner: HTMLElement
+	content: HTMLElement
+	options: VirtualizedListOptions
+	state: { height: number; offset: number }
+	sizeAndPosition: SizeAndPosition
+}
+
+export const createVirtualizedList = (container: HTMLElement, options: VirtualizedListOptions) => {
+	const vl: VirtualizedList = {
+		container: container,
+		options: options,
+		state: { height: 0, offset: 0 },
+		sizeAndPosition: createSizeAndPosition(options.rowCount, options.estimatedRowHeight),
+		inner: document.createElement("div"),
+		content: document.createElement("div"),
 	}
 
-	scrollToIndex(index, alignment) {
-		const { height } = this.state
-		const offset = this._sizeAndPositionManager.getUpdatedOffsetForIndex({
-			align: alignment,
-			containerSize: height,
-			targetIndex: index,
-		})
+	vl.inner.setAttribute(
+		"style",
+		"position:relative; overflow:hidden; width:100%; min-height:100%; will-change: transform;"
+	)
+	vl.content.setAttribute("style", "position:absolute; top:0; left:0; height:100%; width:100%; overflow:visible;")
+	vl.inner.appendChild(vl.content)
+	container.appendChild(vl.inner)
 
-		this.container.scrollTop = offset
-	}
+	const offset =
+		options.initialScrollTop || (options.initialIndex != null && getRowOffset(vl, options.initialIndex)) || 0
 
-	setRowCount(count) {
-		this._initializeSizeAndPositionManager(count)
-		this.render()
-	}
-
-	onRowsRendered(renderedRows) {
-		const { onRowsRendered } = this.options
-
-		if (typeof onRowsRendered === "function") {
-			onRowsRendered(renderedRows)
-		}
-	}
-
-	destroy() {
-		this.container.removeEventListener("scroll", this.handleScroll)
-		this.container.innerHTML = ""
-	}
-
-	render() {
-		const { overscanCount, renderRow } = this.options
-		const { height, offset = 0 } = this.state
-		const { start, stop } = this._sizeAndPositionManager.getVisibleRange({
-			containerSize: height,
+	setState(
+		vl,
+		{
 			offset,
-			overscanCount,
-		})
-		const fragment = document.createElement("div")
+			height: options.height,
+		},
+		() => {
+			if (offset) {
+				container.scrollTop = offset
+			}
 
-		for (let index = start; index <= stop; index++) {
-			fragment.appendChild(renderRow(index))
+			// Add event listeners
+			container.addEventListener("scroll", (event) => handleScroll(vl, event))
 		}
+	)
 
-		this.inner.style.height = `${this._sizeAndPositionManager.getTotalSize()}px`
-		this.content.style.top = `${this.getRowOffset(start)}px`
+	return vl
+}
 
-		morphdom(this.content, fragment)
+const setState = (vl: VirtualizedList, state = {}, callback?: () => void) => {
+	vl.state = Object.assign(vl.state, state)
 
-		this.onRowsRendered({
-			startIndex: start,
-			stopIndex: stop,
-		})
+	requestAnimationFrame(() => {
+		render(vl)
+		callback?.()
+	})
+}
+
+export const resize = (vl: VirtualizedList, height: number, callback?: () => void) =>
+	setState(
+		vl,
+		{
+			height,
+		},
+		callback
+	)
+
+const handleScroll = (vl: VirtualizedList, e: Event) => {
+	const offset = vl.container.scrollTop
+	setState(vl, { offset })
+	vl.options.onScroll?.(offset, e)
+}
+
+const getRowOffset = (vl: VirtualizedList, index: number) => {
+	const sizeAndPosition = getSizeAndPositionForIndex(vl, index)
+	let offset = 0
+	if (sizeAndPosition !== undefined) {
+		offset = sizeAndPosition.offset
 	}
+	return offset
+}
+
+export const setRowCount = (vl: VirtualizedList, count: number) => {
+	vl.sizeAndPosition = createSizeAndPosition(count, vl.options.estimatedRowHeight)
+	render(vl)
+}
+
+const render = (vl: VirtualizedList) => {
+	const { start, stop } = getVisibleRange(vl, vl.state.height, vl.state.offset, vl.options.overscanCount)
+	const fragment = document.createElement("div")
+	for (let index = start; index <= stop; index++) {
+		fragment.appendChild(vl.options.renderRow(index))
+	}
+	vl.inner.style.height = `${getTotalSize(vl.sizeAndPosition)}px`
+	vl.content.style.top = `${getRowOffset(vl, start)}px`
+	morphdom(vl.content, fragment)
+	vl.options.onRowsRendered?.(start, stop)
 }

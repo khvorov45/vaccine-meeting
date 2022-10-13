@@ -1,4 +1,4 @@
-import { VirtualizedList } from "./virtualized-list.js"
+import * as VL from "./virtualized-list.ts"
 
 const MISSING_STRING = "(missing)"
 const TABLE_ROW_HEIGHT_PX = 30
@@ -344,7 +344,7 @@ export const createTableFromAos = <RowType extends { [key: string]: any }>({
 			createTableFilterRow(colSpec, (colname: string, filterVal: any) => {
 				colSpec[colname].filterVal = colSpec[colname].filterValProcess(filterVal)
 				aosFiltered = getAosFiltered()
-				virtualizedList.setRowCount(aosFiltered.length)
+				VL.setRowCount(virtualizedList, aosFiltered.length)
 			})
 		)
 
@@ -373,7 +373,7 @@ export const createTableFromAos = <RowType extends { [key: string]: any }>({
 
 		let aosFiltered = getAosFiltered()
 
-		const virtualizedList = new VirtualizedList(tableBodyContainer, {
+		const virtualizedList = VL.createVirtualizedList(tableBodyContainer, {
 			height: tableBodyHeight,
 			rowCount: aosFiltered.length,
 			renderRow: (rowIndex: number) => {
@@ -399,7 +399,7 @@ export const createTableFromAos = <RowType extends { [key: string]: any }>({
 			if (newTableBodyHeight != tableBodyHeight) {
 				tableBodyHeight = newTableBodyHeight
 				tableBodyContainer.style.maxHeight = newTableBodyHeight + "px"
-				virtualizedList.resize(newTableBodyHeight)
+				VL.resize(virtualizedList, newTableBodyHeight)
 			}
 		}
 
