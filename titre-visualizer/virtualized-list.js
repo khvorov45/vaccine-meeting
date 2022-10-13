@@ -297,14 +297,12 @@ const morphdom = (fromNode, toNode) => {
 		}
 	}
 
-	const morphedNode = fromNode
-
-	if (morphedNode !== toNode) {
-		if (toNode.isSameNode && toNode.isSameNode(morphedNode)) {
+	if (fromNode !== toNode) {
+		if (toNode.isSameNode && toNode.isSameNode(fromNode)) {
 			return
 		}
 
-		morphEl(morphedNode, toNode)
+		morphEl(fromNode, toNode)
 
 		// We now need to loop over any keyed nodes that might need to be
 		// removed. We only do the removal if we know that the keyed node
@@ -320,8 +318,6 @@ const morphdom = (fromNode, toNode) => {
 			}
 		}
 	}
-
-	return morphedNode
 }
 
 // https://github.com/clauderic/virtualized-list
