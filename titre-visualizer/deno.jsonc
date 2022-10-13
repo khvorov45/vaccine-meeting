@@ -7,7 +7,7 @@
 	},
 	"fmt": { "options": { "indentWidth": 4 } },
 	"lint": {
-		"files": { "exclude": ["virtualized-list.js", "papaparse.js"] },
+		"files": { "exclude": ["papaparse.js"] },
 		"rules": { "exclude": ["no-explicit-any"] }
 	}
 }

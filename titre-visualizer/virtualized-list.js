@@ -1,6 +1,5 @@
 // Stripped down version of https://github.com/patrick-steele-idem/morphdom
 const morphdom = (fromNode, toNode) => {
-
 	const ELEMENT_NODE = 1
 	const DOCUMENT_FRAGMENT_NODE = 11
 	const TEXT_NODE = 3
@@ -20,9 +19,9 @@ const morphdom = (fromNode, toNode) => {
 
 	const walkDiscardedChildNodes = (node, skipKeyedNodes) => {
 		if (node.nodeType === ELEMENT_NODE) {
-			var curChild = node.firstChild
+			let curChild = node.firstChild
 			while (curChild) {
-				var key = undefined
+				let key = undefined
 
 				if (skipKeyedNodes && (key = getNodeKey(curChild))) {
 					// If we are skipping keyed nodes then we add the key
@@ -51,9 +50,9 @@ const morphdom = (fromNode, toNode) => {
 
 	const indexTree = (node) => {
 		if (node.nodeType === ELEMENT_NODE || node.nodeType === DOCUMENT_FRAGMENT_NODE) {
-			var curChild = node.firstChild
+			let curChild = node.firstChild
 			while (curChild) {
-				var key = getNodeKey(curChild)
+				const key = getNodeKey(curChild)
 				if (key) {
 					fromNodesLookup[key] = curChild
 				}
@@ -65,16 +64,15 @@ const morphdom = (fromNode, toNode) => {
 	indexTree(fromNode)
 
 	const compareNodeNames = (fromEl, toEl) => {
-		var fromNodeName = fromEl.nodeName
-		var toNodeName = toEl.nodeName
-		var fromCodeStart, toCodeStart
+		const fromNodeName = fromEl.nodeName
+		const toNodeName = toEl.nodeName
 
 		if (fromNodeName === toNodeName) {
 			return true
 		}
 
-		fromCodeStart = fromNodeName.charCodeAt(0)
-		toCodeStart = toNodeName.charCodeAt(0)
+		const fromCodeStart = fromNodeName.charCodeAt(0)
+		const toCodeStart = toNodeName.charCodeAt(0)
 
 		// If the target element is a virtual DOM node or SVG node then we may
 		// need to normalize the tag name before comparing. Normal HTML elements that are
@@ -92,13 +90,13 @@ const morphdom = (fromNode, toNode) => {
 	}
 
 	const handleNodeAdded = (el) => {
-		var curChild = el.firstChild
+		let curChild = el.firstChild
 		while (curChild) {
-			var nextSibling = curChild.nextSibling
+			const nextSibling = curChild.nextSibling
 
-			var key = getNodeKey(curChild)
+			const key = getNodeKey(curChild)
 			if (key) {
-				var unmatchedFromEl = fromNodesLookup[key]
+				const unmatchedFromEl = fromNodesLookup[key]
 				// if we find a duplicate #id node in cache, replace `el` with cache value
 				// and morph it to the child node.
 				if (unmatchedFromEl && compareNodeNames(curChild, unmatchedFromEl)) {
@@ -118,7 +116,7 @@ const morphdom = (fromNode, toNode) => {
 	}
 
 	const morphEl = (fromEl, toEl) => {
-		var toElKey = getNodeKey(toEl)
+		const toElKey = getNodeKey(toEl)
 
 		if (toElKey) {
 			// If an element with an ID is being morphed then it will be in the final
@@ -126,14 +124,14 @@ const morphdom = (fromNode, toNode) => {
 			delete fromNodesLookup[toElKey]
 		}
 
-		var curToNodeChild = toEl.firstChild
-		var curFromNodeChild = fromEl.firstChild
-		var curToNodeKey
-		var curFromNodeKey
+		let curToNodeChild = toEl.firstChild
+		let curFromNodeChild = fromEl.firstChild
+		let curToNodeKey
+		let curFromNodeKey
 
-		var fromNextSibling
-		var toNextSibling
-		var matchingFromEl
+		let fromNextSibling
+		let toNextSibling
+		let matchingFromEl
 
 		// walk the children
 		outer: while (curToNodeChild) {
@@ -152,10 +150,10 @@ const morphdom = (fromNode, toNode) => {
 
 				curFromNodeKey = getNodeKey(curFromNodeChild)
 
-				var curFromNodeType = curFromNodeChild.nodeType
+				const curFromNodeType = curFromNodeChild.nodeType
 
 				// this means if the curFromNodeChild doesnt have a match with the curToNodeChild
-				var isCompatible = undefined
+				let isCompatible = undefined
 
 				if (curFromNodeType === curToNodeChild.nodeType) {
 					if (curFromNodeType === ELEMENT_NODE) {
@@ -283,7 +281,7 @@ const morphdom = (fromNode, toNode) => {
 		// non-null then we still have some from nodes left over that need
 		// to be removed
 		while (curFromNodeChild) {
-			var fromNextSibling = curFromNodeChild.nextSibling
+			const fromNextSibling = curFromNodeChild.nextSibling
 			if ((curFromNodeKey = getNodeKey(curFromNodeChild))) {
 				// Since the node is keyed it might be matched up later so we defer
 				// the actual removal to later
@@ -310,8 +308,8 @@ const morphdom = (fromNode, toNode) => {
 		// it out of fromNodesLookup and we use fromNodesLookup to determine
 		// if a keyed node has been matched up or not
 		if (keyedRemovalList) {
-			for (var i = 0, len = keyedRemovalList.length; i < len; i++) {
-				var elToRemove = fromNodesLookup[keyedRemovalList[i]]
+			for (let i = 0, len = keyedRemovalList.length; i < len; i++) {
+				const elToRemove = fromNodesLookup[keyedRemovalList[i]]
 				if (elToRemove) {
 					removeNode(elToRemove, elToRemove.parentNode, false)
 				}
@@ -353,11 +351,11 @@ class SizeAndPositionManager {
 		}
 
 		if (index > this._lastMeasuredIndex) {
-			let lastMeasuredSizeAndPosition = this.getSizeAndPositionOfLastMeasuredItem()
+			const lastMeasuredSizeAndPosition = this.getSizeAndPositionOfLastMeasuredItem()
 			let offset = lastMeasuredSizeAndPosition.offset + lastMeasuredSizeAndPosition.size
 
-			for (var i = this._lastMeasuredIndex + 1; i <= index; i++) {
-				let size = this._itemSizeGetter({ index: i })
+			for (let i = this._lastMeasuredIndex + 1; i <= index; i++) {
+				const size = this._itemSizeGetter({ index: i })
 
 				if (size == null || isNaN(size)) {
 					throw Error(`Invalid size returned for index ${i} of value ${size}`)
