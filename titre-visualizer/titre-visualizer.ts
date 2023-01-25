@@ -897,7 +897,40 @@ const parseData = (input: string, xFacets: string[]): Data => {
 	return data
 }
 
+// type DomDesc = {el: HTMLElement, ch: {[key: string]: DomDesc}}
+
+// const stitch = (dom: DomDesc) => {
+// 	for (const name of Object.keys(dom.ch)) {
+// 		if (name !== "el") {
+// 			const child = dom.ch[name]
+// 			stitch(child)
+// 			DOM.addEl(dom.el, child.el)
+// 		}
+// 	}
+// }
+
 const main = () => {
+	// const dom = {
+	// 	el: document.getElementById("main")!,
+	// 	ch: {
+	// 		inputBar: {
+	// 			el: DOM.createDiv(),
+	// 			ch: {
+	// 				inputContainer: {
+	// 					el: DOM.createDiv(),
+	// 					ch: {}
+	// 				}
+	// 			}
+	// 		},
+	// 		plot: {
+	// 			el: DOM.createDiv(),
+	// 			ch: {}
+	// 		}
+	// 	}
+	// }
+	// stitch(dom)
+	// dom.ch.inputBar.ch.inputContainer.el.textContent = "test"
+
 	const mainEl = document.getElementById("main")!
 
 	const inputBarSize = 200
@@ -919,6 +952,10 @@ const main = () => {
 	plotContainer.style.height = "calc(100vh - 0px)"
 	plotContainer.style.overflowY = "scroll"
 	plotContainer.style.overflowX = "hidden"
+
+	const helpEl = DOM.addDiv(plotContainer)
+	DOM.addEl(helpEl, DOM.createDivWithText("Expected data format: csv file with at least these columns: pid,timepoint,titre,virus where `timepoint` has values `prevax` and `postvax` and titre is on the original scale (not log)"))
+	DOM.addEl(helpEl, DOM.createDivWithText("Also accepted: pretitre,posttitre,virus where `pretitre` and `posttitre` contain titres."))
 
 	const plotParent = DOM.addDiv(plotContainer)
 	plotParent.style.flexShrink = "0"
